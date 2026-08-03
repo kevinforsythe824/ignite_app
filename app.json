@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "ignite_app",
-    "slug": "ignite_app",
+    "name": "Ignite",
+    "slug": "ignite",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.ignite"
     },
     "android": {
       "adaptiveIcon": {

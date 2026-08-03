@@ -1,0 +1,290 @@
+[
+  {
+    "id": "v1",
+    "reference": "Luke 2:1",
+    "verse_text": "And it came to pass in those days, that there went out a decree from Caesar Augustus, that all the world should be taxed.",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And it came to pass in those days, that there'"
+      },
+      {
+        "rule_name": "1x Keyword",
+        "rule_category": "Index",
+        "notes": "Words marked as 1x frequency (blue highlight): 'decree', 'Caesar', 'Augustus'"
+      },
+      {
+        "rule_name": "3x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 3x frequency (orange highlight): 'taxed'"
+      },
+      {
+        "rule_name": "Proper Name",
+        "rule_category": "Index",
+        "notes": "Contains proper names: 'Caesar', 'Augustus'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "1x Keyword",
+      "3x Keyword",
+      "Proper Name"
+    ],
+    "index_code": "103-2b"
+  },
+  {
+    "id": "v2",
+    "reference": "Luke 2:2",
+    "verse_text": "(And this taxing was first made when Cyrenius was governor of Syria.)",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And this'"
+      },
+      {
+        "rule_name": "1x Keyword",
+        "rule_category": "Index",
+        "notes": "Words marked as 1x frequency (blue highlight): 'taxing', 'Cyrenius'"
+      },
+      {
+        "rule_name": "2x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 2x frequency (green highlight): 'Syria.'"
+      },
+      {
+        "rule_name": "3x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 3x frequency (orange highlight): 'first'"
+      },
+      {
+        "rule_name": "Proper Name",
+        "rule_category": "Index",
+        "notes": "Contains proper name: 'Cyrenius'"
+      },
+      {
+        "rule_name": "Geo Location",
+        "rule_category": "Index",
+        "notes": "Contains geographical location: 'Syria'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "1x Keyword",
+      "2x Keyword",
+      "3x Keyword",
+      "Proper Name",
+      "Geo Location"
+    ],
+    "index_code": "104-2b"
+  },
+  {
+    "id": "v3",
+    "reference": "Luke 2:3",
+    "verse_text": "And all went to be taxed, every one into his own city.",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And all went'"
+      },
+      {
+        "rule_name": "3x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 3x frequency (orange highlight): 'taxed'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "3x Keyword"
+    ],
+    "index_code": "105-2b"
+  },
+  {
+    "id": "v4",
+    "reference": "Luke 2:4",
+    "verse_text": "And Joseph also went up from Galilee, out of the city of Nazareth, into Judaea, unto the city of David, which is called Bethlehem; (because he was of the house and lineage of David:)",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And Joseph also'"
+      },
+      {
+        "rule_name": "1x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 1x frequency (blue highlight): 'lineage'"
+      },
+      {
+        "rule_name": "Proper Name",
+        "rule_category": "Index",
+        "notes": "Contains proper names: 'Joseph', 'David'"
+      },
+      {
+        "rule_name": "Geo Location",
+        "rule_category": "Index",
+        "notes": "Contains geographical locations: 'Galilee', 'Nazareth', 'Judaea', 'Bethlehem'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "1x Keyword",
+      "Proper Name",
+      "Geo Location"
+    ],
+    "index_code": "106-2b"
+  },
+  {
+    "id": "v5",
+    "reference": "Luke 2:5",
+    "verse_text": "To be taxed with Mary his espoused wife, being great with child.",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'To be'"
+      },
+      {
+        "rule_name": "3x Keyword",
+        "rule_category": "Index",
+        "notes": "Words marked as 3x frequency (orange highlight): 'taxed', 'espoused'"
+      },
+      {
+        "rule_name": "Proper Name",
+        "rule_category": "Index",
+        "notes": "Contains proper name: 'Mary'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "3x Keyword",
+      "Proper Name"
+    ],
+    "index_code": "107-2b"
+  },
+  {
+    "id": "v6",
+    "reference": "Luke 2:6",
+    "verse_text": "And so it was, that, while they were there, the days were accomplished that she should be delivered.",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And so it'"
+      }
+    ],
+    "tags": [
+      "Unique Beg."
+    ],
+    "index_code": "108-2b"
+  },
+  {
+    "id": "v7",
+    "reference": "Luke 2:7",
+    "verse_text": "And she brought forth her firstborn son, and wrapped him in swaddling clothes, and laid him in a manger; because there was no room for them in the inn.",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And she brought'"
+      },
+      {
+        "rule_name": "1x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 1x frequency (blue highlight): 'inn'"
+      },
+      {
+        "rule_name": "2x Keyword",
+        "rule_category": "Index",
+        "notes": "Words marked as 2x frequency (green highlight): 'firstborn', 'wrapped', 'swaddling', 'clothes'"
+      },
+      {
+        "rule_name": "3x Keyword",
+        "rule_category": "Index",
+        "notes": "Words marked as 3x frequency (orange highlight): 'laid', 'manger', 'room'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "1x Keyword",
+      "2x Keyword",
+      "3x Keyword"
+    ],
+    "index_code": "109-2b"
+  },
+  {
+    "id": "v8",
+    "reference": "Luke 2:8",
+    "verse_text": "And there were in the same country shepherds abiding in the field, keeping watch over their flock by night.",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And there were in'"
+      },
+      {
+        "rule_name": "1x Keyword",
+        "rule_category": "Index",
+        "notes": "Words marked as 1x frequency (blue highlight): 'field', 'keeping', 'watch', 'flock'"
+      },
+      {
+        "rule_name": "2x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 2x frequency (green highlight): 'abiding'"
+      },
+      {
+        "rule_name": "3x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 3x frequency (orange highlight): 'over'"
+      },
+      {
+        "rule_name": "Animals",
+        "rule_category": "Index",
+        "notes": "Contains reference to animals: 'flock'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "1x Keyword",
+      "2x Keyword",
+      "3x Keyword",
+      "Animals"
+    ],
+    "index_code": "110-2b"
+  },
+  {
+    "id": "v9",
+    "reference": "Luke 2:9",
+    "verse_text": "And, lo, the angel of the Lord came upon them, and the glory of the Lord shone round about them: and they were sore afraid.",
+    "matched_rules": [
+      {
+        "rule_name": "Unique Beg.",
+        "rule_category": "Structural",
+        "notes": "Matches unique beginning phrase: 'And, lo, the'"
+      },
+      {
+        "rule_name": "1x Keyword",
+        "rule_category": "Index",
+        "notes": "Words marked as 1x frequency (blue highlight): 'shone', 'sore'"
+      },
+      {
+        "rule_name": "2x Keyword",
+        "rule_category": "Index",
+        "notes": "Word marked as 2x frequency (green highlight): 'afraid'"
+      },
+      {
+        "rule_name": "Proper Name",
+        "rule_category": "Index",
+        "notes": "Contains proper name: 'Lord'"
+      }
+    ],
+    "tags": [
+      "Unique Beg.",
+      "1x Keyword",
+      "2x Keyword",
+      "Proper Name"
+    ],
+    "index_code": "111-2b"
+  }
+]
