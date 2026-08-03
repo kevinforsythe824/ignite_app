@@ -27,9 +27,16 @@ export type SegmentType =
   | 'highlight'
   | 'slash';
 
+/**
+ * Structural underlines from the index legend. A mark is independent of
+ * `SegmentType` because it runs straight through highlighted keywords.
+ */
+export type VerseMark = 'uniqueBeginning' | 'uniqueEnding' | 'question' | 'exclamation';
+
 export interface VerseSegment {
   type: SegmentType;
   content: string;
+  mark?: VerseMark;
 }
 
 export type CardStatus = 'unseen' | 'mastered' | 'practicing';
