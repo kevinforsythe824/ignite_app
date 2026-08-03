@@ -88,3 +88,86 @@ describe('parseVerseToSegments', () => {
     expect(combined).not.toContain(v1.index_code);
   });
 });
+
+describe('structural marks', () => {
+  function markVerse(ruleName: string, notes: string, verseText: string): Verse {
+    return {
+      ...v1,
+      verse_text: verseText,
+      matched_rules: [{ rule_name: ruleName, rule_category: 'Structural', notes }],
+    };
+  }
+
+  it('underlines the unique beginning and follows it with a slash', () => {
+    const segments = parseVerseToSegments(v1);
+
+    expect(segments[0]).toEqual({
+      type: 'text',
+      content: 'And it came to pass in those days, that there',
+      mark: 'uniqueBeginning',
+    });
+    expect(segments[1]).toEqual({ type: 'slash', content: '/' });
+  });
+
+  it('keeps the underline running through a highlighted keyword', () => {
+    const segments = parseVerseToSegments(mockVerseData[1] as Verse);
+
+    // Luke 2:2 opens `(And this taxing`, where `taxing` is a 1x keyword.
+    expect(segments[0]).toEqual({ type: 'text', content: '(And this ', mark: 'uniqueBeginning' });
+    expect(segments[1]).toEqual({ type: 'keyword1x', content: 'taxing', mark: 'uniqueBeginning' });
+    expect(segments[2]).toEqual({ type: 'slash', content: '/' });
+  });
+
+  it('precedes a unique ending with a backslash', () => {
+    const verse = markVerse(
+      'Unique End.',
+      "Matches unique ending phrase: 'sore afraid'",
+      'And they were sore afraid.',
+    );
+
+    const segments = parseVerseToSegments(verse);
+    const slashIndex = segments.findIndex((segment) => segment.type === 'slash');
+
+    expect(segments[slashIndex]).toEqual({ type: 'slash', content: '\\' });
+    expect(segments[slashIndex + 1]).toEqual({
+      type: 'text',
+      content: 'sore afraid',
+      mark: 'uniqueEnding',
+    });
+  });
+
+  it('marks questions and exclamations without adding a slash', () => {
+    const question = parseVerseToSegments(
+      markVerse('Questions', "Contains a question: 'Why is it'", 'Why is it that ye sought me?'),
+    );
+    const exclamation = parseVerseToSegments(
+      markVerse('Exclamations', "Contains an exclamation: 'Behold'", 'Behold, a great light!'),
+    );
+
+    expect(question[0].mark).toBe('question');
+    expect(exclamation[0].mark).toBe('exclamation');
+    expect([...question, ...exclamation].some((segment) => segment.type === 'slash')).toBe(false);
+  });
+
+  it('falls back to the terminating clause when a question rule quotes no phrase', () => {
+    const verse = markVerse('Questions', 'Verse contains a question.', 'He came. How long? Then he left.');
+    const marked = parseVerseToSegments(verse).filter((segment) => segment.mark === 'question');
+
+    expect(marked.map((segment) => segment.content).join('')).toBe('How long?');
+  });
+
+  it('does not add a second slash when the verse text already has one', () => {
+    const verse = markVerse('Unique Beg.', "Matches unique beginning phrase: 'And all went'", 'And all went / to be taxed.');
+
+    const slashes = parseVerseToSegments(verse).filter((segment) => segment.type === 'slash');
+    expect(slashes).toHaveLength(1);
+  });
+
+  it('ignores a phrase that does not appear in the verse text', () => {
+    const verse = markVerse('Unique Beg.', "Matches unique beginning phrase: 'Nowhere to be found'", 'And all went to be taxed.');
+
+    const segments = parseVerseToSegments(verse);
+    expect(segments.some((segment) => segment.mark !== undefined)).toBe(false);
+    expect(segments.some((segment) => segment.type === 'slash')).toBe(false);
+  });
+});
