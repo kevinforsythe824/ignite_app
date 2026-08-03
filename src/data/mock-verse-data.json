@@ -41,7 +41,7 @@
       {
         "rule_name": "Unique Beg.",
         "rule_category": "Structural",
-        "notes": "Matches unique beginning phrase: 'And this'"
+        "notes": "Matches unique beginning phrase: 'And this taxing'"
       },
       {
         "rule_name": "1x Keyword",
