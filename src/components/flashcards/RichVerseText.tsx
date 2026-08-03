@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle } from 'react-native';
 
 import { colors, radius, typography } from '../../constants/theme';
-import { SegmentType, VerseSegment } from '../../types/verse';
+import { SegmentType, VerseMark, VerseSegment } from '../../types/verse';
 
 export interface RichVerseTextProps {
   segments: VerseSegment[];
@@ -32,10 +32,38 @@ const segmentStyles: Record<SegmentType, TextStyle> = StyleSheet.create({
   },
 });
 
+/**
+ * Underlines layer over the keyword colour rather than replacing it, so a
+ * highlighted word inside a unique phrase keeps its tier and gains the line.
+ * `textDecorationColor` is honoured on iOS; Android draws the underline in the
+ * text colour.
+ */
+const markStyles: Record<VerseMark, TextStyle> = StyleSheet.create({
+  uniqueBeginning: {
+    textDecorationLine: 'underline',
+    textDecorationColor: colors.markUnique,
+  },
+  uniqueEnding: {
+    textDecorationLine: 'underline',
+    textDecorationColor: colors.markUnique,
+  },
+  question: {
+    textDecorationLine: 'underline',
+    textDecorationColor: colors.markQuestion,
+  },
+  exclamation: {
+    textDecorationLine: 'underline',
+    textDecorationColor: colors.markExclamation,
+  },
+});
+
 export const RichVerseText: React.FC<RichVerseTextProps> = ({ segments, style }) => (
   <Text style={[styles.body, style]}>
     {segments.map((segment, index) => (
-      <Text key={`${segment.type}-${index}`} style={segmentStyles[segment.type]}>
+      <Text
+        key={`${segment.type}-${segment.mark ?? 'plain'}-${index}`}
+        style={[segmentStyles[segment.type], segment.mark === undefined ? null : markStyles[segment.mark]]}
+      >
         {segment.content}
       </Text>
     ))}
