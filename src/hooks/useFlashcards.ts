@@ -1,6 +1,7 @@
 import { useContext, useMemo } from 'react';
 
 import { FlashcardSessionContext } from '../context/FlashcardSessionContext';
+import type { FlashcardSettings } from '../types/flashcards';
 import type { CardStatus, FlashcardDeck, Verse } from '../types/verse';
 
 export interface UseFlashcardsResult {
@@ -14,6 +15,7 @@ export interface UseFlashcardsResult {
   totalCards: number;
   currentStatus: CardStatus;
   statusById: Record<string, CardStatus>;
+  settings: FlashcardSettings;
   masteredCount: number;
   practicingCount: number;
   answeredCount: number;
@@ -25,6 +27,7 @@ export interface UseFlashcardsResult {
   goToNext: () => void;
   goToPrevious: () => void;
   goToIndex: (index: number) => void;
+  updateSettings: (patch: Partial<FlashcardSettings>) => void;
   resetSession: () => void;
 }
 
@@ -35,7 +38,7 @@ export function useFlashcards(): UseFlashcardsResult {
     throw new Error('useFlashcards must be used within a FlashcardSessionProvider');
   }
 
-  const { deck, currentIndex, statusById } = session;
+  const { deck, currentIndex, statusById, settings } = session;
   const verses = deck.verses;
 
   const counts = useMemo(() => {
@@ -67,6 +70,7 @@ export function useFlashcards(): UseFlashcardsResult {
     totalCards,
     currentStatus: currentVerse === undefined ? 'unseen' : statusById[currentVerse.id] ?? 'unseen',
     statusById,
+    settings,
     masteredCount: counts.mastered,
     practicingCount: counts.practicing,
     answeredCount,
@@ -77,6 +81,7 @@ export function useFlashcards(): UseFlashcardsResult {
     goToNext: session.goToNext,
     goToPrevious: session.goToPrevious,
     goToIndex: session.goToIndex,
+    updateSettings: session.updateSettings,
     resetSession: session.resetSession,
   };
 }

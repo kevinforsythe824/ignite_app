@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Flashcard from '../components/flashcards/Flashcard';
+import InSessionSettingsModal from '../components/flashcards/InSessionSettingsModal';
 import StudyHeader from '../components/flashcards/StudyHeader';
 import { spacing } from '../constants/spacing';
 import { colors, radius, shadows, typography } from '../constants/theme';
@@ -23,6 +24,7 @@ export const FlashcardStudyScreen: React.FC = () => {
     markPracticing,
     resetSession,
   } = useFlashcards();
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   const showCard = !isComplete && currentVerse !== undefined;
 
@@ -35,6 +37,7 @@ export const FlashcardStudyScreen: React.FC = () => {
         masteredCount={masteredCount}
         practicingCount={practicingCount}
         progress={progress}
+        onSettingsPress={() => setSettingsVisible(true)}
       />
 
       {showCard ? (
@@ -56,6 +59,11 @@ export const FlashcardStudyScreen: React.FC = () => {
           onRestart={resetSession}
         />
       )}
+
+      <InSessionSettingsModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+      />
     </SafeAreaView>
   );
 };
