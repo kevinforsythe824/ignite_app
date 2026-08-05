@@ -33,8 +33,18 @@ jest.mock('react-native-reanimated', () => {
     },
     useSharedValue: (initialValue) => ({ value: initialValue }),
     useAnimatedStyle: (updater) => updater(),
-    withTiming: (value) => value,
-    withSpring: (value) => value,
+    withTiming: (value, _config, callback) => {
+      if (typeof callback === 'function') {
+        callback(true);
+      }
+      return value;
+    },
+    withSpring: (value, _config, callback) => {
+      if (typeof callback === 'function') {
+        callback(true);
+      }
+      return value;
+    },
     interpolate: (_value, _inputRange, outputRange) => outputRange[0],
     Extrapolation: { CLAMP: 'clamp' },
     Easing: {
@@ -49,22 +59,32 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('react-native-gesture-handler', () => {
   const { View } = require('react-native');
 
+  const createChain = () => {
+    const chain = {};
+    const methods = [
+      'maxDistance',
+      'activeOffsetX',
+      'activeOffsetY',
+      'onStart',
+      'onUpdate',
+      'onEnd',
+      'onFinalize',
+      'enabled',
+    ];
+
+    for (const method of methods) {
+      chain[method] = () => chain;
+    }
+
+    return chain;
+  };
+
   return {
     GestureHandlerRootView: View,
     GestureDetector: ({ children }) => children,
     Gesture: {
-      Tap: () => ({
-        maxDistance: () => ({
-          onEnd: () => ({}),
-        }),
-      }),
-      Pan: () => ({
-        activeOffsetX: () => ({
-          onUpdate: () => ({
-            onEnd: () => ({}),
-          }),
-        }),
-      }),
+      Tap: () => createChain(),
+      Pan: () => createChain(),
       Exclusive: (...gestures) => gestures[0],
     },
   };

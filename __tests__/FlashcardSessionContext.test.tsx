@@ -3,6 +3,7 @@ import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 import { FlashcardSessionProvider } from '../src/context/FlashcardSessionContext';
 import useFlashcards, { type UseFlashcardsResult } from '../src/hooks/useFlashcards';
+import { DEFAULT_FLASHCARD_SETTINGS } from '../src/types/flashcards';
 import type { FlashcardDeck, Verse } from '../src/types/verse';
 
 const testVerses: Verse[] = [
@@ -81,6 +82,27 @@ describe('FlashcardSessionContext', () => {
     expect(session.currentVerse?.reference).toBe('Test 1:1');
     expect(session.currentStatus).toBe('unseen');
     expect(session.isComplete).toBe(false);
+    expect(session.settings).toEqual(DEFAULT_FLASHCARD_SETTINGS);
+  });
+
+  it('updates flashcard settings via updateSettings', () => {
+    const { getSession } = createSessionController();
+
+    act(() => {
+      getSession().updateSettings({
+        shuffleEnabled: true,
+        categoryFilter: 'QUESTIONS',
+        defaultSide: 'QUOTE',
+      });
+    });
+
+    const session = getSession();
+    expect(session.settings).toEqual({
+      ...DEFAULT_FLASHCARD_SETTINGS,
+      shuffleEnabled: true,
+      categoryFilter: 'QUESTIONS',
+      defaultSide: 'QUOTE',
+    });
   });
 
   it('marks mastered and advances to the next card', () => {
@@ -133,6 +155,7 @@ describe('FlashcardSessionContext', () => {
 
     act(() => {
       getSession().markMastered();
+      getSession().updateSettings({ shuffleEnabled: true, playAudioEnabled: true });
       getSession().resetSession();
     });
 
@@ -140,6 +163,7 @@ describe('FlashcardSessionContext', () => {
     expect(session.currentIndex).toBe(0);
     expect(session.statusById).toEqual({});
     expect(session.isComplete).toBe(false);
+    expect(session.settings).toEqual(DEFAULT_FLASHCARD_SETTINGS);
   });
 
   it('reports completion when every card has been answered', () => {

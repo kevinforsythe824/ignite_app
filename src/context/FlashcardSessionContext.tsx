@@ -2,6 +2,10 @@ import React, { createContext, useCallback, useMemo, useReducer } from 'react';
 import type { ReactNode } from 'react';
 
 import mockVerseData from '../data/mock-verse-data.json';
+import {
+  DEFAULT_FLASHCARD_SETTINGS,
+  type FlashcardSettings,
+} from '../types/flashcards';
 import type { CardStatus, FlashcardDeck, Verse } from '../types/verse';
 
 export type AnsweredStatus = Exclude<CardStatus, 'unseen'>;
@@ -15,6 +19,7 @@ export const DEFAULT_DECK: FlashcardDeck = {
 export interface FlashcardSessionState {
   currentIndex: number;
   statusById: Record<string, CardStatus>;
+  settings: FlashcardSettings;
 }
 
 export interface FlashcardSessionValue extends FlashcardSessionState {
@@ -24,6 +29,7 @@ export interface FlashcardSessionValue extends FlashcardSessionState {
   goToNext: () => void;
   goToPrevious: () => void;
   goToIndex: (index: number) => void;
+  updateSettings: (patch: Partial<FlashcardSettings>) => void;
   resetSession: () => void;
 }
 
@@ -32,11 +38,13 @@ type FlashcardSessionAction =
   | { type: 'next'; totalCards: number }
   | { type: 'previous' }
   | { type: 'goToIndex'; index: number; totalCards: number }
+  | { type: 'updateSettings'; patch: Partial<FlashcardSettings> }
   | { type: 'reset' };
 
 const INITIAL_STATE: FlashcardSessionState = {
   currentIndex: 0,
   statusById: {},
+  settings: DEFAULT_FLASHCARD_SETTINGS,
 };
 
 function clampIndex(index: number, totalCards: number): number {
@@ -50,6 +58,7 @@ function reducer(state: FlashcardSessionState, action: FlashcardSessionAction): 
   switch (action.type) {
     case 'answer':
       return {
+        ...state,
         currentIndex: clampIndex(state.currentIndex + 1, action.totalCards),
         statusById: { ...state.statusById, [action.verseId]: action.status },
       };
@@ -59,8 +68,23 @@ function reducer(state: FlashcardSessionState, action: FlashcardSessionAction): 
       return { ...state, currentIndex: Math.max(state.currentIndex - 1, 0) };
     case 'goToIndex':
       return { ...state, currentIndex: clampIndex(action.index, action.totalCards) };
+    case 'updateSettings':
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          ...action.patch,
+        },
+      };
     case 'reset':
-      return INITIAL_STATE;
+      return {
+        currentIndex: 0,
+        statusById: {},
+        settings: {
+          ...DEFAULT_FLASHCARD_SETTINGS,
+          indexLegendFilter: [...DEFAULT_FLASHCARD_SETTINGS.indexLegendFilter],
+        },
+      };
     default:
       return state;
   }
@@ -100,6 +124,9 @@ export function FlashcardSessionProvider({
     (index: number) => dispatch({ type: 'goToIndex', index, totalCards }),
     [totalCards],
   );
+  const updateSettings = useCallback((patch: Partial<FlashcardSettings>) => {
+    dispatch({ type: 'updateSettings', patch });
+  }, []);
   const resetSession = useCallback(() => dispatch({ type: 'reset' }), []);
 
   const value = useMemo<FlashcardSessionValue>(
@@ -107,22 +134,26 @@ export function FlashcardSessionProvider({
       deck,
       currentIndex: state.currentIndex,
       statusById: state.statusById,
+      settings: state.settings,
       markMastered,
       markPracticing,
       goToNext,
       goToPrevious,
       goToIndex,
+      updateSettings,
       resetSession,
     }),
     [
       deck,
       state.currentIndex,
       state.statusById,
+      state.settings,
       markMastered,
       markPracticing,
       goToNext,
       goToPrevious,
       goToIndex,
+      updateSettings,
       resetSession,
     ],
   );
