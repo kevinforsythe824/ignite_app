@@ -24,7 +24,23 @@ describe('InSessionSettingsModal', () => {
     expect(titles.length).toBeGreaterThan(0);
   });
 
-  it('invokes onClose when the close button is pressed', () => {
+  it('does not render a close (X) button', () => {
+    let renderer!: ReactTestRenderer;
+
+    act(() => {
+      renderer = TestRenderer.create(
+        <SafeAreaProvider>
+          <InSessionSettingsModal visible onClose={() => undefined} />
+        </SafeAreaProvider>,
+      );
+    });
+
+    expect(
+      renderer.root.findAllByProps({ accessibilityLabel: 'Close session settings' }),
+    ).toHaveLength(0);
+  });
+
+  it('invokes onClose when the backdrop is pressed', () => {
     const onClose = jest.fn();
     let renderer!: ReactTestRenderer;
 
@@ -36,10 +52,12 @@ describe('InSessionSettingsModal', () => {
       );
     });
 
-    const closeButton = renderer.root.findByProps({ accessibilityLabel: 'Close session settings' });
+    const dismissControl = renderer.root.findByProps({
+      accessibilityLabel: 'Dismiss session settings',
+    });
 
     act(() => {
-      closeButton.props.onPress();
+      dismissControl.props.onPress();
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
