@@ -5,22 +5,19 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { FlashcardSessionProvider } from '../../features/flashcards/state/FlashcardSessionContext';
 import { colors } from '../../shared/theme';
 
 export interface AppProvidersProps {
   children: ReactNode;
 }
 
-/** Root providers required by navigation, gestures, and flashcard sessions. */
+/** App-wide providers only. Feature session state mounts with its route. */
 export function AppProviders({ children }: AppProvidersProps): React.JSX.Element {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <FlashcardSessionProvider>
-          <StatusBar style="dark" />
-          {children}
-        </FlashcardSessionProvider>
+        <StatusBar style="dark" />
+        {children}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

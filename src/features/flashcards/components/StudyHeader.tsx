@@ -22,7 +22,7 @@ export interface StudyHeaderProps {
 
 const ICON_SIZE = 24;
 
-export const StudyHeader: React.FC<StudyHeaderProps> = ({
+export const StudyHeader: React.FC<StudyHeaderProps> = React.memo(({
   title,
   current,
   total,
@@ -69,7 +69,7 @@ export const StudyHeader: React.FC<StudyHeaderProps> = ({
       <ScorePill variant="mastered" count={masteredCount} />
     </View>
   </View>
-);
+));
 
 const styles = StyleSheet.create({
   container: {

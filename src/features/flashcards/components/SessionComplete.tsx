@@ -11,7 +11,7 @@ export interface SessionCompleteProps {
   onRestart: () => void;
 }
 
-export const SessionComplete: React.FC<SessionCompleteProps> = ({
+export const SessionComplete: React.FC<SessionCompleteProps> = React.memo(({
   masteredCount,
   practicingCount,
   totalCards,
@@ -31,7 +31,7 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
       <Text style={styles.restartLabel}>Study again</Text>
     </Pressable>
   </View>
-);
+));
 
 const styles = StyleSheet.create({
   completeSection: {

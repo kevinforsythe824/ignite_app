@@ -13,7 +13,7 @@ export interface FlashcardStudyActiveProps {
 }
 
 /** Active study body: flip/swipe card plus the tap hint. */
-export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = ({
+export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.memo(({
   verse,
   segments,
   onSwipeMastered,
@@ -30,7 +30,7 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = ({
     </View>
     <Text style={styles.hint}>Tap to flip</Text>
   </View>
-);
+));
 
 const styles = StyleSheet.create({
   cardSection: {
