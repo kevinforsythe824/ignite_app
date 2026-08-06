@@ -2,7 +2,7 @@
 
 Ignite is an Expo SDK 57 React Native app (TypeScript) for competitive Bible quiz study. Today the shipped feature is **Flashcards** on the Study tab; other PRD modules are scaffolded as placeholders behind a 5-tab shell.
 
-Read this first, then `AGENTS.md` and `.cursor/rules/` before changing code. Prefer [Expo SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/).
+**Sources of truth:** product/features/sprints → [`docs/PRD.md`](docs/PRD.md); engineering layout → this file. Also read `AGENTS.md` and `.cursor/rules/` before changing code. Prefer [Expo SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/).
 
 ---
 
@@ -12,9 +12,10 @@ Read this first, then `AGENTS.md` and `.cursor/rules/` before changing code. Pre
 ignite_app/
 ├── App.tsx                      # Root: AppProviders + RootNavigator
 ├── AGENTS.md                    # Expo SDK 57 reminder
-├── ARCHITECTURE.md              # This file
+├── ARCHITECTURE.md              # This file (engineering source of truth)
+├── docs/PRD.md                  # Product source of truth
 ├── __tests__/                   # Jest business-logic & smoke tests
-├── .cursor/rules/               # AI coding rules (architecture, RN, flashcards, refactoring)
+├── .cursor/rules/               # AI coding rules (incl. project-philosophy)
 ├── src/
 │   ├── app/                     # App shell only
 │   │   ├── navigation/          # React Navigation (stack + tabs)

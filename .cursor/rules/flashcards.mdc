@@ -6,6 +6,8 @@ alwaysApply: false
 
 # Flashcards Feature
 
+Product requirements for this module live in `docs/PRD.md` (Module A). Follow that PRD before changing flashcard behavior or scope.
+
 ## Separation of concerns
 
 - Parsing logic must remain pure.

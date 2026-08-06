@@ -7,7 +7,8 @@ alwaysApply: true
 
 This is an Expo SDK 57 React Native project written in TypeScript.
 
-Before making changes, follow the project's `AGENTS.md`.
+Before making changes, follow the project's `AGENTS.md` and `ARCHITECTURE.md`.
+For product scope, modules, and sprints, read and follow `docs/PRD.md`.
 
 ## Feature-first organization
 

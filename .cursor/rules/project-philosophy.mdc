@@ -7,8 +7,9 @@ alwaysApply: true
 
 ## Sources of truth
 
-- Treat the PRD as the product source of truth.
-- Treat `ARCHITECTURE.md` as the engineering source of truth.
+- Treat [`docs/PRD.md`](docs/PRD.md) as the product source of truth.
+- Before making product or feature decisions, read and follow `docs/PRD.md`.
+- Treat [`ARCHITECTURE.md`](ARCHITECTURE.md) as the engineering source of truth.
 - Prefer extending existing patterns instead of inventing new ones.
 
 ## Change discipline
