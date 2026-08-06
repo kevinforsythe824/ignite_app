@@ -2,6 +2,7 @@ import {
   clampIndex,
   flashcardSessionReducer,
   INITIAL_SESSION_STATE,
+  type FlashcardSessionState,
 } from '../src/features/flashcards/state/flashcardSessionReducer';
 
 describe('clampIndex', () => {
@@ -66,7 +67,7 @@ describe('flashcardSessionReducer', () => {
   });
 
   it('clamps on the last card after answering', () => {
-    const onLastCard = {
+    const onLastCard: FlashcardSessionState = {
       currentIndex: 2,
       statusById: { v1: 'mastered', v2: 'practicing' },
     };
