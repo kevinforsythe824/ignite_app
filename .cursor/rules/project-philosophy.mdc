@@ -1,0 +1,27 @@
+---
+description: Project AI operating manual — product truth, change discipline, and delivery style
+alwaysApply: true
+---
+
+# Project Philosophy
+
+## Sources of truth
+
+- Treat the PRD as the product source of truth.
+- Treat `ARCHITECTURE.md` as the engineering source of truth.
+- Prefer extending existing patterns instead of inventing new ones.
+
+## Change discipline
+
+- Prefer small, incremental, reviewable changes over sweeping rewrites.
+- Ask for confirmation before introducing new dependencies.
+- Ask for confirmation before changing the folder structure.
+- Ask for confirmation before making large architectural shifts.
+- Preserve existing behavior unless a change is explicitly requested.
+
+## Delivery style
+
+- Explain significant design decisions briefly and clearly.
+- Keep responses practical, concise, and implementation-focused.
+- When refactoring, favor clarity, consistency, and maintainability.
+- Avoid unnecessary abstractions unless they solve a real repeated problem.
