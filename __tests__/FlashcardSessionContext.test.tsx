@@ -158,5 +158,43 @@ describe('FlashcardSessionContext', () => {
     const session = getSession();
     expect(session.isComplete).toBe(true);
     expect(session.answeredCount).toBe(3);
+    expect(session.showCard).toBe(false);
+  });
+
+  it('exposes parsed segments for the current verse', () => {
+    const verseWithKeyword: Verse = {
+      ...testVerses[0],
+      verse_text: "Remember 'grace' today.",
+      matched_rules: [
+        {
+          rule_name: '1x Keyword',
+          rule_category: 'Index',
+          notes: "Words marked as 1x frequency (blue highlight): 'grace'",
+        },
+      ],
+    };
+
+    const { getSession } = createSessionController({
+      ...testDeck,
+      verses: [verseWithKeyword, testVerses[1], testVerses[2]],
+    });
+
+    const session = getSession();
+    expect(session.currentSegments.length).toBeGreaterThan(0);
+    expect(session.currentSegments.some((segment) => segment.content === 'grace')).toBe(true);
+    expect(session.showCard).toBe(true);
+  });
+
+  it('throws when useFlashcards is used outside the provider', () => {
+    function BrokenProbe(): null {
+      useFlashcards();
+      return null;
+    }
+
+    expect(() => {
+      act(() => {
+        TestRenderer.create(<BrokenProbe />);
+      });
+    }).toThrow(/FlashcardSessionProvider/);
   });
 });
