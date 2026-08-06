@@ -2,8 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import { colors, radius, typography } from '../../constants/theme';
-import { spacing } from '../../constants/spacing';
+import { colors, radius, spacing, typography } from '../../../shared/theme';
 
 export type ScorePillVariant = 'mastered' | 'practicing';
 

@@ -2,9 +2,9 @@ import { render } from '@testing-library/react-native';
 import React from 'react';
 import { StyleSheet, TextStyle } from 'react-native';
 
-import RichVerseText from '../src/components/flashcards/RichVerseText';
-import { colors } from '../src/constants/theme';
-import type { VerseSegment } from '../src/types/verse';
+import RichVerseText from '../src/features/flashcards/components/RichVerseText';
+import type { VerseSegment } from '../src/features/flashcards/types/verse';
+import { colors } from '../src/shared/theme';
 
 type Queries = Awaited<ReturnType<typeof render>>;
 

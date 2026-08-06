@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle } from 'react-native';
 
-import { colors, radius, typography } from '../../constants/theme';
-import { SegmentType, VerseMark, VerseSegment } from '../../types/verse';
+import { colors, radius, typography } from '../../../shared/theme';
+import { SegmentType, VerseMark, VerseSegment } from '../types/verse';
 
 export interface RichVerseTextProps {
   segments: VerseSegment[];

@@ -1,9 +1,8 @@
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import { spacing } from '../../constants/spacing';
-import { typography } from '../../constants/theme';
-import type { Verse } from '../../types/verse';
+import { spacing, typography } from '../../../shared/theme';
+import type { Verse } from '../types/verse';
 
 export interface FlashcardFrontProps {
   verse: Verse;

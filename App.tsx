@@ -4,8 +4,8 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { colors } from './src/constants/theme';
-import { FlashcardSessionProvider } from './src/context/FlashcardSessionContext';
+import { colors } from './src/shared/theme';
+import { FlashcardSessionProvider } from './src/features/flashcards/state/FlashcardSessionContext';
 import FlashcardStudyScreen from './src/screens/FlashcardStudyScreen';
 
 export default function App(): React.JSX.Element {

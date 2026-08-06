@@ -1,9 +1,9 @@
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
-import { FlashcardSessionProvider } from '../src/context/FlashcardSessionContext';
-import useFlashcards, { type UseFlashcardsResult } from '../src/hooks/useFlashcards';
-import type { FlashcardDeck, Verse } from '../src/types/verse';
+import { FlashcardSessionProvider } from '../src/features/flashcards/state/FlashcardSessionContext';
+import useFlashcards, { type UseFlashcardsResult } from '../src/features/flashcards/hooks/useFlashcards';
+import type { FlashcardDeck, Verse } from '../src/features/flashcards/types/verse';
 
 const testVerses: Verse[] = [
   {

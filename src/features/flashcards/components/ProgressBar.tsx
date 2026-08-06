@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { DimensionValue, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { colors, radius } from '../../constants/theme';
+import { colors, radius } from '../../../shared/theme';
 
 export interface ProgressBarProps {
   /** Completion ratio between 0 and 1. Values outside the range are clamped. */

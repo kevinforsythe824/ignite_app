@@ -13,14 +13,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { spacing } from '../../constants/spacing';
-import { colors, radius, shadows } from '../../constants/theme';
-import type { Verse } from '../../types/verse';
+import { colors, radius, shadows, spacing } from '../../../shared/theme';
+import type { Verse, VerseSegment } from '../types/verse';
 import FlashcardBack from './FlashcardBack';
 import FlashcardFront from './FlashcardFront';
 
 export interface FlashcardProps {
   verse: Verse;
+  /** Pre-parsed quote-side segments from the feature domain utils. */
+  segments: VerseSegment[];
   /** Swipe right — card answered correctly. */
   onSwipeMastered: () => void;
   /** Swipe left — card needs more practice. */
@@ -44,6 +45,7 @@ const CHROME_ICON_SIZE = 22;
 
 export const Flashcard: React.FC<FlashcardProps> = ({
   verse,
+  segments,
   onSwipeMastered,
   onSwipePracticing,
   style,
@@ -166,7 +168,7 @@ export const Flashcard: React.FC<FlashcardProps> = ({
       <Animated.View style={[styles.container, style, containerStyle]}>
         <Animated.View style={[styles.face, quoteFaceStyle]}>
           <CardChrome />
-          <FlashcardBack verse={verse} />
+          <FlashcardBack segments={segments} indexCode={verse.index_code} />
         </Animated.View>
 
         <Animated.View style={[styles.face, locateFaceStyle]}>

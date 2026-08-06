@@ -1,13 +1,16 @@
 import { useContext, useMemo } from 'react';
 
-import { FlashcardSessionContext } from '../context/FlashcardSessionContext';
-import type { CardStatus, FlashcardDeck, Verse } from '../types/verse';
+import { FlashcardSessionContext } from '../state/FlashcardSessionContext';
+import type { CardStatus, FlashcardDeck, Verse, VerseSegment } from '../types/verse';
+import { parseVerseToSegments } from '../utils/parseVerseToSegments';
 
 export interface UseFlashcardsResult {
   deck: FlashcardDeck;
   verses: Verse[];
   /** `undefined` only when the deck is empty — consumers should guard. */
   currentVerse: Verse | undefined;
+  /** Parsed quote-side segments for `currentVerse`; empty when none. */
+  currentSegments: VerseSegment[];
   currentIndex: number;
   /** 1-based position for the "3/9" counter. */
   currentCardNumber: number;
@@ -20,6 +23,8 @@ export interface UseFlashcardsResult {
   /** Deck position as 0–1, matching the header counter. */
   progress: number;
   isComplete: boolean;
+  /** True when there is an unanswered card to show. */
+  showCard: boolean;
   markMastered: () => void;
   markPracticing: () => void;
   goToNext: () => void;
@@ -57,11 +62,19 @@ export function useFlashcards(): UseFlashcardsResult {
   const totalCards = verses.length;
   const currentVerse = verses[currentIndex];
   const answeredCount = counts.mastered + counts.practicing;
+  const isComplete = totalCards > 0 && answeredCount === totalCards;
+  const showCard = !isComplete && currentVerse !== undefined;
+
+  const currentSegments = useMemo(
+    () => (currentVerse === undefined ? [] : parseVerseToSegments(currentVerse)),
+    [currentVerse],
+  );
 
   return {
     deck,
     verses,
     currentVerse,
+    currentSegments,
     currentIndex,
     currentCardNumber: totalCards === 0 ? 0 : currentIndex + 1,
     totalCards,
@@ -71,7 +84,8 @@ export function useFlashcards(): UseFlashcardsResult {
     practicingCount: counts.practicing,
     answeredCount,
     progress: totalCards === 0 ? 0 : (currentIndex + 1) / totalCards,
-    isComplete: totalCards > 0 && answeredCount === totalCards,
+    isComplete,
+    showCard,
     markMastered: session.markMastered,
     markPracticing: session.markPracticing,
     goToNext: session.goToNext,

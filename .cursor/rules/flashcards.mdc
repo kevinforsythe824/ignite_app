@@ -1,6 +1,6 @@
 ---
 description: Conventions for the Flashcards feature
-globs: **/flashcards/**,**/*Flashcard*,**/parseVerseToSegments.ts,**/types/verse.ts
+globs: **/features/flashcards/**,**/*Flashcard*,**/parseVerseToSegments.ts
 alwaysApply: false
 ---
 

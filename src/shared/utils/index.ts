@@ -1,2 +1,1 @@
-/** Shared pure utilities used by more than one feature. */
-export {};
+export { shuffleArray } from './shuffleArray';

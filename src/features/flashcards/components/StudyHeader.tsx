@@ -2,8 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import { colors, typography } from '../../constants/theme';
-import { spacing } from '../../constants/spacing';
+import { colors, spacing, typography } from '../../../shared/theme';
 import ProgressBar from './ProgressBar';
 import ScorePill from './ScorePill';
 

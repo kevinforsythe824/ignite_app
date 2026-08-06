@@ -1,6 +1,6 @@
 import mockVerseData from '../src/data/mock-verse-data.json';
-import type { MatchedRule, Verse } from '../src/types/verse';
-import { buildKeywordMap, parseVerseToSegments } from '../src/utils/parseVerseToSegments';
+import type { MatchedRule, Verse } from '../src/features/flashcards/types/verse';
+import { buildKeywordMap, parseVerseToSegments } from '../src/features/flashcards/utils/parseVerseToSegments';
 
 const v1 = mockVerseData[0] as Verse;
 

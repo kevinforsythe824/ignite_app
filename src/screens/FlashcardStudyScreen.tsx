@@ -1,30 +1,29 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import Flashcard from '../components/flashcards/Flashcard';
-import StudyHeader from '../components/flashcards/StudyHeader';
-import { spacing } from '../constants/spacing';
-import { colors, radius, shadows, typography } from '../constants/theme';
-import useFlashcards from '../hooks/useFlashcards';
+import FlashcardStudyActive from '../features/flashcards/components/FlashcardStudyActive';
+import SessionComplete from '../features/flashcards/components/SessionComplete';
+import StudyHeader from '../features/flashcards/components/StudyHeader';
+import useFlashcards from '../features/flashcards/hooks/useFlashcards';
+import { colors } from '../shared/theme';
 
+/** Thin study screen: hooks + feature components only. */
 export const FlashcardStudyScreen: React.FC = () => {
   const {
     deck,
     currentVerse,
+    currentSegments,
     currentCardNumber,
     totalCards,
     masteredCount,
     practicingCount,
     progress,
-    isComplete,
+    showCard,
     markMastered,
     markPracticing,
     resetSession,
   } = useFlashcards();
-
-  const showCard = !isComplete && currentVerse !== undefined;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -37,17 +36,13 @@ export const FlashcardStudyScreen: React.FC = () => {
         progress={progress}
       />
 
-      {showCard ? (
-        <View style={styles.cardSection}>
-          <View style={styles.cardArea}>
-            <Flashcard
-              verse={currentVerse}
-              onSwipeMastered={markMastered}
-              onSwipePracticing={markPracticing}
-            />
-          </View>
-          <Text style={styles.hint}>Tap to flip</Text>
-        </View>
+      {showCard && currentVerse !== undefined ? (
+        <FlashcardStudyActive
+          verse={currentVerse}
+          segments={currentSegments}
+          onSwipeMastered={markMastered}
+          onSwipePracticing={markPracticing}
+        />
       ) : (
         <SessionComplete
           masteredCount={masteredCount}
@@ -60,81 +55,10 @@ export const FlashcardStudyScreen: React.FC = () => {
   );
 };
 
-interface SessionCompleteProps {
-  masteredCount: number;
-  practicingCount: number;
-  totalCards: number;
-  onRestart: () => void;
-}
-
-const SessionComplete: React.FC<SessionCompleteProps> = ({
-  masteredCount,
-  practicingCount,
-  totalCards,
-  onRestart,
-}) => (
-  <View style={styles.completeSection}>
-    <Ionicons name="trophy-outline" size={56} color={colors.accentRed} />
-    <Text style={styles.completeTitle}>Deck complete</Text>
-    <Text style={styles.completeSummary}>
-      {`${masteredCount} mastered · ${practicingCount} to practice · ${totalCards} cards`}
-    </Text>
-    <Pressable
-      onPress={onRestart}
-      accessibilityRole="button"
-      style={({ pressed }) => [styles.restartButton, pressed && styles.restartButtonPressed]}
-    >
-      <Text style={styles.restartLabel}>Study again</Text>
-    </Pressable>
-  </View>
-);
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  cardSection: {
-    flex: 1,
-    paddingHorizontal: spacing.screenPaddingH,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  cardArea: {
-    flex: 1,
-  },
-  hint: {
-    ...typography.hint,
-    textAlign: 'center',
-    marginTop: spacing.lg,
-  },
-  completeSection: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.screenPaddingH,
-    gap: spacing.md,
-  },
-  completeTitle: {
-    ...typography.verseReference,
-  },
-  completeSummary: {
-    ...typography.hint,
-    textAlign: 'center',
-  },
-  restartButton: {
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cardWhite,
-    ...shadows.card,
-  },
-  restartButtonPressed: {
-    opacity: 0.7,
-  },
-  restartLabel: {
-    ...typography.title,
   },
 });
 

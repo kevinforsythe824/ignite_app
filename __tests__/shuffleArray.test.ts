@@ -1,4 +1,4 @@
-import shuffleArray from '../src/utils/shuffleArray';
+import shuffleArray from '../src/shared/utils/shuffleArray';
 
 describe('shuffleArray', () => {
   it('returns a new array without mutating the input', () => {
