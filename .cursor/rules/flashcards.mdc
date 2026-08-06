@@ -1,0 +1,23 @@
+---
+description: Conventions for the Flashcards feature
+globs: **/flashcards/**,**/*Flashcard*,**/parseVerseToSegments.ts,**/types/verse.ts
+alwaysApply: false
+---
+
+# Flashcards Feature
+
+## Separation of concerns
+
+- Parsing logic must remain pure.
+- UI components never perform parsing.
+- Business rules belong in the feature domain.
+- Memorization logic stays isolated from presentation.
+- Components remain presentation-focused.
+- Never mix Firebase code directly into UI components.
+
+## Feature structure
+
+- Session state belongs in feature state management.
+- Reusable feature hooks belong in `hooks`.
+- Utilities belong in `utils`.
+- Domain types belong in `types`.
