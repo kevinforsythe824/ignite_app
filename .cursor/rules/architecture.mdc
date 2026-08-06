@@ -1,0 +1,34 @@
+---
+description: Project-wide architecture for this Expo SDK 57 React Native TypeScript app
+alwaysApply: true
+---
+
+# Architecture
+
+This is an Expo SDK 57 React Native project written in TypeScript.
+
+Before making changes, follow the project's `AGENTS.md`.
+
+## Feature-first organization
+
+- Organize code using feature-first architecture.
+- Feature-specific code belongs only inside its feature folder.
+- Shared reusable code belongs in `src/shared`.
+
+## Layering
+
+- Screens should be thin and only compose components and hooks.
+- Business logic belongs in hooks, reducers, services, or domain modules.
+- Never duplicate business logic.
+
+## Design principles
+
+- Prefer composition over inheritance.
+- Prefer small reusable components.
+- Favor explicit, readable code over clever abstractions.
+- Don't create abstractions until there are at least two real use cases.
+
+## Refactors
+
+- Preserve existing behavior during refactors.
+- Never perform large architectural rewrites without explaining the plan first.
