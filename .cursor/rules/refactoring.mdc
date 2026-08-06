@@ -1,0 +1,29 @@
+---
+description: How to plan, execute, and verify refactors
+alwaysApply: true
+---
+
+# Refactoring
+
+## Before changing code
+
+- Explain the plan.
+- List affected files.
+- Explain risks.
+
+## During refactoring
+
+- Preserve behavior.
+- Move code before rewriting code.
+- Keep commits small.
+- Avoid unnecessary renaming.
+- Do not introduce breaking changes.
+- Keep imports clean.
+- Preserve public APIs whenever possible.
+
+## After refactoring
+
+- Verify TypeScript builds.
+- Verify imports.
+- Remove dead code.
+- Explain the completed changes.
