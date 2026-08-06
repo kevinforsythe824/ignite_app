@@ -1,0 +1,29 @@
+---
+description: React Native and Expo SDK 57 coding standards
+alwaysApply: true
+---
+
+# React Native & Expo
+
+This project uses Expo SDK 57. Use Expo SDK 57 APIs only and avoid deprecated APIs. Follow React best practices.
+
+## Components
+
+- Functional components only.
+- Prefer hooks over classes.
+- Keep components focused.
+- Components should generally stay under 250 lines.
+- Prefer named exports.
+
+## State & effects
+
+- Prefer derived state instead of duplicated state.
+- Avoid unnecessary `useEffect` calls.
+- Prefer memoization only when needed.
+- Avoid prop drilling when context or composition is better.
+
+## TypeScript & structure
+
+- TypeScript everywhere.
+- Keep imports organized.
+- Keep files easy to navigate.
