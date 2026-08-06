@@ -1,2 +1,3 @@
-/** Root navigators and route type definitions. */
-export {};
+export { BottomTabNavigator } from './BottomTabNavigator';
+export { RootNavigator } from './RootNavigator';
+export type { MainTabParamList, RootStackParamList } from './types';

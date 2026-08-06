@@ -1,2 +1,1 @@
-/** App-wide providers composed at the root. */
-export {};
+export { AppProviders } from './AppProviders';

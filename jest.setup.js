@@ -8,12 +8,23 @@ jest.mock('@expo/vector-icons', () => {
 });
 
 jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
   const { View } = require('react-native');
+  const actual = jest.requireActual('react-native-safe-area-context');
+
+  const insets = { top: 0, right: 0, bottom: 0, left: 0 };
+  const frame = { x: 0, y: 0, width: 390, height: 844 };
+  const initialMetrics = { frame, insets };
 
   return {
-    SafeAreaProvider: ({ children }) => children,
+    ...actual,
+    // Keep a real provider so React Navigation's SafeAreaProviderCompat works.
+    SafeAreaProvider: ({ children, initialMetrics: metrics = initialMetrics }) =>
+      React.createElement(actual.SafeAreaProvider, { initialMetrics: metrics }, children),
     SafeAreaView: View,
-    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+    useSafeAreaInsets: () => insets,
+    useSafeAreaFrame: () => frame,
+    initialWindowMetrics: initialMetrics,
   };
 });
 

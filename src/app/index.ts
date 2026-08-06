@@ -1,2 +1,2 @@
-/** App shell: navigation and providers. */
-export {};
+export { AppProviders } from './providers';
+export { RootNavigator } from './navigation';

@@ -26,7 +26,7 @@ export const FlashcardStudyScreen: React.FC = () => {
   } = useFlashcards();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StudyHeader
         title={deck.title}
         current={currentCardNumber}
