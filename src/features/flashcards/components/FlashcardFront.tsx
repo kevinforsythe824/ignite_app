@@ -9,7 +9,7 @@ export interface FlashcardFrontProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Locate side — the verse reference on its own, centered. */
+/** Quote side — the verse reference on its own, centered. */
 export const FlashcardFront: React.FC<FlashcardFrontProps> = React.memo(({ verse, style }) => (
   <View style={[styles.container, style]}>
     <Text style={styles.reference}>{verse.reference}</Text>

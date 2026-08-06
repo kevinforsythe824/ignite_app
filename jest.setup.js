@@ -50,8 +50,10 @@ jest.mock('react-native-reanimated', () => {
     Extrapolation: { CLAMP: 'clamp' },
     Easing: {
       inOut: (fn) => fn,
+      in: (fn) => fn,
       out: (fn) => fn,
       cubic: (value) => value,
+      quad: (value) => value,
     },
     runOnJS: (fn) => fn,
   };
@@ -60,22 +62,30 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('react-native-gesture-handler', () => {
   const { View } = require('react-native');
 
+  const chainable = () => {
+    const api = {};
+    const methods = [
+      'maxDistance',
+      'activeOffsetX',
+      'activeOffsetY',
+      'onBegin',
+      'onStart',
+      'onUpdate',
+      'onEnd',
+      'onFinalize',
+    ];
+    for (const method of methods) {
+      api[method] = () => api;
+    }
+    return api;
+  };
+
   return {
     GestureHandlerRootView: View,
     GestureDetector: ({ children }) => children,
     Gesture: {
-      Tap: () => ({
-        maxDistance: () => ({
-          onEnd: () => ({}),
-        }),
-      }),
-      Pan: () => ({
-        activeOffsetX: () => ({
-          onUpdate: () => ({
-            onEnd: () => ({}),
-          }),
-        }),
-      }),
+      Tap: () => chainable(),
+      Pan: () => chainable(),
       Exclusive: (...gestures) => gestures[0],
     },
   };

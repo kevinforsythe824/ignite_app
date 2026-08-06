@@ -185,6 +185,52 @@ describe('FlashcardSessionContext', () => {
     expect(session.showCard).toBe(true);
   });
 
+  it('updates settings and rebuilds the study order for category filters', () => {
+    const filteredDeck: FlashcardDeck = {
+      ...testDeck,
+      verses: [
+        { ...testVerses[0], tags: ['Unique Beg.'] },
+        { ...testVerses[1], tags: ['Questions'] },
+        { ...testVerses[2], tags: ['Unique End.'] },
+      ],
+    };
+    const { getSession } = createSessionController(filteredDeck);
+
+    act(() => {
+      getSession().toggleCategoryFilter('uniqueBeginning');
+    });
+
+    let session = getSession();
+    expect(session.settings.categoryFilters).toEqual(['uniqueBeginning']);
+    expect(session.totalCards).toBe(1);
+    expect(session.currentVerse?.id).toBe('t1');
+
+    act(() => {
+      getSession().setDefaultSide('quote');
+      getSession().setPlayAudio(true);
+      getSession().setShuffleCards(true);
+    });
+
+    session = getSession();
+    expect(session.settings.defaultSide).toBe('quote');
+    expect(session.settings.playAudio).toBe(true);
+    expect(session.settings.shuffleCards).toBe(true);
+  });
+
+  it('restarts flashcards and clears progress', () => {
+    const { getSession } = createSessionController();
+
+    act(() => {
+      getSession().markMastered();
+      getSession().restartFlashcards();
+    });
+
+    const session = getSession();
+    expect(session.currentIndex).toBe(0);
+    expect(session.statusById).toEqual({});
+    expect(session.isComplete).toBe(false);
+  });
+
   it('throws when useFlashcards is used outside the provider', () => {
     function BrokenProbe(): null {
       useFlashcards();

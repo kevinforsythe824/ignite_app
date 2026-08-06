@@ -1,12 +1,14 @@
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useCallback } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import FlashcardSettingsPanel from '../features/flashcards/components/FlashcardSettingsPanel';
 import FlashcardStudyActive from '../features/flashcards/components/FlashcardStudyActive';
 import SessionComplete from '../features/flashcards/components/SessionComplete';
+import SettingsBottomSheet from '../features/flashcards/components/SettingsBottomSheet';
 import StudyHeader from '../features/flashcards/components/StudyHeader';
 import useFlashcards from '../features/flashcards/hooks/useFlashcards';
-import { colors } from '../shared/theme';
+import { colors, spacing, typography } from '../shared/theme';
 
 /** Thin study screen: hooks + feature components only. */
 export const FlashcardStudyScreen: React.FC = () => {
@@ -20,10 +22,49 @@ export const FlashcardStudyScreen: React.FC = () => {
     practicingCount,
     progress,
     showCard,
+    settings,
     markMastered,
     markPracticing,
-    resetSession,
+    restartFlashcards,
+    setShuffleCards,
+    setPlayAudio,
+    setDefaultSide,
+    toggleCategoryFilter,
+    isSettingsOpen,
+    openSettings,
+    closeSettings,
   } = useFlashcards();
+
+  const handleRestart = useCallback(() => {
+    restartFlashcards();
+    closeSettings();
+  }, [restartFlashcards, closeSettings]);
+
+  const body =
+    showCard && currentVerse !== undefined ? (
+      <FlashcardStudyActive
+        verse={currentVerse}
+        segments={currentSegments}
+        defaultSide={settings.defaultSide}
+        playAudio={settings.playAudio}
+        onSwipeMastered={markMastered}
+        onSwipePracticing={markPracticing}
+      />
+    ) : totalCards === 0 ? (
+      <View style={styles.emptyFilter}>
+        <Text style={styles.emptyTitle}>No cards match</Text>
+        <Text style={styles.emptyCopy}>
+          Clear or change category filters in Settings to continue studying.
+        </Text>
+      </View>
+    ) : (
+      <SessionComplete
+        masteredCount={masteredCount}
+        practicingCount={practicingCount}
+        totalCards={totalCards}
+        onRestart={restartFlashcards}
+      />
+    );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -34,23 +75,21 @@ export const FlashcardStudyScreen: React.FC = () => {
         masteredCount={masteredCount}
         practicingCount={practicingCount}
         progress={progress}
+        onSettingsPress={openSettings}
       />
 
-      {showCard && currentVerse !== undefined ? (
-        <FlashcardStudyActive
-          verse={currentVerse}
-          segments={currentSegments}
-          onSwipeMastered={markMastered}
-          onSwipePracticing={markPracticing}
+      {body}
+
+      <SettingsBottomSheet visible={isSettingsOpen} onClose={closeSettings}>
+        <FlashcardSettingsPanel
+          settings={settings}
+          onToggleCategory={toggleCategoryFilter}
+          onShuffleChange={setShuffleCards}
+          onPlayAudioChange={setPlayAudio}
+          onDefaultSideChange={setDefaultSide}
+          onRestart={handleRestart}
         />
-      ) : (
-        <SessionComplete
-          masteredCount={masteredCount}
-          practicingCount={practicingCount}
-          totalCards={totalCards}
-          onRestart={resetSession}
-        />
-      )}
+      </SettingsBottomSheet>
     </SafeAreaView>
   );
 };
@@ -59,6 +98,20 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  emptyFilter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.screenPaddingH,
+    gap: spacing.sm,
+  },
+  emptyTitle: {
+    ...typography.verseReference,
+  },
+  emptyCopy: {
+    ...typography.hint,
+    textAlign: 'center',
   },
 });
 

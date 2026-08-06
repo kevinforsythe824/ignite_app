@@ -15,7 +15,16 @@ export {
   INITIAL_SESSION_STATE,
   clampIndex,
 } from './flashcardSessionReducer';
-export { countAnsweredStatuses, deriveFlashcardSession } from './deriveFlashcardSession';
+export {
+  flashcardSettingsReducer,
+  INITIAL_SETTINGS_STATE,
+} from './flashcardSettingsReducer';
+export {
+  countAnsweredStatuses,
+  countActiveAnsweredStatuses,
+  deriveFlashcardSession,
+  resolveStudyVerses,
+} from './deriveFlashcardSession';
 export type {
   FlashcardSessionView,
   FlashcardSessionViewWithSegments,

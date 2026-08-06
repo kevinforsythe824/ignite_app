@@ -11,7 +11,7 @@ export interface FlashcardBackProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Quote side — rich verse body with the competitive index code beneath it. */
+/** Locate side — rich verse body with the competitive index code beneath it. */
 export const FlashcardBack: React.FC<FlashcardBackProps> = React.memo(({ segments, indexCode, style }) => (
   <View style={[styles.container, style]}>
     <RichVerseText segments={segments} />

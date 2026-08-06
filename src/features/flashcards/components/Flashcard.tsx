@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { colors, radius, shadows, spacing } from '../../../shared/theme';
+import type { CardSide } from '../types/settings';
 import type { Verse, VerseSegment } from '../types/verse';
 import FlashcardBack from './FlashcardBack';
 import FlashcardFront from './FlashcardFront';
@@ -22,11 +23,20 @@ export interface FlashcardProps {
   verse: Verse;
   /** Pre-parsed quote-side segments from the feature domain utils. */
   segments: VerseSegment[];
+  /** Which face is shown when a new card arrives. */
+  defaultSide?: CardSide;
+  /** When true, the speaker affordance renders as active. */
+  playAudio?: boolean;
   /** Swipe right — card answered correctly. */
   onSwipeMastered: () => void;
   /** Swipe left — card needs more practice. */
   onSwipePracticing: () => void;
   style?: StyleProp<ViewStyle>;
+}
+
+/** Locate = verse face (0°); Quote = reference face (180°). */
+function rotationForSide(side: CardSide): number {
+  return side === 'quote' ? 180 : 0;
 }
 
 type SwipeDirection = 'left' | 'right';
@@ -46,11 +56,13 @@ const CHROME_ICON_SIZE = 22;
 export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   verse,
   segments,
+  defaultSide = 'locate',
+  playAudio = false,
   onSwipeMastered,
   onSwipePracticing,
   style,
 }) => {
-  const rotation = useSharedValue(0);
+  const rotation = useSharedValue(rotationForSide(defaultSide));
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const cardOpacity = useSharedValue(1);
@@ -67,13 +79,13 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   );
 
   // A new verse means the previous card already flew off screen: recentre it,
-  // reset to the quote side, and fade the incoming card in.
+  // reset to the configured default side, and fade the incoming card in.
   useEffect(() => {
     translateX.value = 0;
     translateY.value = 0;
-    rotation.value = 0;
+    rotation.value = rotationForSide(defaultSide);
     cardOpacity.value = withTiming(1, { duration: FADE_IN_DURATION });
-  }, [verse.id, cardOpacity, rotation, translateX, translateY]);
+  }, [verse.id, defaultSide, cardOpacity, rotation, translateX, translateY]);
 
   // A tap only wins while the finger stays inside the pan's activation radius,
   // so a short press flips and anything more horizontal becomes a swipe.
@@ -81,8 +93,8 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     const tap = Gesture.Tap()
       .maxDistance(PAN_ACTIVATION_DISTANCE)
       .onEnd(() => {
-        const isShowingQuote = rotation.value < 90;
-        rotation.value = withTiming(isShowingQuote ? 180 : 0, {
+        const isShowingLocate = rotation.value < 90;
+        rotation.value = withTiming(isShowingLocate ? 180 : 0, {
           duration: FLIP_DURATION,
           easing: Easing.inOut(Easing.cubic),
         });
@@ -135,12 +147,14 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     ],
   }));
 
-  const quoteFaceStyle = useAnimatedStyle(() => ({
+  // Locate face — full verse text (front at 0°).
+  const locateFaceStyle = useAnimatedStyle(() => ({
     opacity: rotation.value < 90 ? 1 : 0,
     transform: [{ perspective: 1000 }, { rotateY: `${rotation.value}deg` }],
   }));
 
-  const locateFaceStyle = useAnimatedStyle(() => ({
+  // Quote face — reference only (back at 180°).
+  const quoteFaceStyle = useAnimatedStyle(() => ({
     opacity: rotation.value < 90 ? 0 : 1,
     transform: [{ perspective: 1000 }, { rotateY: `${rotation.value + 180}deg` }],
   }));
@@ -166,13 +180,13 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.container, style, containerStyle]}>
-        <Animated.View style={[styles.face, quoteFaceStyle]}>
-          <CardChrome />
+        <Animated.View style={[styles.face, locateFaceStyle]}>
+          <CardChrome playAudio={playAudio} />
           <FlashcardBack segments={segments} indexCode={verse.index_code} />
         </Animated.View>
 
-        <Animated.View style={[styles.face, locateFaceStyle]}>
-          <CardChrome />
+        <Animated.View style={[styles.face, quoteFaceStyle]}>
+          <CardChrome playAudio={playAudio} />
           <FlashcardFront verse={verse} />
         </Animated.View>
 
@@ -189,11 +203,15 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   );
 });
 
-/** Speaker / favourite affordances — visual only until Sprint 1.5. */
-const CardChrome = React.memo(function CardChrome() {
+/** Speaker / favourite affordances. Audio playback itself is not wired yet. */
+const CardChrome = React.memo(function CardChrome({ playAudio }: { playAudio: boolean }) {
   return (
     <View style={styles.chromeRow}>
-      <Ionicons name="volume-high" size={CHROME_ICON_SIZE} color={colors.accentRed} />
+      <Ionicons
+        name={playAudio ? 'volume-high' : 'volume-mute-outline'}
+        size={CHROME_ICON_SIZE}
+        color={playAudio ? colors.accentRed : colors.textMuted}
+      />
       <Ionicons name="star-outline" size={CHROME_ICON_SIZE} color={colors.accentRed} />
     </View>
   );

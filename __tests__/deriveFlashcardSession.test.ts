@@ -2,6 +2,7 @@ import {
   countAnsweredStatuses,
   deriveFlashcardSession,
 } from '../src/features/flashcards/state/deriveFlashcardSession';
+import { DEFAULT_FLASHCARD_SETTINGS } from '../src/features/flashcards/types/settings';
 import type { FlashcardDeck, Verse } from '../src/features/flashcards/types/verse';
 
 const verses: Verse[] = [
@@ -61,10 +62,15 @@ describe('countAnsweredStatuses', () => {
 
 describe('deriveFlashcardSession', () => {
   it('exposes the current verse and 1-based card number', () => {
-    const view = deriveFlashcardSession(deck, {
-      currentIndex: 1,
-      statusById: { v1: 'mastered' },
-    });
+    const view = deriveFlashcardSession(
+      deck,
+      {
+        currentIndex: 1,
+        statusById: { v1: 'mastered' },
+        activeVerseIds: null,
+      },
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
 
     expect(view.currentVerse?.id).toBe('v2');
     expect(view.currentCardNumber).toBe(2);
@@ -73,23 +79,53 @@ describe('deriveFlashcardSession', () => {
     expect(view.currentStatus).toBe('unseen');
     expect(view.showCard).toBe(true);
     expect(view.isComplete).toBe(false);
+    expect(view.settings).toEqual(DEFAULT_FLASHCARD_SETTINGS);
   });
 
   it('marks the session complete when every card is answered', () => {
-    const view = deriveFlashcardSession(deck, {
-      currentIndex: 2,
-      statusById: {
-        v1: 'mastered',
-        v2: 'practicing',
-        v3: 'mastered',
+    const view = deriveFlashcardSession(
+      deck,
+      {
+        currentIndex: 2,
+        statusById: {
+          v1: 'mastered',
+          v2: 'practicing',
+          v3: 'mastered',
+        },
+        activeVerseIds: null,
       },
-    });
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
 
     expect(view.answeredCount).toBe(3);
     expect(view.masteredCount).toBe(2);
     expect(view.practicingCount).toBe(1);
     expect(view.isComplete).toBe(true);
     expect(view.showCard).toBe(false);
+  });
+
+  it('uses activeVerseIds order and only counts those answers', () => {
+    const view = deriveFlashcardSession(
+      deck,
+      {
+        currentIndex: 0,
+        statusById: {
+          v1: 'mastered',
+          v2: 'practicing',
+          v3: 'mastered',
+        },
+        activeVerseIds: ['v3', 'v1'],
+      },
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
+
+    expect(view.verses.map((verse) => verse.id)).toEqual(['v3', 'v1']);
+    expect(view.currentVerse?.id).toBe('v3');
+    expect(view.totalCards).toBe(2);
+    expect(view.masteredCount).toBe(2);
+    expect(view.practicingCount).toBe(0);
+    expect(view.answeredCount).toBe(2);
+    expect(view.isComplete).toBe(true);
   });
 
   it('handles an empty deck safely', () => {
@@ -99,10 +135,15 @@ describe('deriveFlashcardSession', () => {
       verses: [],
     };
 
-    const view = deriveFlashcardSession(emptyDeck, {
-      currentIndex: 0,
-      statusById: {},
-    });
+    const view = deriveFlashcardSession(
+      emptyDeck,
+      {
+        currentIndex: 0,
+        statusById: {},
+        activeVerseIds: null,
+      },
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
 
     expect(view.currentVerse).toBeUndefined();
     expect(view.currentCardNumber).toBe(0);

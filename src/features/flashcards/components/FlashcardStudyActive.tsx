@@ -2,12 +2,15 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { spacing, typography } from '../../../shared/theme';
+import type { CardSide } from '../types/settings';
 import type { Verse, VerseSegment } from '../types/verse';
 import Flashcard from './Flashcard';
 
 export interface FlashcardStudyActiveProps {
   verse: Verse;
   segments: VerseSegment[];
+  defaultSide: CardSide;
+  playAudio: boolean;
   onSwipeMastered: () => void;
   onSwipePracticing: () => void;
 }
@@ -16,6 +19,8 @@ export interface FlashcardStudyActiveProps {
 export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.memo(({
   verse,
   segments,
+  defaultSide,
+  playAudio,
   onSwipeMastered,
   onSwipePracticing,
 }) => (
@@ -24,6 +29,8 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
       <Flashcard
         verse={verse}
         segments={segments}
+        defaultSide={defaultSide}
+        playAudio={playAudio}
         onSwipeMastered={onSwipeMastered}
         onSwipePracticing={onSwipePracticing}
       />

@@ -27,6 +27,7 @@ describe('flashcardSessionReducer', () => {
     expect(INITIAL_SESSION_STATE).toEqual({
       currentIndex: 0,
       statusById: {},
+      activeVerseIds: null,
     });
   });
 
@@ -41,6 +42,7 @@ describe('flashcardSessionReducer', () => {
     expect(next).toEqual({
       currentIndex: 1,
       statusById: { v1: 'mastered' },
+      activeVerseIds: null,
     });
   });
 
@@ -70,6 +72,7 @@ describe('flashcardSessionReducer', () => {
     const onLastCard: FlashcardSessionState = {
       currentIndex: 2,
       statusById: { v1: 'mastered', v2: 'practicing' },
+      activeVerseIds: null,
     };
 
     const next = flashcardSessionReducer(onLastCard, {
@@ -94,7 +97,7 @@ describe('flashcardSessionReducer', () => {
     expect(stillFirst.currentIndex).toBe(0);
 
     const atEnd = flashcardSessionReducer(
-      { currentIndex: 2, statusById: {} },
+      { currentIndex: 2, statusById: {}, activeVerseIds: null },
       { type: 'next', totalCards: threeCardDeck },
     );
     expect(atEnd.currentIndex).toBe(2);
@@ -111,12 +114,44 @@ describe('flashcardSessionReducer', () => {
     expect(next.statusById).toEqual({});
   });
 
-  it('resets index and statuses', () => {
-    const dirty = {
+  it('sets an active study order and optionally resets progress', () => {
+    const dirty: FlashcardSessionState = {
       currentIndex: 2,
-      statusById: { v1: 'mastered' as const, v2: 'practicing' as const },
+      statusById: { v1: 'mastered' },
+      activeVerseIds: null,
     };
 
-    expect(flashcardSessionReducer(dirty, { type: 'reset' })).toEqual(INITIAL_SESSION_STATE);
+    const withoutReset = flashcardSessionReducer(dirty, {
+      type: 'setActiveOrder',
+      verseIds: ['v2', 'v1'],
+    });
+    expect(withoutReset.activeVerseIds).toEqual(['v2', 'v1']);
+    expect(withoutReset.currentIndex).toBe(1);
+    expect(withoutReset.statusById).toEqual({ v1: 'mastered' });
+
+    const withReset = flashcardSessionReducer(dirty, {
+      type: 'setActiveOrder',
+      verseIds: ['v3'],
+      resetProgress: true,
+    });
+    expect(withReset).toEqual({
+      currentIndex: 0,
+      statusById: {},
+      activeVerseIds: ['v3'],
+    });
+  });
+
+  it('resets index and statuses while preserving active order', () => {
+    const dirty: FlashcardSessionState = {
+      currentIndex: 2,
+      statusById: { v1: 'mastered', v2: 'practicing' },
+      activeVerseIds: ['v2', 'v1', 'v3'],
+    };
+
+    expect(flashcardSessionReducer(dirty, { type: 'reset' })).toEqual({
+      currentIndex: 0,
+      statusById: {},
+      activeVerseIds: ['v2', 'v1', 'v3'],
+    });
   });
 });

@@ -1,9 +1,15 @@
 export { default as Flashcard } from './Flashcard';
 export { default as FlashcardBack } from './FlashcardBack';
 export { default as FlashcardFront } from './FlashcardFront';
+export { default as FlashcardSettingsPanel } from './FlashcardSettingsPanel';
 export { default as FlashcardStudyActive } from './FlashcardStudyActive';
+export { default as CategoryFilterTabs } from './CategoryFilterTabs';
+export { default as DefaultSideSwitch } from './DefaultSideSwitch';
+export { default as IndexLegend } from './IndexLegend';
 export { default as ProgressBar } from './ProgressBar';
 export { default as RichVerseText } from './RichVerseText';
 export { default as ScorePill } from './ScorePill';
 export { default as SessionComplete } from './SessionComplete';
+export { default as SettingsBottomSheet } from './SettingsBottomSheet';
+export { default as SettingsToggle } from './SettingsToggle';
 export { default as StudyHeader } from './StudyHeader';

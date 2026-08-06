@@ -5,6 +5,11 @@ export type AnsweredStatus = Exclude<CardStatus, 'unseen'>;
 export interface FlashcardSessionState {
   currentIndex: number;
   statusById: Record<string, CardStatus>;
+  /**
+   * Active study order (verse ids). When null, callers use deck order.
+   * Set when filters/shuffle rebuild the list; preserved across progress reset.
+   */
+  activeVerseIds: string[] | null;
 }
 
 export type FlashcardSessionAction =
@@ -12,11 +17,13 @@ export type FlashcardSessionAction =
   | { type: 'next'; totalCards: number }
   | { type: 'previous' }
   | { type: 'goToIndex'; index: number; totalCards: number }
+  | { type: 'setActiveOrder'; verseIds: string[]; resetProgress?: boolean }
   | { type: 'reset' };
 
 export const INITIAL_SESSION_STATE: FlashcardSessionState = {
   currentIndex: 0,
   statusById: {},
+  activeVerseIds: null,
 };
 
 export function clampIndex(index: number, totalCards: number): number {
@@ -34,6 +41,7 @@ export function flashcardSessionReducer(
   switch (action.type) {
     case 'answer':
       return {
+        ...state,
         currentIndex: clampIndex(state.currentIndex + 1, action.totalCards),
         statusById: { ...state.statusById, [action.verseId]: action.status },
       };
@@ -43,8 +51,26 @@ export function flashcardSessionReducer(
       return { ...state, currentIndex: Math.max(state.currentIndex - 1, 0) };
     case 'goToIndex':
       return { ...state, currentIndex: clampIndex(action.index, action.totalCards) };
+    case 'setActiveOrder': {
+      const totalCards = action.verseIds.length;
+      if (action.resetProgress === true) {
+        return {
+          currentIndex: 0,
+          statusById: {},
+          activeVerseIds: action.verseIds,
+        };
+      }
+      return {
+        ...state,
+        activeVerseIds: action.verseIds,
+        currentIndex: clampIndex(state.currentIndex, totalCards),
+      };
+    }
     case 'reset':
-      return INITIAL_SESSION_STATE;
+      return {
+        ...INITIAL_SESSION_STATE,
+        activeVerseIds: state.activeVerseIds,
+      };
     default:
       return state;
   }
