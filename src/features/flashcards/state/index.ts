@@ -15,5 +15,8 @@ export {
   INITIAL_SESSION_STATE,
   clampIndex,
 } from './flashcardSessionReducer';
-export { deriveFlashcardSession } from './deriveFlashcardSession';
-export type { FlashcardSessionView } from './deriveFlashcardSession';
+export { countAnsweredStatuses, deriveFlashcardSession } from './deriveFlashcardSession';
+export type {
+  FlashcardSessionView,
+  FlashcardSessionViewWithSegments,
+} from './deriveFlashcardSession';

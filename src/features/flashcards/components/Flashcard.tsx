@@ -43,7 +43,7 @@ const MAX_TILT_DEGREES = 8;
 const MAX_OVERLAY_OPACITY = 0.28;
 const CHROME_ICON_SIZE = 22;
 
-export const Flashcard: React.FC<FlashcardProps> = ({
+export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   verse,
   segments,
   onSwipeMastered,
@@ -187,15 +187,17 @@ export const Flashcard: React.FC<FlashcardProps> = ({
       </Animated.View>
     </GestureDetector>
   );
-};
+});
 
 /** Speaker / favourite affordances — visual only until Sprint 1.5. */
-const CardChrome: React.FC = () => (
-  <View style={styles.chromeRow}>
-    <Ionicons name="volume-high" size={CHROME_ICON_SIZE} color={colors.accentRed} />
-    <Ionicons name="star-outline" size={CHROME_ICON_SIZE} color={colors.accentRed} />
-  </View>
-);
+const CardChrome = React.memo(function CardChrome() {
+  return (
+    <View style={styles.chromeRow}>
+      <Ionicons name="volume-high" size={CHROME_ICON_SIZE} color={colors.accentRed} />
+      <Ionicons name="star-outline" size={CHROME_ICON_SIZE} color={colors.accentRed} />
+    </View>
+  );
+});
 
 const ABSOLUTE_FILL = {
   position: 'absolute',

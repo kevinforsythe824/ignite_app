@@ -10,11 +10,11 @@ export interface FlashcardFrontProps {
 }
 
 /** Locate side — the verse reference on its own, centered. */
-export const FlashcardFront: React.FC<FlashcardFrontProps> = ({ verse, style }) => (
+export const FlashcardFront: React.FC<FlashcardFrontProps> = React.memo(({ verse, style }) => (
   <View style={[styles.container, style]}>
     <Text style={styles.reference}>{verse.reference}</Text>
   </View>
-);
+));
 
 const styles = StyleSheet.create({
   container: {

@@ -12,12 +12,12 @@ export interface FlashcardBackProps {
 }
 
 /** Quote side — rich verse body with the competitive index code beneath it. */
-export const FlashcardBack: React.FC<FlashcardBackProps> = ({ segments, indexCode, style }) => (
+export const FlashcardBack: React.FC<FlashcardBackProps> = React.memo(({ segments, indexCode, style }) => (
   <View style={[styles.container, style]}>
     <RichVerseText segments={segments} />
     <Text style={styles.indexCode}>{`(${indexCode})`}</Text>
   </View>
-);
+));
 
 const styles = StyleSheet.create({
   container: {

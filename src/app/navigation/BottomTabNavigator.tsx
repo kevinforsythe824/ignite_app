@@ -29,6 +29,7 @@ export function BottomTabNavigator(): React.JSX.Element {
       initialRouteName="Study"
       screenOptions={({ route }) => ({
         headerShown: false,
+        lazy: true,
         tabBarActiveTintColor: colors.accentRed,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {

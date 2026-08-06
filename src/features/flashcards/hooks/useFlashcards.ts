@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import {
   useFlashcardSessionActions,
@@ -7,27 +7,38 @@ import {
 } from '../state/FlashcardSessionContext';
 import {
   deriveFlashcardSession,
-  type FlashcardSessionView,
+  type FlashcardSessionViewWithSegments,
 } from '../state/deriveFlashcardSession';
+import { clearVerseSegmentCache, getVerseSegments } from '../utils/getVerseSegments';
 
-export type UseFlashcardsResult = FlashcardSessionView & FlashcardSessionActions;
+export type UseFlashcardsResult = FlashcardSessionViewWithSegments & FlashcardSessionActions;
 
 /**
- * Feature hook: derived session view + stable action callbacks.
- * Parsing and counts live in deriveFlashcardSession (pure).
+ * Feature hook: derived session view + stable actions.
+ * Verse parsing is cached by id and only recomputed when the current verse changes.
  */
 export function useFlashcards(): UseFlashcardsResult {
   const { deck, state } = useFlashcardSessionState();
   const actions = useFlashcardSessionActions();
 
+  useEffect(() => {
+    clearVerseSegmentCache();
+  }, [deck.deckId]);
+
   const view = useMemo(() => deriveFlashcardSession(deck, state), [deck, state]);
+
+  const currentSegments = useMemo(
+    () => (view.currentVerse === undefined ? [] : getVerseSegments(view.currentVerse)),
+    [view.currentVerse],
+  );
 
   return useMemo(
     () => ({
       ...view,
+      currentSegments,
       ...actions,
     }),
-    [view, actions],
+    [view, currentSegments, actions],
   );
 }
 

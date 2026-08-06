@@ -57,7 +57,7 @@ const markStyles: Record<VerseMark, TextStyle> = StyleSheet.create({
   },
 });
 
-export const RichVerseText: React.FC<RichVerseTextProps> = ({ segments, style }) => (
+export const RichVerseText: React.FC<RichVerseTextProps> = React.memo(({ segments, style }) => (
   <Text style={[styles.body, style]}>
     {segments.map((segment, index) => (
       <Text
@@ -68,7 +68,7 @@ export const RichVerseText: React.FC<RichVerseTextProps> = ({ segments, style })
       </Text>
     ))}
   </Text>
-);
+));
 
 const styles = StyleSheet.create({
   body: typography.verseBody,

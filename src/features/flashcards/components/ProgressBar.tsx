@@ -14,10 +14,13 @@ export interface ProgressBarProps {
 
 const DEFAULT_HEIGHT = 6;
 const ANIMATION_DURATION = 350;
+const GRADIENT_COLORS = [colors.progressGradientStart, colors.progressGradientEnd] as const;
+const GRADIENT_START = { x: 0, y: 0.5 };
+const GRADIENT_END = { x: 1, y: 0.5 };
 
 const clamp = (value: number): number => Math.min(1, Math.max(0, value));
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({
+export const ProgressBar: React.FC<ProgressBarProps> = React.memo(({
   progress,
   height = DEFAULT_HEIGHT,
   style,
@@ -44,15 +47,15 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     >
       <Animated.View style={[styles.fill, animatedFillStyle]}>
         <LinearGradient
-          colors={[colors.progressGradientStart, colors.progressGradientEnd]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
+          colors={GRADIENT_COLORS}
+          start={GRADIENT_START}
+          end={GRADIENT_END}
           style={styles.gradient}
         />
       </Animated.View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   track: {

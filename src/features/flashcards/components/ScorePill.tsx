@@ -31,7 +31,7 @@ const variantConfig: Record<ScorePillVariant, VariantConfig> = {
   },
 };
 
-export const ScorePill: React.FC<ScorePillProps> = ({ variant, count, style }) => {
+export const ScorePill: React.FC<ScorePillProps> = React.memo(({ variant, count, style }) => {
   const { icon, tint, background } = variantConfig[variant];
 
   return (
@@ -40,7 +40,7 @@ export const ScorePill: React.FC<ScorePillProps> = ({ variant, count, style }) =
       <Text style={[styles.count, { color: tint }]}>{count}</Text>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   pill: {
