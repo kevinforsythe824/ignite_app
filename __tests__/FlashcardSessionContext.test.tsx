@@ -158,12 +158,103 @@ describe('FlashcardSessionContext', () => {
     const session = getSession();
     expect(session.isComplete).toBe(true);
     expect(session.answeredCount).toBe(3);
+    expect(session.currentIndex).toBe(3);
+    expect(session.currentVerse).toBeUndefined();
     expect(session.showCard).toBe(false);
+  });
+
+  it('reports completion for a filtered category deck', () => {
+    const filteredDeck: FlashcardDeck = {
+      ...testDeck,
+      verses: [
+        { ...testVerses[0], tags: ['Unique Beg.'] },
+        { ...testVerses[1], tags: ['Questions'] },
+        { ...testVerses[2], tags: ['Unique Beg.'] },
+      ],
+    };
+    const { getSession } = createSessionController(filteredDeck);
+
+    act(() => {
+      getSession().toggleCategoryFilter('uniqueBeginning');
+    });
+
+    expect(getSession().totalCards).toBe(2);
+    expect(getSession().isComplete).toBe(false);
+
+    act(() => {
+      getSession().markMastered();
+    });
+    act(() => {
+      getSession().markPracticing();
+    });
+
+    const session = getSession();
+    expect(session.totalCards).toBe(2);
+    expect(session.answeredCount).toBe(2);
+    expect(session.currentIndex).toBe(2);
+    expect(session.currentVerse).toBeUndefined();
+    expect(session.isComplete).toBe(true);
+    expect(session.showCard).toBe(false);
+  });
+
+  it('shows empty — not complete — when filters match no cards', () => {
+    const filteredDeck: FlashcardDeck = {
+      ...testDeck,
+      verses: [
+        { ...testVerses[0], tags: ['Unique Beg.'] },
+        { ...testVerses[1], tags: ['Unique End.'] },
+        { ...testVerses[2], tags: ['Unique Beg.'] },
+      ],
+    };
+    const { getSession } = createSessionController(filteredDeck);
+
+    act(() => {
+      getSession().toggleCategoryFilter('question');
+    });
+
+    const session = getSession();
+    expect(session.totalCards).toBe(0);
+    expect(session.isComplete).toBe(false);
+    expect(session.showCard).toBe(false);
+    expect(session.currentVerse).toBeUndefined();
+  });
+
+  it('restarts from a completed filtered session', () => {
+    const filteredDeck: FlashcardDeck = {
+      ...testDeck,
+      verses: [
+        { ...testVerses[0], tags: ['Unique Beg.'] },
+        { ...testVerses[1], tags: ['Questions'] },
+        { ...testVerses[2], tags: ['Unique Beg.'] },
+      ],
+    };
+    const { getSession } = createSessionController(filteredDeck);
+
+    act(() => {
+      getSession().toggleCategoryFilter('uniqueBeginning');
+      getSession().markMastered();
+      getSession().markPracticing();
+    });
+    expect(getSession().isComplete).toBe(true);
+
+    act(() => {
+      getSession().restartFlashcards();
+    });
+
+    const session = getSession();
+    expect(session.isComplete).toBe(false);
+    expect(session.currentIndex).toBe(0);
+    expect(session.statusById).toEqual({});
+    expect(session.totalCards).toBe(2);
+    expect(session.showCard).toBe(true);
+    expect(session.currentVerse?.id).toBe('t1');
   });
 
   it('exposes parsed segments for the current verse', () => {
     const verseWithKeyword: Verse = {
       ...testVerses[0],
+      // Unique id so the segment cache from earlier tests cannot leak in.
+      id: 't-grace',
       verse_text: "Remember 'grace' today.",
       matched_rules: [
         {
@@ -176,6 +267,7 @@ describe('FlashcardSessionContext', () => {
 
     const { getSession } = createSessionController({
       ...testDeck,
+      deckId: 'grace-deck',
       verses: [verseWithKeyword, testVerses[1], testVerses[2]],
     });
 
@@ -207,14 +299,45 @@ describe('FlashcardSessionContext', () => {
 
     act(() => {
       getSession().setDefaultSide('quote');
-      getSession().setPlayAudio(true);
       getSession().setShuffleCards(true);
     });
 
     session = getSession();
     expect(session.settings.defaultSide).toBe('quote');
-    expect(session.settings.playAudio).toBe(true);
     expect(session.settings.shuffleCards).toBe(true);
+  });
+
+  it('clears all category filters and restores the full deck', () => {
+    const filteredDeck: FlashcardDeck = {
+      ...testDeck,
+      verses: [
+        { ...testVerses[0], tags: ['Unique Beg.'] },
+        { ...testVerses[1], tags: ['Questions'] },
+        { ...testVerses[2], tags: ['Unique End.'] },
+      ],
+    };
+    const { getSession } = createSessionController(filteredDeck);
+
+    act(() => {
+      getSession().toggleCategoryFilter('uniqueBeginning');
+    });
+    act(() => {
+      getSession().toggleCategoryFilter('question');
+    });
+
+    expect(getSession().settings.categoryFilters).toEqual([
+      'uniqueBeginning',
+      'question',
+    ]);
+    expect(getSession().totalCards).toBe(2);
+
+    act(() => {
+      getSession().clearCategoryFilters();
+    });
+
+    const session = getSession();
+    expect(session.settings.categoryFilters).toEqual([]);
+    expect(session.totalCards).toBe(3);
   });
 
   it('restarts flashcards and clears progress', () => {

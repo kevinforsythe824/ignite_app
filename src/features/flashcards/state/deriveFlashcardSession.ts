@@ -91,20 +91,27 @@ export function deriveFlashcardSession(
 ): FlashcardSessionView {
   const verses = resolveStudyVerses(deck, state);
   const totalCards = verses.length;
-  const currentVerse = verses[state.currentIndex];
+  /** `undefined` when index is past the last card (session finished). */
+  const currentVerse =
+    state.currentIndex >= totalCards ? undefined : verses[state.currentIndex];
   const activeIds = verses.map((verse) => verse.id);
   const { masteredCount, practicingCount, answeredCount } = countActiveAnsweredStatuses(
     state.statusById,
     activeIds,
   );
-  const isComplete = totalCards > 0 && answeredCount === totalCards;
+  // Prefer answered-count so filtered decks complete correctly; index-past-end
+  // covers the post-answer transition off the last card (no invisible leftover).
+  const isComplete =
+    totalCards > 0 &&
+    (answeredCount === totalCards || state.currentIndex >= totalCards);
 
   return {
     deck,
     verses,
     currentVerse,
     currentIndex: state.currentIndex,
-    currentCardNumber: totalCards === 0 ? 0 : state.currentIndex + 1,
+    currentCardNumber:
+      totalCards === 0 ? 0 : Math.min(state.currentIndex + 1, totalCards),
     totalCards,
     currentStatus:
       currentVerse === undefined ? 'unseen' : state.statusById[currentVerse.id] ?? 'unseen',
@@ -112,7 +119,7 @@ export function deriveFlashcardSession(
     masteredCount,
     practicingCount,
     answeredCount,
-    progress: totalCards === 0 ? 0 : (state.currentIndex + 1) / totalCards,
+    progress: totalCards === 0 ? 0 : isComplete ? 1 : (state.currentIndex + 1) / totalCards,
     isComplete,
     showCard: !isComplete && currentVerse !== undefined,
     settings,

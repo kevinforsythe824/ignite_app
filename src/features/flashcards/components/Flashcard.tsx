@@ -25,8 +25,6 @@ export interface FlashcardProps {
   segments: VerseSegment[];
   /** Which face is shown when a new card arrives. */
   defaultSide?: CardSide;
-  /** When true, the speaker affordance renders as active. */
-  playAudio?: boolean;
   /** Swipe right — card answered correctly. */
   onSwipeMastered: () => void;
   /** Swipe left — card needs more practice. */
@@ -57,7 +55,6 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   verse,
   segments,
   defaultSide = 'locate',
-  playAudio = false,
   onSwipeMastered,
   onSwipePracticing,
   style,
@@ -181,12 +178,12 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.container, style, containerStyle]}>
         <Animated.View style={[styles.face, locateFaceStyle]}>
-          <CardChrome playAudio={playAudio} />
+          <CardChrome />
           <FlashcardBack segments={segments} indexCode={verse.index_code} />
         </Animated.View>
 
         <Animated.View style={[styles.face, quoteFaceStyle]}>
-          <CardChrome playAudio={playAudio} />
+          <CardChrome />
           <FlashcardFront verse={verse} />
         </Animated.View>
 
@@ -204,13 +201,14 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
 });
 
 /** Speaker / favourite affordances. Audio playback itself is not wired yet. */
-const CardChrome = React.memo(function CardChrome({ playAudio }: { playAudio: boolean }) {
+const CardChrome = React.memo(function CardChrome() {
   return (
     <View style={styles.chromeRow}>
       <Ionicons
-        name={playAudio ? 'volume-high' : 'volume-mute-outline'}
+        name="volume-high"
         size={CHROME_ICON_SIZE}
-        color={playAudio ? colors.accentRed : colors.textMuted}
+        color={colors.accentRed}
+        accessibilityLabel="Play verse audio"
       />
       <Ionicons name="star-outline" size={CHROME_ICON_SIZE} color={colors.accentRed} />
     </View>

@@ -14,6 +14,7 @@ export {
   flashcardSessionReducer,
   INITIAL_SESSION_STATE,
   clampIndex,
+  advanceIndexAfterAnswer,
 } from './flashcardSessionReducer';
 export {
   flashcardSettingsReducer,

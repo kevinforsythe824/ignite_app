@@ -11,8 +11,8 @@ import SettingsToggle from './SettingsToggle';
 export interface FlashcardSettingsPanelProps {
   settings: FlashcardSettings;
   onToggleCategory: (filterId: CategoryFilterId) => void;
+  onClearCategories: () => void;
   onShuffleChange: (value: boolean) => void;
-  onPlayAudioChange: (value: boolean) => void;
   onDefaultSideChange: (side: CardSide) => void;
   onRestart: () => void;
 }
@@ -21,8 +21,8 @@ export interface FlashcardSettingsPanelProps {
 export const FlashcardSettingsPanel: React.FC<FlashcardSettingsPanelProps> = React.memo(({
   settings,
   onToggleCategory,
+  onClearCategories,
   onShuffleChange,
-  onPlayAudioChange,
   onDefaultSideChange,
   onRestart,
 }) => (
@@ -40,6 +40,7 @@ export const FlashcardSettingsPanel: React.FC<FlashcardSettingsPanelProps> = Rea
     <CategoryFilterTabs
       selected={settings.categoryFilters}
       onToggle={onToggleCategory}
+      onClear={onClearCategories}
     />
 
     <View style={styles.divider} />
@@ -49,13 +50,6 @@ export const FlashcardSettingsPanel: React.FC<FlashcardSettingsPanelProps> = Rea
       description="Randomize the order of the active deck"
       value={settings.shuffleCards}
       onValueChange={onShuffleChange}
-    />
-
-    <SettingsToggle
-      label="Play Audio"
-      description="Enable verse audio when available"
-      value={settings.playAudio}
-      onValueChange={onPlayAudioChange}
     />
 
     <View style={styles.divider} />

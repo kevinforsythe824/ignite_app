@@ -33,6 +33,18 @@ export function clampIndex(index: number, totalCards: number): number {
   return Math.min(Math.max(index, 0), totalCards - 1);
 }
 
+/**
+ * After answering, allow `currentIndex === totalCards` (one past the last card)
+ * so the session can leave the active-card UI. Navigation (`next` / `goToIndex`)
+ * still clamps to a valid card index via `clampIndex`.
+ */
+export function advanceIndexAfterAnswer(currentIndex: number, totalCards: number): number {
+  if (totalCards <= 0) {
+    return 0;
+  }
+  return Math.min(currentIndex + 1, totalCards);
+}
+
 /** Pure session state transitions for a flashcard study session. */
 export function flashcardSessionReducer(
   state: FlashcardSessionState,
@@ -42,7 +54,7 @@ export function flashcardSessionReducer(
     case 'answer':
       return {
         ...state,
-        currentIndex: clampIndex(state.currentIndex + 1, action.totalCards),
+        currentIndex: advanceIndexAfterAnswer(state.currentIndex, action.totalCards),
         statusById: { ...state.statusById, [action.verseId]: action.status },
       };
     case 'next':

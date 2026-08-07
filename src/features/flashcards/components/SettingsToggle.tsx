@@ -11,7 +11,7 @@ export interface SettingsToggleProps {
   accessibilityLabel?: string;
 }
 
-/** Labeled boolean row used by Shuffle / Play Audio settings. */
+/** Labeled boolean row used by Shuffle and similar settings. */
 export const SettingsToggle: React.FC<SettingsToggleProps> = React.memo(({
   label,
   description,

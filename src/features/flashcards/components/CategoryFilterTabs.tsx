@@ -10,52 +10,89 @@ import {
 export interface CategoryFilterTabsProps {
   selected: readonly CategoryFilterId[];
   onToggle: (filterId: CategoryFilterId) => void;
+  onClear?: () => void;
 }
 
-/** Multi-select structural category chips for narrowing the active deck. */
+/** Multi-select Index Legend category chips for narrowing the active deck. */
 export const CategoryFilterTabs: React.FC<CategoryFilterTabsProps> = React.memo(({
   selected,
   onToggle,
-}) => (
-  <View style={styles.container}>
-    <Text style={styles.title}>Categories</Text>
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.tabs}
-    >
-      {CATEGORY_FILTER_OPTIONS.map((option) => {
-        const isActive = selected.includes(option.id);
-        return (
+  onClear,
+}) => {
+  const hasSelection = selected.length > 0;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Categories</Text>
+        {hasSelection && onClear !== undefined ? (
           <Pressable
-            key={option.id}
-            onPress={() => onToggle(option.id)}
+            onPress={onClear}
             accessibilityRole="button"
-            accessibilityState={{ selected: isActive }}
-            accessibilityLabel={`Filter ${option.label}`}
-            style={({ pressed }) => [
-              styles.tab,
-              isActive && styles.tabActive,
-              pressed && styles.tabPressed,
-            ]}
+            accessibilityLabel="Clear category filters"
+            hitSlop={8}
+            style={({ pressed }) => [styles.clearButton, pressed && styles.clearPressed]}
           >
-            <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-              {option.label}
-            </Text>
+            <Text style={styles.clearLabel}>Clear</Text>
           </Pressable>
-        );
-      })}
-    </ScrollView>
-  </View>
-));
+        ) : null}
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabs}
+      >
+        {CATEGORY_FILTER_OPTIONS.map((option) => {
+          const isActive = selected.includes(option.id);
+          return (
+            <Pressable
+              key={option.id}
+              onPress={() => onToggle(option.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`Filter ${option.label}`}
+              style={({ pressed }) => [
+                styles.tab,
+                isActive && styles.tabActive,
+                pressed && styles.tabPressed,
+              ]}
+            >
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
     gap: spacing.sm,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   title: {
     ...typography.progressCounter,
     color: colors.navy,
+  },
+  clearButton: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  clearPressed: {
+    opacity: 0.6,
+  },
+  clearLabel: {
+    ...typography.hint,
+    fontWeight: '600',
+    color: colors.accentRed,
   },
   tabs: {
     flexDirection: 'row',

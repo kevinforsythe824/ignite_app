@@ -68,7 +68,7 @@ describe('flashcardSessionReducer', () => {
     expect(next.currentIndex).toBe(2);
   });
 
-  it('clamps on the last card after answering', () => {
+  it('advances past the last card after answering so the session can complete', () => {
     const onLastCard: FlashcardSessionState = {
       currentIndex: 2,
       statusById: { v1: 'mastered', v2: 'practicing' },
@@ -82,8 +82,25 @@ describe('flashcardSessionReducer', () => {
       totalCards: threeCardDeck,
     });
 
-    expect(next.currentIndex).toBe(2);
+    expect(next.currentIndex).toBe(3);
     expect(next.statusById.v3).toBe('mastered');
+  });
+
+  it('does not advance past totalCards when answering at the end', () => {
+    const pastEnd: FlashcardSessionState = {
+      currentIndex: 3,
+      statusById: { v1: 'mastered', v2: 'practicing', v3: 'mastered' },
+      activeVerseIds: null,
+    };
+
+    const next = flashcardSessionReducer(pastEnd, {
+      type: 'answer',
+      verseId: 'v3',
+      status: 'practicing',
+      totalCards: threeCardDeck,
+    });
+
+    expect(next.currentIndex).toBe(3);
   });
 
   it('moves next and previous within bounds', () => {

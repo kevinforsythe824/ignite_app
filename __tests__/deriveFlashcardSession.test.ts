@@ -86,7 +86,7 @@ describe('deriveFlashcardSession', () => {
     const view = deriveFlashcardSession(
       deck,
       {
-        currentIndex: 2,
+        currentIndex: 3,
         statusById: {
           v1: 'mastered',
           v2: 'practicing',
@@ -100,6 +100,28 @@ describe('deriveFlashcardSession', () => {
     expect(view.answeredCount).toBe(3);
     expect(view.masteredCount).toBe(2);
     expect(view.practicingCount).toBe(1);
+    expect(view.currentVerse).toBeUndefined();
+    expect(view.currentCardNumber).toBe(3);
+    expect(view.progress).toBe(1);
+    expect(view.isComplete).toBe(true);
+    expect(view.showCard).toBe(false);
+  });
+
+  it('marks complete when index is past the end even before counts catch up', () => {
+    const view = deriveFlashcardSession(
+      deck,
+      {
+        currentIndex: 3,
+        statusById: {
+          v1: 'mastered',
+          v2: 'practicing',
+        },
+        activeVerseIds: null,
+      },
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
+
+    expect(view.currentVerse).toBeUndefined();
     expect(view.isComplete).toBe(true);
     expect(view.showCard).toBe(false);
   });
@@ -126,6 +148,51 @@ describe('deriveFlashcardSession', () => {
     expect(view.practicingCount).toBe(0);
     expect(view.answeredCount).toBe(2);
     expect(view.isComplete).toBe(true);
+    expect(view.showCard).toBe(false);
+  });
+
+  it('completes a filtered active deck when its cards are all answered', () => {
+    const view = deriveFlashcardSession(
+      deck,
+      {
+        currentIndex: 2,
+        statusById: {
+          v1: 'mastered',
+          v3: 'practicing',
+        },
+        activeVerseIds: ['v1', 'v3'],
+      },
+      {
+        ...DEFAULT_FLASHCARD_SETTINGS,
+        categoryFilters: ['uniqueBeginning'],
+      },
+    );
+
+    expect(view.totalCards).toBe(2);
+    expect(view.answeredCount).toBe(2);
+    expect(view.currentVerse).toBeUndefined();
+    expect(view.isComplete).toBe(true);
+    expect(view.showCard).toBe(false);
+  });
+
+  it('treats an empty active list as empty — not complete', () => {
+    const view = deriveFlashcardSession(
+      deck,
+      {
+        currentIndex: 0,
+        statusById: { v1: 'mastered' },
+        activeVerseIds: [],
+      },
+      {
+        ...DEFAULT_FLASHCARD_SETTINGS,
+        categoryFilters: ['question'],
+      },
+    );
+
+    expect(view.totalCards).toBe(0);
+    expect(view.currentVerse).toBeUndefined();
+    expect(view.isComplete).toBe(false);
+    expect(view.showCard).toBe(false);
   });
 
   it('handles an empty deck safely', () => {

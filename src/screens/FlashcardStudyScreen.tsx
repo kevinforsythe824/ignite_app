@@ -21,15 +21,16 @@ export const FlashcardStudyScreen: React.FC = () => {
     masteredCount,
     practicingCount,
     progress,
+    isComplete,
     showCard,
     settings,
     markMastered,
     markPracticing,
     restartFlashcards,
     setShuffleCards,
-    setPlayAudio,
     setDefaultSide,
     toggleCategoryFilter,
+    clearCategoryFilters,
     isSettingsOpen,
     openSettings,
     closeSettings,
@@ -40,31 +41,37 @@ export const FlashcardStudyScreen: React.FC = () => {
     closeSettings();
   }, [restartFlashcards, closeSettings]);
 
-  const body =
-    showCard && currentVerse !== undefined ? (
-      <FlashcardStudyActive
-        verse={currentVerse}
-        segments={currentSegments}
-        defaultSide={settings.defaultSide}
-        playAudio={settings.playAudio}
-        onSwipeMastered={markMastered}
-        onSwipePracticing={markPracticing}
-      />
-    ) : totalCards === 0 ? (
-      <View style={styles.emptyFilter}>
-        <Text style={styles.emptyTitle}>No cards match</Text>
-        <Text style={styles.emptyCopy}>
-          Clear or change category filters in Settings to continue studying.
-        </Text>
-      </View>
-    ) : (
-      <SessionComplete
-        masteredCount={masteredCount}
-        practicingCount={practicingCount}
-        totalCards={totalCards}
-        onRestart={restartFlashcards}
-      />
-    );
+  // Complete and empty-filter must not mount FlashcardStudyActive ("Tap to flip").
+  const body = isComplete ? (
+    <SessionComplete
+      masteredCount={masteredCount}
+      practicingCount={practicingCount}
+      totalCards={totalCards}
+      onRestart={restartFlashcards}
+    />
+  ) : totalCards === 0 ? (
+    <View style={styles.emptyFilter}>
+      <Text style={styles.emptyTitle}>No cards match</Text>
+      <Text style={styles.emptyCopy}>
+        Clear or change category filters in Settings to continue studying.
+      </Text>
+    </View>
+  ) : showCard && currentVerse !== undefined ? (
+    <FlashcardStudyActive
+      verse={currentVerse}
+      segments={currentSegments}
+      defaultSide={settings.defaultSide}
+      onSwipeMastered={markMastered}
+      onSwipePracticing={markPracticing}
+    />
+  ) : (
+    <SessionComplete
+      masteredCount={masteredCount}
+      practicingCount={practicingCount}
+      totalCards={totalCards}
+      onRestart={restartFlashcards}
+    />
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -84,8 +91,8 @@ export const FlashcardStudyScreen: React.FC = () => {
         <FlashcardSettingsPanel
           settings={settings}
           onToggleCategory={toggleCategoryFilter}
+          onClearCategories={clearCategoryFilters}
           onShuffleChange={setShuffleCards}
-          onPlayAudioChange={setPlayAudio}
           onDefaultSideChange={setDefaultSide}
           onRestart={handleRestart}
         />

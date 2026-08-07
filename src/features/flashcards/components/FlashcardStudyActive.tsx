@@ -10,7 +10,6 @@ export interface FlashcardStudyActiveProps {
   verse: Verse;
   segments: VerseSegment[];
   defaultSide: CardSide;
-  playAudio: boolean;
   onSwipeMastered: () => void;
   onSwipePracticing: () => void;
 }
@@ -20,7 +19,6 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
   verse,
   segments,
   defaultSide,
-  playAudio,
   onSwipeMastered,
   onSwipePracticing,
 }) => (
@@ -30,7 +28,6 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
         verse={verse}
         segments={segments}
         defaultSide={defaultSide}
-        playAudio={playAudio}
         onSwipeMastered={onSwipeMastered}
         onSwipePracticing={onSwipePracticing}
       />

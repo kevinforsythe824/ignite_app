@@ -39,9 +39,9 @@ export interface FlashcardSessionActions {
   goToIndex: (index: number) => void;
   resetSession: () => void;
   setShuffleCards: (value: boolean) => void;
-  setPlayAudio: (value: boolean) => void;
   setDefaultSide: (value: CardSide) => void;
   toggleCategoryFilter: (filterId: CategoryFilterId) => void;
+  clearCategoryFilters: () => void;
   restartFlashcards: () => void;
 }
 
@@ -154,10 +154,6 @@ export function FlashcardSessionProvider({
     [applyStudyOrder],
   );
 
-  const setPlayAudio = useCallback((value: boolean) => {
-    dispatchSettings({ type: 'setPlayAudio', value });
-  }, []);
-
   const setDefaultSide = useCallback((value: CardSide) => {
     dispatchSettings({ type: 'setDefaultSide', value });
   }, []);
@@ -174,6 +170,14 @@ export function FlashcardSessionProvider({
     [applyStudyOrder],
   );
 
+  const clearCategoryFilters = useCallback(() => {
+    if (settingsRef.current.categoryFilters.length === 0) {
+      return;
+    }
+    dispatchSettings({ type: 'clearCategoryFilters' });
+    applyStudyOrder({ ...settingsRef.current, categoryFilters: [] }, false);
+  }, [applyStudyOrder]);
+
   /** Clears progress and rebuilds order from current settings (Shuffle respected). */
   const restartFlashcards = useCallback(() => {
     applyStudyOrder(settingsRef.current, true);
@@ -188,9 +192,9 @@ export function FlashcardSessionProvider({
       goToIndex,
       resetSession,
       setShuffleCards,
-      setPlayAudio,
       setDefaultSide,
       toggleCategoryFilter,
+      clearCategoryFilters,
       restartFlashcards,
     }),
     [
@@ -201,9 +205,9 @@ export function FlashcardSessionProvider({
       goToIndex,
       resetSession,
       setShuffleCards,
-      setPlayAudio,
       setDefaultSide,
       toggleCategoryFilter,
+      clearCategoryFilters,
       restartFlashcards,
     ],
   );

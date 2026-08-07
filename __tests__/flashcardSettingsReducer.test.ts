@@ -7,43 +7,71 @@ describe('flashcardSettingsReducer', () => {
   it('starts from the default settings', () => {
     expect(INITIAL_SETTINGS_STATE).toEqual({
       shuffleCards: false,
-      playAudio: false,
       defaultSide: 'locate',
       categoryFilters: [],
     });
   });
 
-  it('toggles shuffle, audio, and default side', () => {
+  it('toggles shuffle and default side', () => {
     let state = flashcardSettingsReducer(INITIAL_SETTINGS_STATE, {
       type: 'setShuffleCards',
       value: true,
     });
-    state = flashcardSettingsReducer(state, { type: 'setPlayAudio', value: true });
     state = flashcardSettingsReducer(state, { type: 'setDefaultSide', value: 'quote' });
 
     expect(state.shuffleCards).toBe(true);
-    expect(state.playAudio).toBe(true);
     expect(state.defaultSide).toBe('quote');
   });
 
   it('toggles category filters on and off', () => {
     const withOne = flashcardSettingsReducer(INITIAL_SETTINGS_STATE, {
       type: 'toggleCategoryFilter',
-      filterId: 'uniqueBeginning',
+      filterId: 'keyword1x',
     });
-    expect(withOne.categoryFilters).toEqual(['uniqueBeginning']);
+    expect(withOne.categoryFilters).toEqual(['keyword1x']);
 
     const withTwo = flashcardSettingsReducer(withOne, {
       type: 'toggleCategoryFilter',
-      filterId: 'question',
+      filterId: 'animals',
     });
-    expect(withTwo.categoryFilters).toEqual(['uniqueBeginning', 'question']);
+    expect(withTwo.categoryFilters).toEqual(['keyword1x', 'animals']);
 
-    const withoutFirst = flashcardSettingsReducer(withTwo, {
+    const withStructural = flashcardSettingsReducer(withTwo, {
       type: 'toggleCategoryFilter',
       filterId: 'uniqueBeginning',
     });
-    expect(withoutFirst.categoryFilters).toEqual(['question']);
+    expect(withStructural.categoryFilters).toEqual([
+      'keyword1x',
+      'animals',
+      'uniqueBeginning',
+    ]);
+
+    const withoutFirst = flashcardSettingsReducer(withStructural, {
+      type: 'toggleCategoryFilter',
+      filterId: 'keyword1x',
+    });
+    expect(withoutFirst.categoryFilters).toEqual(['animals', 'uniqueBeginning']);
+  });
+
+  it('clears all category filters at once', () => {
+    const withFilters = flashcardSettingsReducer(
+      flashcardSettingsReducer(INITIAL_SETTINGS_STATE, {
+        type: 'toggleCategoryFilter',
+        filterId: 'keyword1x',
+      }),
+      { type: 'toggleCategoryFilter', filterId: 'animals' },
+    );
+    expect(withFilters.categoryFilters).toEqual(['keyword1x', 'animals']);
+
+    const cleared = flashcardSettingsReducer(withFilters, {
+      type: 'clearCategoryFilters',
+    });
+    expect(cleared.categoryFilters).toEqual([]);
+
+    // Idempotent when already empty.
+    expect(
+      flashcardSettingsReducer(cleared, { type: 'clearCategoryFilters' }),
+    ).toBe(cleared);
   });
 
   it('resets settings to defaults', () => {

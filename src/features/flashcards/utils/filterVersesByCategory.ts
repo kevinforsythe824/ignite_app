@@ -6,6 +6,13 @@ import type { Verse } from '../types/verse';
  * Matching is substring-based after lowercasing and stripping trailing periods.
  */
 const CATEGORY_MATCHERS: Readonly<Record<CategoryFilterId, readonly string[]>> = {
+  keyword1x: ['1x keyword'],
+  keyword2x: ['2x keyword'],
+  keyword3x: ['3x keyword'],
+  animals: ['animals', 'animal'],
+  properName: ['proper name', 'proper names'],
+  bodyParts: ['body parts', 'body part'],
+  geoLocation: ['geo location', 'geo locations'],
   uniqueBeginning: ['unique beg', 'unique beginning'],
   uniqueEnding: ['unique end', 'unique ending'],
   question: ['question'],
@@ -19,7 +26,10 @@ function normalizeLabel(value: string): string {
 function labelMatchesCategory(label: string, filterId: CategoryFilterId): boolean {
   const normalized = normalizeLabel(label);
   return CATEGORY_MATCHERS[filterId].some(
-    (needle) => normalized === needle || normalized.startsWith(`${needle}.`) || normalized.startsWith(needle),
+    (needle) =>
+      normalized === needle ||
+      normalized.startsWith(`${needle}.`) ||
+      normalized.startsWith(needle),
   );
 }
 

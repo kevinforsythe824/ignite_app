@@ -7,9 +7,9 @@ import {
 
 export type FlashcardSettingsAction =
   | { type: 'setShuffleCards'; value: boolean }
-  | { type: 'setPlayAudio'; value: boolean }
   | { type: 'setDefaultSide'; value: CardSide }
   | { type: 'toggleCategoryFilter'; filterId: CategoryFilterId }
+  | { type: 'clearCategoryFilters' }
   | { type: 'resetSettings' };
 
 export const INITIAL_SETTINGS_STATE: FlashcardSettings = DEFAULT_FLASHCARD_SETTINGS;
@@ -32,8 +32,6 @@ export function flashcardSettingsReducer(
   switch (action.type) {
     case 'setShuffleCards':
       return { ...state, shuffleCards: action.value };
-    case 'setPlayAudio':
-      return { ...state, playAudio: action.value };
     case 'setDefaultSide':
       return { ...state, defaultSide: action.value };
     case 'toggleCategoryFilter':
@@ -41,6 +39,11 @@ export function flashcardSettingsReducer(
         ...state,
         categoryFilters: toggleFilter(state.categoryFilters, action.filterId),
       };
+    case 'clearCategoryFilters':
+      if (state.categoryFilters.length === 0) {
+        return state;
+      }
+      return { ...state, categoryFilters: [] };
     case 'resetSettings':
       return INITIAL_SETTINGS_STATE;
     default:
