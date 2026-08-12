@@ -83,30 +83,30 @@ describe('FlashcardSessionContext', () => {
     expect(session.isComplete).toBe(false);
   });
 
-  it('marks mastered and advances to the next card', () => {
+  it('marks correct and advances to the next card', () => {
     const { getSession } = createSessionController();
 
     act(() => {
-      getSession().markMastered();
+      getSession().markCorrect();
     });
 
     const session = getSession();
     expect(session.currentIndex).toBe(1);
-    expect(session.statusById.t1).toBe('mastered');
-    expect(session.masteredCount).toBe(1);
+    expect(session.statusById.t1).toBe('correct');
+    expect(session.correctCount).toBe(1);
   });
 
-  it('marks practicing and advances to the next card', () => {
+  it('marks needs work and advances to the next card', () => {
     const { getSession } = createSessionController();
 
     act(() => {
-      getSession().markPracticing();
+      getSession().markNeedsWork();
     });
 
     const session = getSession();
     expect(session.currentIndex).toBe(1);
-    expect(session.statusById.t1).toBe('practicing');
-    expect(session.practicingCount).toBe(1);
+    expect(session.statusById.t1).toBe('needsWork');
+    expect(session.needsWorkCount).toBe(1);
   });
 
   it('clamps navigation at deck bounds', () => {
@@ -132,7 +132,7 @@ describe('FlashcardSessionContext', () => {
     const { getSession } = createSessionController();
 
     act(() => {
-      getSession().markMastered();
+      getSession().markCorrect();
       getSession().resetSession();
     });
 
@@ -146,13 +146,13 @@ describe('FlashcardSessionContext', () => {
     const { getSession } = createSessionController();
 
     act(() => {
-      getSession().markMastered();
+      getSession().markCorrect();
     });
     act(() => {
-      getSession().markPracticing();
+      getSession().markNeedsWork();
     });
     act(() => {
-      getSession().markMastered();
+      getSession().markCorrect();
     });
 
     const session = getSession();
@@ -182,10 +182,10 @@ describe('FlashcardSessionContext', () => {
     expect(getSession().isComplete).toBe(false);
 
     act(() => {
-      getSession().markMastered();
+      getSession().markCorrect();
     });
     act(() => {
-      getSession().markPracticing();
+      getSession().markNeedsWork();
     });
 
     const session = getSession();
@@ -232,8 +232,8 @@ describe('FlashcardSessionContext', () => {
 
     act(() => {
       getSession().toggleCategoryFilter('uniqueBeginning');
-      getSession().markMastered();
-      getSession().markPracticing();
+      getSession().markCorrect();
+      getSession().markNeedsWork();
     });
     expect(getSession().isComplete).toBe(true);
 
@@ -344,7 +344,7 @@ describe('FlashcardSessionContext', () => {
     const { getSession } = createSessionController();
 
     act(() => {
-      getSession().markMastered();
+      getSession().markCorrect();
       getSession().restartFlashcards();
     });
 

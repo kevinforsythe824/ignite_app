@@ -39,4 +39,5 @@ export interface VerseSegment {
   mark?: VerseMark;
 }
 
-export type CardStatus = 'unseen' | 'mastered' | 'practicing';
+/** Per-card session grade (PRD Flashcard correctness — not long-term Mastery). */
+export type CardStatus = 'unseen' | 'correct' | 'needsWork';

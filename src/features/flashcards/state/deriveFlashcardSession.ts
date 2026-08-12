@@ -13,8 +13,8 @@ export interface FlashcardSessionView {
   totalCards: number;
   currentStatus: CardStatus;
   statusById: Record<string, CardStatus>;
-  masteredCount: number;
-  practicingCount: number;
+  correctCount: number;
+  needsWorkCount: number;
   answeredCount: number;
   progress: number;
   isComplete: boolean;
@@ -28,47 +28,47 @@ export interface FlashcardSessionViewWithSegments extends FlashcardSessionView {
 
 /** Count answered cards from status map only (unseen ids are absent). */
 export function countAnsweredStatuses(statusById: Record<string, CardStatus>): {
-  masteredCount: number;
-  practicingCount: number;
+  correctCount: number;
+  needsWorkCount: number;
 } {
-  let masteredCount = 0;
-  let practicingCount = 0;
+  let correctCount = 0;
+  let needsWorkCount = 0;
 
   for (const status of Object.values(statusById)) {
-    if (status === 'mastered') {
-      masteredCount += 1;
-    } else if (status === 'practicing') {
-      practicingCount += 1;
+    if (status === 'correct') {
+      correctCount += 1;
+    } else if (status === 'needsWork') {
+      needsWorkCount += 1;
     }
   }
 
-  return { masteredCount, practicingCount };
+  return { correctCount, needsWorkCount };
 }
 
 /**
- * Counts mastery only for verses in the active study list so filtered decks
- * do not credit answers from cards that are currently hidden.
+ * Counts session grades only for verses in the active study list so filtered
+ * decks do not credit answers from cards that are currently hidden.
  */
 export function countActiveAnsweredStatuses(
   statusById: Record<string, CardStatus>,
   activeVerseIds: readonly string[],
-): { masteredCount: number; practicingCount: number; answeredCount: number } {
-  let masteredCount = 0;
-  let practicingCount = 0;
+): { correctCount: number; needsWorkCount: number; answeredCount: number } {
+  let correctCount = 0;
+  let needsWorkCount = 0;
 
   for (const id of activeVerseIds) {
     const status = statusById[id];
-    if (status === 'mastered') {
-      masteredCount += 1;
-    } else if (status === 'practicing') {
-      practicingCount += 1;
+    if (status === 'correct') {
+      correctCount += 1;
+    } else if (status === 'needsWork') {
+      needsWorkCount += 1;
     }
   }
 
   return {
-    masteredCount,
-    practicingCount,
-    answeredCount: masteredCount + practicingCount,
+    correctCount,
+    needsWorkCount,
+    answeredCount: correctCount + needsWorkCount,
   };
 }
 
@@ -95,7 +95,7 @@ export function deriveFlashcardSession(
   const currentVerse =
     state.currentIndex >= totalCards ? undefined : verses[state.currentIndex];
   const activeIds = verses.map((verse) => verse.id);
-  const { masteredCount, practicingCount, answeredCount } = countActiveAnsweredStatuses(
+  const { correctCount, needsWorkCount, answeredCount } = countActiveAnsweredStatuses(
     state.statusById,
     activeIds,
   );
@@ -116,8 +116,8 @@ export function deriveFlashcardSession(
     currentStatus:
       currentVerse === undefined ? 'unseen' : state.statusById[currentVerse.id] ?? 'unseen',
     statusById: state.statusById,
-    masteredCount,
-    practicingCount,
+    correctCount,
+    needsWorkCount,
     answeredCount,
     progress: totalCards === 0 ? 0 : isComplete ? 1 : (state.currentIndex + 1) / totalCards,
     isComplete,

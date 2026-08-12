@@ -32,8 +32,8 @@ export {
 export { DEFAULT_DECK } from '../data/defaultDeck';
 
 export interface FlashcardSessionActions {
-  markMastered: () => void;
-  markPracticing: () => void;
+  markCorrect: () => void;
+  markNeedsWork: () => void;
   goToNext: () => void;
   goToPrevious: () => void;
   goToIndex: (index: number) => void;
@@ -127,8 +127,8 @@ export function FlashcardSessionProvider({
     [],
   );
 
-  const markMastered = useCallback(() => answer('mastered'), [answer]);
-  const markPracticing = useCallback(() => answer('practicing'), [answer]);
+  const markCorrect = useCallback(() => answer('correct'), [answer]);
+  const markNeedsWork = useCallback(() => answer('needsWork'), [answer]);
 
   const goToNext = useCallback(() => {
     dispatch({ type: 'next', totalCards: resolveActiveVerses().length });
@@ -185,8 +185,8 @@ export function FlashcardSessionProvider({
 
   const actions = useMemo<FlashcardSessionActions>(
     () => ({
-      markMastered,
-      markPracticing,
+      markCorrect,
+      markNeedsWork,
       goToNext,
       goToPrevious,
       goToIndex,
@@ -198,8 +198,8 @@ export function FlashcardSessionProvider({
       restartFlashcards,
     }),
     [
-      markMastered,
-      markPracticing,
+      markCorrect,
+      markNeedsWork,
       goToNext,
       goToPrevious,
       goToIndex,

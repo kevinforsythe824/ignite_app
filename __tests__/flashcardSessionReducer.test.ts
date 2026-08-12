@@ -31,39 +31,39 @@ describe('flashcardSessionReducer', () => {
     });
   });
 
-  it('records a mastered answer and advances the index', () => {
+  it('records a correct answer and advances the index', () => {
     const next = flashcardSessionReducer(INITIAL_SESSION_STATE, {
       type: 'answer',
       verseId: 'v1',
-      status: 'mastered',
+      status: 'correct',
       totalCards: threeCardDeck,
     });
 
     expect(next).toEqual({
       currentIndex: 1,
-      statusById: { v1: 'mastered' },
+      statusById: { v1: 'correct' },
       activeVerseIds: null,
     });
   });
 
-  it('records a practicing answer without dropping earlier statuses', () => {
+  it('records a needs-work answer without dropping earlier statuses', () => {
     const answered = flashcardSessionReducer(INITIAL_SESSION_STATE, {
       type: 'answer',
       verseId: 'v1',
-      status: 'mastered',
+      status: 'correct',
       totalCards: threeCardDeck,
     });
 
     const next = flashcardSessionReducer(answered, {
       type: 'answer',
       verseId: 'v2',
-      status: 'practicing',
+      status: 'needsWork',
       totalCards: threeCardDeck,
     });
 
     expect(next.statusById).toEqual({
-      v1: 'mastered',
-      v2: 'practicing',
+      v1: 'correct',
+      v2: 'needsWork',
     });
     expect(next.currentIndex).toBe(2);
   });
@@ -71,32 +71,32 @@ describe('flashcardSessionReducer', () => {
   it('advances past the last card after answering so the session can complete', () => {
     const onLastCard: FlashcardSessionState = {
       currentIndex: 2,
-      statusById: { v1: 'mastered', v2: 'practicing' },
+      statusById: { v1: 'correct', v2: 'needsWork' },
       activeVerseIds: null,
     };
 
     const next = flashcardSessionReducer(onLastCard, {
       type: 'answer',
       verseId: 'v3',
-      status: 'mastered',
+      status: 'correct',
       totalCards: threeCardDeck,
     });
 
     expect(next.currentIndex).toBe(3);
-    expect(next.statusById.v3).toBe('mastered');
+    expect(next.statusById.v3).toBe('correct');
   });
 
   it('does not advance past totalCards when answering at the end', () => {
     const pastEnd: FlashcardSessionState = {
       currentIndex: 3,
-      statusById: { v1: 'mastered', v2: 'practicing', v3: 'mastered' },
+      statusById: { v1: 'correct', v2: 'needsWork', v3: 'correct' },
       activeVerseIds: null,
     };
 
     const next = flashcardSessionReducer(pastEnd, {
       type: 'answer',
       verseId: 'v3',
-      status: 'practicing',
+      status: 'needsWork',
       totalCards: threeCardDeck,
     });
 
@@ -134,7 +134,7 @@ describe('flashcardSessionReducer', () => {
   it('sets an active study order and optionally resets progress', () => {
     const dirty: FlashcardSessionState = {
       currentIndex: 2,
-      statusById: { v1: 'mastered' },
+      statusById: { v1: 'correct' },
       activeVerseIds: null,
     };
 
@@ -144,7 +144,7 @@ describe('flashcardSessionReducer', () => {
     });
     expect(withoutReset.activeVerseIds).toEqual(['v2', 'v1']);
     expect(withoutReset.currentIndex).toBe(1);
-    expect(withoutReset.statusById).toEqual({ v1: 'mastered' });
+    expect(withoutReset.statusById).toEqual({ v1: 'correct' });
 
     const withReset = flashcardSessionReducer(dirty, {
       type: 'setActiveOrder',
@@ -161,7 +161,7 @@ describe('flashcardSessionReducer', () => {
   it('resets index and statuses while preserving active order', () => {
     const dirty: FlashcardSessionState = {
       currentIndex: 2,
-      statusById: { v1: 'mastered', v2: 'practicing' },
+      statusById: { v1: 'correct', v2: 'needsWork' },
       activeVerseIds: ['v2', 'v1', 'v3'],
     };
 

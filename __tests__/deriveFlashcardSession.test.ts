@@ -39,23 +39,23 @@ const deck: FlashcardDeck = {
 };
 
 describe('countAnsweredStatuses', () => {
-  it('counts only mastered and practicing entries', () => {
+  it('counts only correct and needsWork entries', () => {
     expect(
       countAnsweredStatuses({
-        v1: 'mastered',
-        v2: 'practicing',
-        v3: 'mastered',
+        v1: 'correct',
+        v2: 'needsWork',
+        v3: 'correct',
       }),
     ).toEqual({
-      masteredCount: 2,
-      practicingCount: 1,
+      correctCount: 2,
+      needsWorkCount: 1,
     });
   });
 
   it('returns zeros for an empty status map', () => {
     expect(countAnsweredStatuses({})).toEqual({
-      masteredCount: 0,
-      practicingCount: 0,
+      correctCount: 0,
+      needsWorkCount: 0,
     });
   });
 });
@@ -66,7 +66,7 @@ describe('deriveFlashcardSession', () => {
       deck,
       {
         currentIndex: 1,
-        statusById: { v1: 'mastered' },
+        statusById: { v1: 'correct' },
         activeVerseIds: null,
       },
       DEFAULT_FLASHCARD_SETTINGS,
@@ -88,9 +88,9 @@ describe('deriveFlashcardSession', () => {
       {
         currentIndex: 3,
         statusById: {
-          v1: 'mastered',
-          v2: 'practicing',
-          v3: 'mastered',
+          v1: 'correct',
+          v2: 'needsWork',
+          v3: 'correct',
         },
         activeVerseIds: null,
       },
@@ -98,8 +98,8 @@ describe('deriveFlashcardSession', () => {
     );
 
     expect(view.answeredCount).toBe(3);
-    expect(view.masteredCount).toBe(2);
-    expect(view.practicingCount).toBe(1);
+    expect(view.correctCount).toBe(2);
+    expect(view.needsWorkCount).toBe(1);
     expect(view.currentVerse).toBeUndefined();
     expect(view.currentCardNumber).toBe(3);
     expect(view.progress).toBe(1);
@@ -113,8 +113,8 @@ describe('deriveFlashcardSession', () => {
       {
         currentIndex: 3,
         statusById: {
-          v1: 'mastered',
-          v2: 'practicing',
+          v1: 'correct',
+          v2: 'needsWork',
         },
         activeVerseIds: null,
       },
@@ -132,9 +132,9 @@ describe('deriveFlashcardSession', () => {
       {
         currentIndex: 0,
         statusById: {
-          v1: 'mastered',
-          v2: 'practicing',
-          v3: 'mastered',
+          v1: 'correct',
+          v2: 'needsWork',
+          v3: 'correct',
         },
         activeVerseIds: ['v3', 'v1'],
       },
@@ -144,8 +144,8 @@ describe('deriveFlashcardSession', () => {
     expect(view.verses.map((verse) => verse.id)).toEqual(['v3', 'v1']);
     expect(view.currentVerse?.id).toBe('v3');
     expect(view.totalCards).toBe(2);
-    expect(view.masteredCount).toBe(2);
-    expect(view.practicingCount).toBe(0);
+    expect(view.correctCount).toBe(2);
+    expect(view.needsWorkCount).toBe(0);
     expect(view.answeredCount).toBe(2);
     expect(view.isComplete).toBe(true);
     expect(view.showCard).toBe(false);
@@ -157,8 +157,8 @@ describe('deriveFlashcardSession', () => {
       {
         currentIndex: 2,
         statusById: {
-          v1: 'mastered',
-          v3: 'practicing',
+          v1: 'correct',
+          v3: 'needsWork',
         },
         activeVerseIds: ['v1', 'v3'],
       },
@@ -180,7 +180,7 @@ describe('deriveFlashcardSession', () => {
       deck,
       {
         currentIndex: 0,
-        statusById: { v1: 'mastered' },
+        statusById: { v1: 'correct' },
         activeVerseIds: [],
       },
       {

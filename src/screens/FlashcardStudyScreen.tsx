@@ -18,14 +18,14 @@ export const FlashcardStudyScreen: React.FC = () => {
     currentSegments,
     currentCardNumber,
     totalCards,
-    masteredCount,
-    practicingCount,
+    correctCount,
+    needsWorkCount,
     progress,
     isComplete,
     showCard,
     settings,
-    markMastered,
-    markPracticing,
+    markCorrect,
+    markNeedsWork,
     restartFlashcards,
     setShuffleCards,
     setDefaultSide,
@@ -44,8 +44,8 @@ export const FlashcardStudyScreen: React.FC = () => {
   // Complete and empty-filter must not mount FlashcardStudyActive ("Tap to flip").
   const body = isComplete ? (
     <SessionComplete
-      masteredCount={masteredCount}
-      practicingCount={practicingCount}
+      masteredCount={correctCount}
+      practicingCount={needsWorkCount}
       totalCards={totalCards}
       onRestart={restartFlashcards}
     />
@@ -61,13 +61,13 @@ export const FlashcardStudyScreen: React.FC = () => {
       verse={currentVerse}
       segments={currentSegments}
       defaultSide={settings.defaultSide}
-      onSwipeMastered={markMastered}
-      onSwipePracticing={markPracticing}
+      onSwipeMastered={markCorrect}
+      onSwipePracticing={markNeedsWork}
     />
   ) : (
     <SessionComplete
-      masteredCount={masteredCount}
-      practicingCount={practicingCount}
+      masteredCount={correctCount}
+      practicingCount={needsWorkCount}
       totalCards={totalCards}
       onRestart={restartFlashcards}
     />
@@ -79,8 +79,8 @@ export const FlashcardStudyScreen: React.FC = () => {
         title={deck.title}
         current={currentCardNumber}
         total={totalCards}
-        masteredCount={masteredCount}
-        practicingCount={practicingCount}
+        masteredCount={correctCount}
+        practicingCount={needsWorkCount}
         progress={progress}
         onSettingsPress={openSettings}
       />
