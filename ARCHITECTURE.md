@@ -15,6 +15,8 @@ ignite_app/
 ├── ARCHITECTURE.md              # This file (engineering source of truth)
 ├── docs/PRD.md                  # Product source of truth
 ├── __tests__/                   # Jest business-logic & smoke tests
+├── scripts/                     # Developer tooling (not shipped in the app)
+│   └── firestore-seed/          # Admin SDK import of the JSON test curriculum
 ├── .cursor/rules/               # AI coding rules (incl. project-philosophy)
 ├── src/
 │   ├── app/                     # App shell only
