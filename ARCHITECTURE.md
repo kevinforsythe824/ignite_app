@@ -23,7 +23,7 @@ ignite_app/
 │   ├── features/                # Feature modules (feature-first)
 │   │   └── flashcards/          # Only full feature today
 │   │       ├── components/      # Presentation UI
-│   │       ├── data/            # Feature fixtures + JSON → Card mapper
+│   │       ├── data/            # JSON + Firestore persistence DTOs → Card mappers
 │   │       ├── hooks/           # Feature hooks (useFlashcards)
 │   │       ├── screens/         # Feature routes (provider + screen)
 │   │       ├── state/           # Reducer, context, derived view
