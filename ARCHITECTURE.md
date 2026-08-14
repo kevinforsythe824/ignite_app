@@ -27,6 +27,7 @@ ignite_app/
 │   │       ├── components/      # Presentation UI
 │   │       ├── data/            # JSON + Firestore persistence DTOs → Card mappers
 │   │       ├── hooks/           # Feature hooks (useFlashcards)
+│   │       ├── repositories/    # CurriculumRepository; Firestore live, JSON for tests
 │   │       ├── screens/         # Feature routes (provider + screen)
 │   │       ├── state/           # Reducer, context, derived view
 │   │       ├── types/           # Domain types
@@ -160,15 +161,17 @@ Route param lists: `src/app/navigation/types.ts`.
 
 ## 8. Services
 
-`src/services` holds infrastructure and SDK-agnostic stubs. Unwired methods throw `ServiceNotConnectedError`.
+`src/services` holds Firebase JS SDK initialization plus remaining service stubs. Unwired methods (auth, storage, AI) still throw `ServiceNotConnectedError`.
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. |
+| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 
-Features should depend on these interfaces later — never on SDKs directly in UI.
+The MVP is online-first. SQLite, offline Flashcard study, and synchronization remain deferred.
+
+Features should depend on repository/service boundaries — never on SDKs directly in UI.
 
 ---
 
