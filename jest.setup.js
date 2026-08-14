@@ -1,3 +1,13 @@
+jest.mock('firebase/app', () => ({
+  getApps: jest.fn(() => []),
+  getApp: jest.fn(),
+  initializeApp: jest.fn(),
+}));
+
+jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(),
+}));
+
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');

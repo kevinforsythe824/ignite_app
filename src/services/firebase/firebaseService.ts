@@ -16,9 +16,9 @@ export interface AuthService {
 }
 
 /**
- * Top-level Firebase facade. Implementations will own SDK init.
- * Firestore persistence is intentionally omitted — Sprint 1.75 will add
- * curriculum/progress repositories, not a Deck/Verse database API.
+ * Auth-facing Firebase facade. Auth remains a Sprint 2 stub.
+ * App/Firestore initialization lives in firebaseApp.ts and firestore.ts —
+ * do not add a generic DatabaseService here.
  */
 export interface FirebaseService {
   readonly auth: AuthService;
@@ -33,7 +33,7 @@ const authStub: AuthService = {
   onAuthStateChanged: () => notConnected('firebase.auth', 'onAuthStateChanged'),
 };
 
-/** Stub Firebase service — no SDK, no network, no deck persistence. */
+/** Auth stub — SDK app/Firestore init is separate and not invoked from here. */
 export const firebaseService: FirebaseService = {
   auth: authStub,
   initialize: () => notConnected('firebase', 'initialize'),

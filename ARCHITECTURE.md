@@ -31,7 +31,7 @@ ignite_app/
 │   │       └── utils/           # Pure domain helpers (parsing, caches)
 │   ├── screens/                 # App-level / placeholder screens
 │   ├── shared/                  # Cross-feature only (theme, utils, …)
-│   ├── services/                # Firebase / storage / API stubs (no prod wiring yet)
+│   ├── services/                # Firebase JS SDK init + storage/API stubs
 │   └── data/                    # Shared mock JSON (e.g. curriculum fixtures)
 ```
 
@@ -157,11 +157,11 @@ Route param lists: `src/app/navigation/types.ts`.
 
 ## 8. Services
 
-`src/services` holds **interfaces + stubs** only. Calling methods throws `ServiceNotConnectedError` until wired.
+`src/services` holds infrastructure and SDK-agnostic stubs. Unwired methods throw `ServiceNotConnectedError`.
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Auth stub only. No Deck/Verse/DeckProgress APIs — Sprint 1.75 persistence will use feature repositories. |
+| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. Curriculum still uses `JsonCurriculumRepository`; feature repositories will consume `getFirebaseFirestore()` later. |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 

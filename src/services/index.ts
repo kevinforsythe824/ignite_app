@@ -3,12 +3,18 @@ export { ServiceNotConnectedError, notConnected } from './errors';
 export {
   createFirebaseService,
   firebaseService,
+  getFirebaseApp,
+  getFirebaseFirestore,
+  readFirebaseClientConfig,
+  FirebaseNotConfiguredError,
+  FIREBASE_CLIENT_ENV_KEYS,
 } from './firebase';
 export type {
   AuthCredentials,
   AuthService,
   AuthStateListener,
   AuthUser,
+  FirebaseClientConfig,
   FirebaseService,
   Unsubscribe,
 } from './firebase';
