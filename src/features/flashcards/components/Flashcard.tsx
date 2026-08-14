@@ -15,12 +15,13 @@ import Animated, {
 
 import { colors, radius, shadows, spacing } from '../../../shared/theme';
 import type { CardSide } from '../types/settings';
-import type { Verse, VerseSegment } from '../types/verse';
+import type { Card } from '../domain/card';
+import type { VerseSegment } from '../types/verse';
 import FlashcardBack from './FlashcardBack';
 import FlashcardFront from './FlashcardFront';
 
 export interface FlashcardProps {
-  verse: Verse;
+  card: Card;
   /** Pre-parsed quote-side segments from the feature domain utils. */
   segments: VerseSegment[];
   /** Which face is shown when a new card arrives. */
@@ -52,7 +53,7 @@ const MAX_OVERLAY_OPACITY = 0.28;
 const CHROME_ICON_SIZE = 22;
 
 export const Flashcard: React.FC<FlashcardProps> = React.memo(({
-  verse,
+  card,
   segments,
   defaultSide = 'locate',
   onSwipeMastered,
@@ -82,7 +83,7 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     translateY.value = 0;
     rotation.value = rotationForSide(defaultSide);
     cardOpacity.value = withTiming(1, { duration: FADE_IN_DURATION });
-  }, [verse.id, defaultSide, cardOpacity, rotation, translateX, translateY]);
+  }, [card.cardId, defaultSide, cardOpacity, rotation, translateX, translateY]);
 
   // A tap only wins while the finger stays inside the pan's activation radius,
   // so a short press flips and anything more horizontal becomes a swipe.
@@ -179,12 +180,12 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
       <Animated.View style={[styles.container, style, containerStyle]}>
         <Animated.View style={[styles.face, locateFaceStyle]}>
           <CardChrome />
-          <FlashcardBack segments={segments} indexCode={verse.index_code} />
+          <FlashcardBack segments={segments} indexCode={card.indexCode} />
         </Animated.View>
 
         <Animated.View style={[styles.face, quoteFaceStyle]}>
           <CardChrome />
-          <FlashcardFront verse={verse} />
+          <FlashcardFront card={card} />
         </Animated.View>
 
         <Animated.View

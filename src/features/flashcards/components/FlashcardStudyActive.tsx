@@ -3,11 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { spacing, typography } from '../../../shared/theme';
 import type { CardSide } from '../types/settings';
-import type { Verse, VerseSegment } from '../types/verse';
+import type { Card } from '../domain/card';
+import type { VerseSegment } from '../types/verse';
 import Flashcard from './Flashcard';
 
 export interface FlashcardStudyActiveProps {
-  verse: Verse;
+  card: Card;
   segments: VerseSegment[];
   defaultSide: CardSide;
   onSwipeMastered: () => void;
@@ -16,7 +17,7 @@ export interface FlashcardStudyActiveProps {
 
 /** Active study body: flip/swipe card plus the tap hint. */
 export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.memo(({
-  verse,
+  card,
   segments,
   defaultSide,
   onSwipeMastered,
@@ -25,7 +26,7 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
   <View style={styles.cardSection}>
     <View style={styles.cardArea}>
       <Flashcard
-        verse={verse}
+        card={card}
         segments={segments}
         defaultSide={defaultSide}
         onSwipeMastered={onSwipeMastered}

@@ -2,17 +2,17 @@ import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { spacing, typography } from '../../../shared/theme';
-import type { Verse } from '../types/verse';
+import type { Card } from '../domain/card';
 
 export interface FlashcardFrontProps {
-  verse: Verse;
+  card: Card;
   style?: StyleProp<ViewStyle>;
 }
 
 /** Quote side — the verse reference on its own, centered. */
-export const FlashcardFront: React.FC<FlashcardFrontProps> = React.memo(({ verse, style }) => (
+export const FlashcardFront: React.FC<FlashcardFrontProps> = React.memo(({ card, style }) => (
   <View style={[styles.container, style]}>
-    <Text style={styles.reference}>{verse.reference}</Text>
+    <Text style={styles.reference}>{card.reference}</Text>
   </View>
 ));
 

@@ -1,13 +1,16 @@
+import type { Card } from '../domain/card';
+import type { StudyCurriculum } from '../repositories/curriculumRepository';
 import type { FlashcardSettings } from '../types/settings';
-import type { CardStatus, FlashcardDeck, Verse, VerseSegment } from '../types/verse';
+import type { CardStatus, VerseSegment } from '../types/verse';
 import { resolveVersesByIds } from '../utils/buildStudyVerses';
 import type { FlashcardSessionState } from './flashcardSessionReducer';
 
 export interface FlashcardSessionView {
-  deck: FlashcardDeck;
+  seasonId: string;
+  title: string;
   /** Active study list after filters / shuffle. */
-  verses: Verse[];
-  currentVerse: Verse | undefined;
+  cards: Card[];
+  currentCard: Card | undefined;
   currentIndex: number;
   currentCardNumber: number;
   totalCards: number;
@@ -46,17 +49,17 @@ export function countAnsweredStatuses(statusById: Record<string, CardStatus>): {
 }
 
 /**
- * Counts session grades only for verses in the active study list so filtered
+ * Counts session grades only for cards in the active study list so filtered
  * decks do not credit answers from cards that are currently hidden.
  */
 export function countActiveAnsweredStatuses(
   statusById: Record<string, CardStatus>,
-  activeVerseIds: readonly string[],
+  activeCardIds: readonly string[],
 ): { correctCount: number; needsWorkCount: number; answeredCount: number } {
   let correctCount = 0;
   let needsWorkCount = 0;
 
-  for (const id of activeVerseIds) {
+  for (const id of activeCardIds) {
     const status = statusById[id];
     if (status === 'correct') {
       correctCount += 1;
@@ -72,29 +75,29 @@ export function countActiveAnsweredStatuses(
   };
 }
 
-/** Resolves the active study verses from session order or deck order. */
+/** Resolves the active study cards from session order or curriculum order. */
 export function resolveStudyVerses(
-  deck: FlashcardDeck,
+  cards: readonly Card[],
   state: FlashcardSessionState,
-): Verse[] {
-  if (state.activeVerseIds === null) {
-    return deck.verses;
+): Card[] {
+  if (state.activeCardIds === null) {
+    return [...cards];
   }
-  return resolveVersesByIds(deck.verses, state.activeVerseIds);
+  return resolveVersesByIds(cards, state.activeCardIds);
 }
 
 /** Pure projection of session state without verse parsing. */
 export function deriveFlashcardSession(
-  deck: FlashcardDeck,
+  curriculum: Pick<StudyCurriculum, 'seasonId' | 'title' | 'cards'>,
   state: FlashcardSessionState,
   settings: FlashcardSettings,
 ): FlashcardSessionView {
-  const verses = resolveStudyVerses(deck, state);
-  const totalCards = verses.length;
+  const cards = resolveStudyVerses(curriculum.cards, state);
+  const totalCards = cards.length;
   /** `undefined` when index is past the last card (session finished). */
-  const currentVerse =
-    state.currentIndex >= totalCards ? undefined : verses[state.currentIndex];
-  const activeIds = verses.map((verse) => verse.id);
+  const currentCard =
+    state.currentIndex >= totalCards ? undefined : cards[state.currentIndex];
+  const activeIds = cards.map((card) => card.cardId);
   const { correctCount, needsWorkCount, answeredCount } = countActiveAnsweredStatuses(
     state.statusById,
     activeIds,
@@ -106,22 +109,23 @@ export function deriveFlashcardSession(
     (answeredCount === totalCards || state.currentIndex >= totalCards);
 
   return {
-    deck,
-    verses,
-    currentVerse,
+    seasonId: curriculum.seasonId,
+    title: curriculum.title,
+    cards,
+    currentCard,
     currentIndex: state.currentIndex,
     currentCardNumber:
       totalCards === 0 ? 0 : Math.min(state.currentIndex + 1, totalCards),
     totalCards,
     currentStatus:
-      currentVerse === undefined ? 'unseen' : state.statusById[currentVerse.id] ?? 'unseen',
+      currentCard === undefined ? 'unseen' : state.statusById[currentCard.cardId] ?? 'unseen',
     statusById: state.statusById,
     correctCount,
     needsWorkCount,
     answeredCount,
     progress: totalCards === 0 ? 0 : isComplete ? 1 : (state.currentIndex + 1) / totalCards,
     isComplete,
-    showCard: !isComplete && currentVerse !== undefined,
+    showCard: !isComplete && currentCard !== undefined,
     settings,
   };
 }

@@ -27,14 +27,14 @@ describe('flashcardSessionReducer', () => {
     expect(INITIAL_SESSION_STATE).toEqual({
       currentIndex: 0,
       statusById: {},
-      activeVerseIds: null,
+      activeCardIds: null,
     });
   });
 
   it('records a correct answer and advances the index', () => {
     const next = flashcardSessionReducer(INITIAL_SESSION_STATE, {
       type: 'answer',
-      verseId: 'v1',
+      cardId: 'v1',
       status: 'correct',
       totalCards: threeCardDeck,
     });
@@ -42,21 +42,21 @@ describe('flashcardSessionReducer', () => {
     expect(next).toEqual({
       currentIndex: 1,
       statusById: { v1: 'correct' },
-      activeVerseIds: null,
+      activeCardIds: null,
     });
   });
 
   it('records a needs-work answer without dropping earlier statuses', () => {
     const answered = flashcardSessionReducer(INITIAL_SESSION_STATE, {
       type: 'answer',
-      verseId: 'v1',
+      cardId: 'v1',
       status: 'correct',
       totalCards: threeCardDeck,
     });
 
     const next = flashcardSessionReducer(answered, {
       type: 'answer',
-      verseId: 'v2',
+      cardId: 'v2',
       status: 'needsWork',
       totalCards: threeCardDeck,
     });
@@ -72,12 +72,12 @@ describe('flashcardSessionReducer', () => {
     const onLastCard: FlashcardSessionState = {
       currentIndex: 2,
       statusById: { v1: 'correct', v2: 'needsWork' },
-      activeVerseIds: null,
+      activeCardIds: null,
     };
 
     const next = flashcardSessionReducer(onLastCard, {
       type: 'answer',
-      verseId: 'v3',
+      cardId: 'v3',
       status: 'correct',
       totalCards: threeCardDeck,
     });
@@ -90,12 +90,12 @@ describe('flashcardSessionReducer', () => {
     const pastEnd: FlashcardSessionState = {
       currentIndex: 3,
       statusById: { v1: 'correct', v2: 'needsWork', v3: 'correct' },
-      activeVerseIds: null,
+      activeCardIds: null,
     };
 
     const next = flashcardSessionReducer(pastEnd, {
       type: 'answer',
-      verseId: 'v3',
+      cardId: 'v3',
       status: 'needsWork',
       totalCards: threeCardDeck,
     });
@@ -114,7 +114,7 @@ describe('flashcardSessionReducer', () => {
     expect(stillFirst.currentIndex).toBe(0);
 
     const atEnd = flashcardSessionReducer(
-      { currentIndex: 2, statusById: {}, activeVerseIds: null },
+      { currentIndex: 2, statusById: {}, activeCardIds: null },
       { type: 'next', totalCards: threeCardDeck },
     );
     expect(atEnd.currentIndex).toBe(2);
@@ -135,26 +135,26 @@ describe('flashcardSessionReducer', () => {
     const dirty: FlashcardSessionState = {
       currentIndex: 2,
       statusById: { v1: 'correct' },
-      activeVerseIds: null,
+      activeCardIds: null,
     };
 
     const withoutReset = flashcardSessionReducer(dirty, {
       type: 'setActiveOrder',
-      verseIds: ['v2', 'v1'],
+      cardIds: ['v2', 'v1'],
     });
-    expect(withoutReset.activeVerseIds).toEqual(['v2', 'v1']);
+    expect(withoutReset.activeCardIds).toEqual(['v2', 'v1']);
     expect(withoutReset.currentIndex).toBe(1);
     expect(withoutReset.statusById).toEqual({ v1: 'correct' });
 
     const withReset = flashcardSessionReducer(dirty, {
       type: 'setActiveOrder',
-      verseIds: ['v3'],
+      cardIds: ['v3'],
       resetProgress: true,
     });
     expect(withReset).toEqual({
       currentIndex: 0,
       statusById: {},
-      activeVerseIds: ['v3'],
+      activeCardIds: ['v3'],
     });
   });
 
@@ -162,13 +162,13 @@ describe('flashcardSessionReducer', () => {
     const dirty: FlashcardSessionState = {
       currentIndex: 2,
       statusById: { v1: 'correct', v2: 'needsWork' },
-      activeVerseIds: ['v2', 'v1', 'v3'],
+      activeCardIds: ['v2', 'v1', 'v3'],
     };
 
     expect(flashcardSessionReducer(dirty, { type: 'reset' })).toEqual({
       currentIndex: 0,
       statusById: {},
-      activeVerseIds: ['v2', 'v1', 'v3'],
+      activeCardIds: ['v2', 'v1', 'v3'],
     });
   });
 });

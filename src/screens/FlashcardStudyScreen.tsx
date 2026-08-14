@@ -13,8 +13,8 @@ import { colors, spacing, typography } from '../shared/theme';
 /** Thin study screen: hooks + feature components only. */
 export const FlashcardStudyScreen: React.FC = () => {
   const {
-    deck,
-    currentVerse,
+    title,
+    currentCard,
     currentSegments,
     currentCardNumber,
     totalCards,
@@ -56,9 +56,9 @@ export const FlashcardStudyScreen: React.FC = () => {
         Clear or change category filters in Settings to continue studying.
       </Text>
     </View>
-  ) : showCard && currentVerse !== undefined ? (
+  ) : showCard && currentCard !== undefined ? (
     <FlashcardStudyActive
-      verse={currentVerse}
+      card={currentCard}
       segments={currentSegments}
       defaultSide={settings.defaultSide}
       onSwipeMastered={markCorrect}
@@ -76,7 +76,7 @@ export const FlashcardStudyScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StudyHeader
-        title={deck.title}
+        title={title}
         current={currentCardNumber}
         total={totalCards}
         masteredCount={correctCount}

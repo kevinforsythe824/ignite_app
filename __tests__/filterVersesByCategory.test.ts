@@ -1,29 +1,32 @@
+import type { Card } from '../src/features/flashcards/domain/card';
+import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import {
   filterVersesByCategory,
   verseMatchesCategory,
 } from '../src/features/flashcards/utils/filterVersesByCategory';
-import type { Verse } from '../src/features/flashcards/types/verse';
 
-function verse(partial: Partial<Verse> & Pick<Verse, 'id' | 'tags'>): Verse {
+function card(partial: Partial<Card> & Pick<Card, 'cardId' | 'tags'>): Card {
   return {
+    seasonId: TEST_SEASON_ID,
+    cardNumber: 1,
     reference: 'Test 1:1',
-    verse_text: 'Sample.',
-    index_code: '001',
-    matched_rules: [],
+    verseText: 'Sample.',
+    indexCode: '001',
+    matchedRules: [],
     ...partial,
   };
 }
 
 describe('verseMatchesCategory', () => {
   it('matches Unique Beg. tags and rule names', () => {
-    const withTag = verse({ id: 'a', tags: ['Unique Beg.'] });
-    const withRule = verse({
-      id: 'b',
+    const withTag = card({ cardId: 'a', tags: ['Unique Beg.'] });
+    const withRule = card({
+      cardId: 'b',
       tags: [],
-      matched_rules: [
+      matchedRules: [
         {
-          rule_name: 'Unique Beginning',
-          rule_category: 'Structural',
+          ruleName: 'Unique Beginning',
+          ruleCategory: 'Structural',
           notes: 'n/a',
         },
       ],
@@ -35,27 +38,27 @@ describe('verseMatchesCategory', () => {
   });
 
   it('matches Questions and Exclamations labels', () => {
-    const question = verse({ id: 'q', tags: ['Questions'] });
-    const exclamation = verse({ id: 'e', tags: ['Exclamation'] });
+    const question = card({ cardId: 'q', tags: ['Questions'] });
+    const exclamation = card({ cardId: 'e', tags: ['Exclamation'] });
 
     expect(verseMatchesCategory(question, 'question')).toBe(true);
     expect(verseMatchesCategory(exclamation, 'exclamation')).toBe(true);
   });
 
   it('matches keyword tier tags and rule names', () => {
-    const withTag = verse({ id: 'k1', tags: ['1x Keyword'] });
-    const withRule = verse({
-      id: 'k2',
+    const withTag = card({ cardId: 'k1', tags: ['1x Keyword'] });
+    const withRule = card({
+      cardId: 'k2',
       tags: [],
-      matched_rules: [
+      matchedRules: [
         {
-          rule_name: '2x Keyword',
-          rule_category: 'Index',
+          ruleName: '2x Keyword',
+          ruleCategory: 'Index',
           notes: "Words marked as 2x frequency: 'census'",
         },
       ],
     });
-    const threeX = verse({ id: 'k3', tags: ['3x Keyword'] });
+    const threeX = card({ cardId: 'k3', tags: ['3x Keyword'] });
 
     expect(verseMatchesCategory(withTag, 'keyword1x')).toBe(true);
     expect(verseMatchesCategory(withTag, 'keyword2x')).toBe(false);
@@ -64,20 +67,20 @@ describe('verseMatchesCategory', () => {
   });
 
   it('matches semantic category tags and rule names', () => {
-    const animals = verse({ id: 'a1', tags: ['Animals'] });
-    const proper = verse({
-      id: 'p1',
+    const animals = card({ cardId: 'a1', tags: ['Animals'] });
+    const proper = card({
+      cardId: 'p1',
       tags: [],
-      matched_rules: [
+      matchedRules: [
         {
-          rule_name: 'Proper Name',
-          rule_category: 'Index',
+          ruleName: 'Proper Name',
+          ruleCategory: 'Index',
           notes: "Names: 'Caesar'",
         },
       ],
     });
-    const body = verse({ id: 'b1', tags: ['Body Parts'] });
-    const geo = verse({ id: 'g1', tags: ['Geo Location'] });
+    const body = card({ cardId: 'b1', tags: ['Body Parts'] });
+    const geo = card({ cardId: 'g1', tags: ['Geo Location'] });
 
     expect(verseMatchesCategory(animals, 'animals')).toBe(true);
     expect(verseMatchesCategory(proper, 'properName')).toBe(true);
@@ -88,17 +91,17 @@ describe('verseMatchesCategory', () => {
 });
 
 describe('filterVersesByCategory', () => {
-  const verses = [
-    verse({ id: 'v1', tags: ['Unique Beg.'] }),
-    verse({ id: 'v2', tags: ['Unique End.'] }),
-    verse({ id: 'v3', tags: ['Questions', '1x Keyword'] }),
-    verse({ id: 'v4', tags: ['Animals', 'Proper Name'] }),
-    verse({ id: 'v5', tags: ['2x Keyword', 'Geo Location'] }),
-    verse({ id: 'v6', tags: ['Body Parts', '3x Keyword'] }),
+  const cards = [
+    card({ cardId: 'v1', tags: ['Unique Beg.'] }),
+    card({ cardId: 'v2', tags: ['Unique End.'] }),
+    card({ cardId: 'v3', tags: ['Questions', '1x Keyword'] }),
+    card({ cardId: 'v4', tags: ['Animals', 'Proper Name'] }),
+    card({ cardId: 'v5', tags: ['2x Keyword', 'Geo Location'] }),
+    card({ cardId: 'v6', tags: ['Body Parts', '3x Keyword'] }),
   ];
 
   it('returns the full list when no filters are selected', () => {
-    expect(filterVersesByCategory(verses, []).map((item) => item.id)).toEqual([
+    expect(filterVersesByCategory(cards, []).map((item) => item.cardId)).toEqual([
       'v1',
       'v2',
       'v3',
@@ -110,19 +113,19 @@ describe('filterVersesByCategory', () => {
 
   it('unions multiple selected filters', () => {
     expect(
-      filterVersesByCategory(verses, ['uniqueBeginning', 'question']).map((item) => item.id),
+      filterVersesByCategory(cards, ['uniqueBeginning', 'question']).map((item) => item.cardId),
     ).toEqual(['v1', 'v3']);
   });
 
   it('filters keyword and semantic categories', () => {
     expect(
-      filterVersesByCategory(verses, ['keyword1x', 'animals', 'bodyParts']).map(
-        (item) => item.id,
+      filterVersesByCategory(cards, ['keyword1x', 'animals', 'bodyParts']).map(
+        (item) => item.cardId,
       ),
     ).toEqual(['v3', 'v4', 'v6']);
 
     expect(
-      filterVersesByCategory(verses, ['keyword2x', 'geoLocation']).map((item) => item.id),
+      filterVersesByCategory(cards, ['keyword2x', 'geoLocation']).map((item) => item.cardId),
     ).toEqual(['v5']);
   });
 });

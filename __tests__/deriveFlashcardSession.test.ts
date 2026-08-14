@@ -1,41 +1,48 @@
+import type { Card } from '../src/features/flashcards/domain/card';
+import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import {
   countAnsweredStatuses,
   deriveFlashcardSession,
 } from '../src/features/flashcards/state/deriveFlashcardSession';
 import { DEFAULT_FLASHCARD_SETTINGS } from '../src/features/flashcards/types/settings';
-import type { FlashcardDeck, Verse } from '../src/features/flashcards/types/verse';
 
-const verses: Verse[] = [
+const cards: Card[] = [
   {
-    id: 'v1',
+    seasonId: TEST_SEASON_ID,
+    cardId: 'v1',
+    cardNumber: 1,
     reference: 'Test 1:1',
-    verse_text: 'One.',
-    index_code: '001',
-    matched_rules: [],
+    verseText: 'One.',
+    indexCode: '001',
+    matchedRules: [],
     tags: [],
   },
   {
-    id: 'v2',
+    seasonId: TEST_SEASON_ID,
+    cardId: 'v2',
+    cardNumber: 2,
     reference: 'Test 1:2',
-    verse_text: 'Two.',
-    index_code: '002',
-    matched_rules: [],
+    verseText: 'Two.',
+    indexCode: '002',
+    matchedRules: [],
     tags: [],
   },
   {
-    id: 'v3',
+    seasonId: TEST_SEASON_ID,
+    cardId: 'v3',
+    cardNumber: 3,
     reference: 'Test 1:3',
-    verse_text: 'Three.',
-    index_code: '003',
-    matched_rules: [],
+    verseText: 'Three.',
+    indexCode: '003',
+    matchedRules: [],
     tags: [],
   },
 ];
 
-const deck: FlashcardDeck = {
-  deckId: 'derive-deck',
+const curriculum = {
+  seasonId: TEST_SEASON_ID,
   title: 'Derive Deck',
-  verses,
+  cards,
 };
 
 describe('countAnsweredStatuses', () => {
@@ -61,18 +68,18 @@ describe('countAnsweredStatuses', () => {
 });
 
 describe('deriveFlashcardSession', () => {
-  it('exposes the current verse and 1-based card number', () => {
+  it('exposes the current card and 1-based card number', () => {
     const view = deriveFlashcardSession(
-      deck,
+      curriculum,
       {
         currentIndex: 1,
         statusById: { v1: 'correct' },
-        activeVerseIds: null,
+        activeCardIds: null,
       },
       DEFAULT_FLASHCARD_SETTINGS,
     );
 
-    expect(view.currentVerse?.id).toBe('v2');
+    expect(view.currentCard?.cardId).toBe('v2');
     expect(view.currentCardNumber).toBe(2);
     expect(view.totalCards).toBe(3);
     expect(view.progress).toBeCloseTo(2 / 3);
@@ -84,7 +91,7 @@ describe('deriveFlashcardSession', () => {
 
   it('marks the session complete when every card is answered', () => {
     const view = deriveFlashcardSession(
-      deck,
+      curriculum,
       {
         currentIndex: 3,
         statusById: {
@@ -92,7 +99,7 @@ describe('deriveFlashcardSession', () => {
           v2: 'needsWork',
           v3: 'correct',
         },
-        activeVerseIds: null,
+        activeCardIds: null,
       },
       DEFAULT_FLASHCARD_SETTINGS,
     );
@@ -100,7 +107,7 @@ describe('deriveFlashcardSession', () => {
     expect(view.answeredCount).toBe(3);
     expect(view.correctCount).toBe(2);
     expect(view.needsWorkCount).toBe(1);
-    expect(view.currentVerse).toBeUndefined();
+    expect(view.currentCard).toBeUndefined();
     expect(view.currentCardNumber).toBe(3);
     expect(view.progress).toBe(1);
     expect(view.isComplete).toBe(true);
@@ -109,26 +116,26 @@ describe('deriveFlashcardSession', () => {
 
   it('marks complete when index is past the end even before counts catch up', () => {
     const view = deriveFlashcardSession(
-      deck,
+      curriculum,
       {
         currentIndex: 3,
         statusById: {
           v1: 'correct',
           v2: 'needsWork',
         },
-        activeVerseIds: null,
+        activeCardIds: null,
       },
       DEFAULT_FLASHCARD_SETTINGS,
     );
 
-    expect(view.currentVerse).toBeUndefined();
+    expect(view.currentCard).toBeUndefined();
     expect(view.isComplete).toBe(true);
     expect(view.showCard).toBe(false);
   });
 
-  it('uses activeVerseIds order and only counts those answers', () => {
+  it('uses activeCardIds order and only counts those answers', () => {
     const view = deriveFlashcardSession(
-      deck,
+      curriculum,
       {
         currentIndex: 0,
         statusById: {
@@ -136,13 +143,13 @@ describe('deriveFlashcardSession', () => {
           v2: 'needsWork',
           v3: 'correct',
         },
-        activeVerseIds: ['v3', 'v1'],
+        activeCardIds: ['v3', 'v1'],
       },
       DEFAULT_FLASHCARD_SETTINGS,
     );
 
-    expect(view.verses.map((verse) => verse.id)).toEqual(['v3', 'v1']);
-    expect(view.currentVerse?.id).toBe('v3');
+    expect(view.cards.map((card) => card.cardId)).toEqual(['v3', 'v1']);
+    expect(view.currentCard?.cardId).toBe('v3');
     expect(view.totalCards).toBe(2);
     expect(view.correctCount).toBe(2);
     expect(view.needsWorkCount).toBe(0);
@@ -153,14 +160,14 @@ describe('deriveFlashcardSession', () => {
 
   it('completes a filtered active deck when its cards are all answered', () => {
     const view = deriveFlashcardSession(
-      deck,
+      curriculum,
       {
         currentIndex: 2,
         statusById: {
           v1: 'correct',
           v3: 'needsWork',
         },
-        activeVerseIds: ['v1', 'v3'],
+        activeCardIds: ['v1', 'v3'],
       },
       {
         ...DEFAULT_FLASHCARD_SETTINGS,
@@ -170,18 +177,18 @@ describe('deriveFlashcardSession', () => {
 
     expect(view.totalCards).toBe(2);
     expect(view.answeredCount).toBe(2);
-    expect(view.currentVerse).toBeUndefined();
+    expect(view.currentCard).toBeUndefined();
     expect(view.isComplete).toBe(true);
     expect(view.showCard).toBe(false);
   });
 
   it('treats an empty active list as empty — not complete', () => {
     const view = deriveFlashcardSession(
-      deck,
+      curriculum,
       {
         currentIndex: 0,
         statusById: { v1: 'correct' },
-        activeVerseIds: [],
+        activeCardIds: [],
       },
       {
         ...DEFAULT_FLASHCARD_SETTINGS,
@@ -190,29 +197,27 @@ describe('deriveFlashcardSession', () => {
     );
 
     expect(view.totalCards).toBe(0);
-    expect(view.currentVerse).toBeUndefined();
+    expect(view.currentCard).toBeUndefined();
     expect(view.isComplete).toBe(false);
     expect(view.showCard).toBe(false);
   });
 
-  it('handles an empty deck safely', () => {
-    const emptyDeck: FlashcardDeck = {
-      deckId: 'empty',
-      title: 'Empty',
-      verses: [],
-    };
-
+  it('handles an empty curriculum safely', () => {
     const view = deriveFlashcardSession(
-      emptyDeck,
+      {
+        seasonId: TEST_SEASON_ID,
+        title: 'Empty',
+        cards: [],
+      },
       {
         currentIndex: 0,
         statusById: {},
-        activeVerseIds: null,
+        activeCardIds: null,
       },
       DEFAULT_FLASHCARD_SETTINGS,
     );
 
-    expect(view.currentVerse).toBeUndefined();
+    expect(view.currentCard).toBeUndefined();
     expect(view.currentCardNumber).toBe(0);
     expect(view.progress).toBe(0);
     expect(view.isComplete).toBe(false);

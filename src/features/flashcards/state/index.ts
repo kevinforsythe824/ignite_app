@@ -1,7 +1,6 @@
 export {
   FlashcardSessionProvider,
   FlashcardSessionContext,
-  DEFAULT_DECK,
   useFlashcardSessionState,
   useFlashcardSessionActions,
 } from './FlashcardSessionContext';

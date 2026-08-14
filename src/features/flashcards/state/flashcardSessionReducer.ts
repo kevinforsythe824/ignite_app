@@ -6,24 +6,24 @@ export interface FlashcardSessionState {
   currentIndex: number;
   statusById: Record<string, CardStatus>;
   /**
-   * Active study order (verse ids). When null, callers use deck order.
+   * Active study order (card ids). When null, callers use curriculum order.
    * Set when filters/shuffle rebuild the list; preserved across progress reset.
    */
-  activeVerseIds: string[] | null;
+  activeCardIds: string[] | null;
 }
 
 export type FlashcardSessionAction =
-  | { type: 'answer'; verseId: string; status: AnsweredStatus; totalCards: number }
+  | { type: 'answer'; cardId: string; status: AnsweredStatus; totalCards: number }
   | { type: 'next'; totalCards: number }
   | { type: 'previous' }
   | { type: 'goToIndex'; index: number; totalCards: number }
-  | { type: 'setActiveOrder'; verseIds: string[]; resetProgress?: boolean }
+  | { type: 'setActiveOrder'; cardIds: string[]; resetProgress?: boolean }
   | { type: 'reset' };
 
 export const INITIAL_SESSION_STATE: FlashcardSessionState = {
   currentIndex: 0,
   statusById: {},
-  activeVerseIds: null,
+  activeCardIds: null,
 };
 
 export function clampIndex(index: number, totalCards: number): number {
@@ -55,7 +55,7 @@ export function flashcardSessionReducer(
       return {
         ...state,
         currentIndex: advanceIndexAfterAnswer(state.currentIndex, action.totalCards),
-        statusById: { ...state.statusById, [action.verseId]: action.status },
+        statusById: { ...state.statusById, [action.cardId]: action.status },
       };
     case 'next':
       return { ...state, currentIndex: clampIndex(state.currentIndex + 1, action.totalCards) };
@@ -64,24 +64,24 @@ export function flashcardSessionReducer(
     case 'goToIndex':
       return { ...state, currentIndex: clampIndex(action.index, action.totalCards) };
     case 'setActiveOrder': {
-      const totalCards = action.verseIds.length;
+      const totalCards = action.cardIds.length;
       if (action.resetProgress === true) {
         return {
           currentIndex: 0,
           statusById: {},
-          activeVerseIds: action.verseIds,
+          activeCardIds: action.cardIds,
         };
       }
       return {
         ...state,
-        activeVerseIds: action.verseIds,
+        activeCardIds: action.cardIds,
         currentIndex: clampIndex(state.currentIndex, totalCards),
       };
     }
     case 'reset':
       return {
         ...INITIAL_SESSION_STATE,
-        activeVerseIds: state.activeVerseIds,
+        activeCardIds: state.activeCardIds,
       };
     default:
       return state;

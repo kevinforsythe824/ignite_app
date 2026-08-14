@@ -1,49 +1,52 @@
 import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
+import type { Card } from '../src/features/flashcards/domain/card';
+import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
+import useFlashcards, {
+  type UseFlashcardsResult,
+} from '../src/features/flashcards/hooks/useFlashcards';
 import { FlashcardSessionProvider } from '../src/features/flashcards/state/FlashcardSessionContext';
-import useFlashcards, { type UseFlashcardsResult } from '../src/features/flashcards/hooks/useFlashcards';
-import type { FlashcardDeck, Verse } from '../src/features/flashcards/types/verse';
 
-const testVerses: Verse[] = [
+const testCards: Card[] = [
   {
-    id: 't1',
+    seasonId: TEST_SEASON_ID,
+    cardId: 't1',
+    cardNumber: 1,
     reference: 'Test 1:1',
-    verse_text: 'First verse.',
-    index_code: '001',
-    matched_rules: [],
+    verseText: 'First verse.',
+    indexCode: '001',
+    matchedRules: [],
     tags: [],
   },
   {
-    id: 't2',
+    seasonId: TEST_SEASON_ID,
+    cardId: 't2',
+    cardNumber: 2,
     reference: 'Test 1:2',
-    verse_text: 'Second verse.',
-    index_code: '002',
-    matched_rules: [],
+    verseText: 'Second verse.',
+    indexCode: '002',
+    matchedRules: [],
     tags: [],
   },
   {
-    id: 't3',
+    seasonId: TEST_SEASON_ID,
+    cardId: 't3',
+    cardNumber: 3,
     reference: 'Test 1:3',
-    verse_text: 'Third verse.',
-    index_code: '003',
-    matched_rules: [],
+    verseText: 'Third verse.',
+    indexCode: '003',
+    matchedRules: [],
     tags: [],
   },
 ];
-
-const testDeck: FlashcardDeck = {
-  deckId: 'test-deck',
-  title: 'Test Deck',
-  verses: testVerses,
-};
 
 interface SessionController {
   getSession: () => UseFlashcardsResult;
   renderer: ReactTestRenderer;
 }
 
-function createSessionController(deck: FlashcardDeck = testDeck): SessionController {
+function createSessionController(cards: readonly Card[] = testCards): SessionController {
   const sessionRef: { current: UseFlashcardsResult | null } = { current: null };
 
   function HookProbe(): null {
@@ -55,7 +58,7 @@ function createSessionController(deck: FlashcardDeck = testDeck): SessionControl
 
   act(() => {
     renderer = TestRenderer.create(
-      <FlashcardSessionProvider deck={deck}>
+      <FlashcardSessionProvider seasonId={TEST_SEASON_ID} title="Test Deck" cards={cards}>
         <HookProbe />
       </FlashcardSessionProvider>,
     );
@@ -78,7 +81,7 @@ describe('FlashcardSessionContext', () => {
     const session = getSession();
 
     expect(session.currentIndex).toBe(0);
-    expect(session.currentVerse?.reference).toBe('Test 1:1');
+    expect(session.currentCard?.reference).toBe('Test 1:1');
     expect(session.currentStatus).toBe('unseen');
     expect(session.isComplete).toBe(false);
   });
@@ -159,20 +162,17 @@ describe('FlashcardSessionContext', () => {
     expect(session.isComplete).toBe(true);
     expect(session.answeredCount).toBe(3);
     expect(session.currentIndex).toBe(3);
-    expect(session.currentVerse).toBeUndefined();
+    expect(session.currentCard).toBeUndefined();
     expect(session.showCard).toBe(false);
   });
 
   it('reports completion for a filtered category deck', () => {
-    const filteredDeck: FlashcardDeck = {
-      ...testDeck,
-      verses: [
-        { ...testVerses[0], tags: ['Unique Beg.'] },
-        { ...testVerses[1], tags: ['Questions'] },
-        { ...testVerses[2], tags: ['Unique Beg.'] },
-      ],
-    };
-    const { getSession } = createSessionController(filteredDeck);
+    const filteredCards: Card[] = [
+      { ...testCards[0], tags: ['Unique Beg.'] },
+      { ...testCards[1], tags: ['Questions'] },
+      { ...testCards[2], tags: ['Unique Beg.'] },
+    ];
+    const { getSession } = createSessionController(filteredCards);
 
     act(() => {
       getSession().toggleCategoryFilter('uniqueBeginning');
@@ -192,21 +192,18 @@ describe('FlashcardSessionContext', () => {
     expect(session.totalCards).toBe(2);
     expect(session.answeredCount).toBe(2);
     expect(session.currentIndex).toBe(2);
-    expect(session.currentVerse).toBeUndefined();
+    expect(session.currentCard).toBeUndefined();
     expect(session.isComplete).toBe(true);
     expect(session.showCard).toBe(false);
   });
 
   it('shows empty — not complete — when filters match no cards', () => {
-    const filteredDeck: FlashcardDeck = {
-      ...testDeck,
-      verses: [
-        { ...testVerses[0], tags: ['Unique Beg.'] },
-        { ...testVerses[1], tags: ['Unique End.'] },
-        { ...testVerses[2], tags: ['Unique Beg.'] },
-      ],
-    };
-    const { getSession } = createSessionController(filteredDeck);
+    const filteredCards: Card[] = [
+      { ...testCards[0], tags: ['Unique Beg.'] },
+      { ...testCards[1], tags: ['Unique End.'] },
+      { ...testCards[2], tags: ['Unique Beg.'] },
+    ];
+    const { getSession } = createSessionController(filteredCards);
 
     act(() => {
       getSession().toggleCategoryFilter('question');
@@ -216,19 +213,16 @@ describe('FlashcardSessionContext', () => {
     expect(session.totalCards).toBe(0);
     expect(session.isComplete).toBe(false);
     expect(session.showCard).toBe(false);
-    expect(session.currentVerse).toBeUndefined();
+    expect(session.currentCard).toBeUndefined();
   });
 
   it('restarts from a completed filtered session', () => {
-    const filteredDeck: FlashcardDeck = {
-      ...testDeck,
-      verses: [
-        { ...testVerses[0], tags: ['Unique Beg.'] },
-        { ...testVerses[1], tags: ['Questions'] },
-        { ...testVerses[2], tags: ['Unique Beg.'] },
-      ],
-    };
-    const { getSession } = createSessionController(filteredDeck);
+    const filteredCards: Card[] = [
+      { ...testCards[0], tags: ['Unique Beg.'] },
+      { ...testCards[1], tags: ['Questions'] },
+      { ...testCards[2], tags: ['Unique Beg.'] },
+    ];
+    const { getSession } = createSessionController(filteredCards);
 
     act(() => {
       getSession().toggleCategoryFilter('uniqueBeginning');
@@ -247,29 +241,28 @@ describe('FlashcardSessionContext', () => {
     expect(session.statusById).toEqual({});
     expect(session.totalCards).toBe(2);
     expect(session.showCard).toBe(true);
-    expect(session.currentVerse?.id).toBe('t1');
+    expect(session.currentCard?.cardId).toBe('t1');
   });
 
-  it('exposes parsed segments for the current verse', () => {
-    const verseWithKeyword: Verse = {
-      ...testVerses[0],
-      // Unique id so the segment cache from earlier tests cannot leak in.
-      id: 't-grace',
-      verse_text: "Remember 'grace' today.",
-      matched_rules: [
+  it('exposes parsed segments for the current card', () => {
+    const cardWithKeyword: Card = {
+      ...testCards[0],
+      cardId: 't-grace',
+      verseText: "Remember 'grace' today.",
+      matchedRules: [
         {
-          rule_name: '1x Keyword',
-          rule_category: 'Index',
+          ruleName: '1x Keyword',
+          ruleCategory: 'Index',
           notes: "Words marked as 1x frequency (blue highlight): 'grace'",
         },
       ],
     };
 
-    const { getSession } = createSessionController({
-      ...testDeck,
-      deckId: 'grace-deck',
-      verses: [verseWithKeyword, testVerses[1], testVerses[2]],
-    });
+    const { getSession } = createSessionController([
+      cardWithKeyword,
+      testCards[1],
+      testCards[2],
+    ]);
 
     const session = getSession();
     expect(session.currentSegments.length).toBeGreaterThan(0);
@@ -278,15 +271,12 @@ describe('FlashcardSessionContext', () => {
   });
 
   it('updates settings and rebuilds the study order for category filters', () => {
-    const filteredDeck: FlashcardDeck = {
-      ...testDeck,
-      verses: [
-        { ...testVerses[0], tags: ['Unique Beg.'] },
-        { ...testVerses[1], tags: ['Questions'] },
-        { ...testVerses[2], tags: ['Unique End.'] },
-      ],
-    };
-    const { getSession } = createSessionController(filteredDeck);
+    const filteredCards: Card[] = [
+      { ...testCards[0], tags: ['Unique Beg.'] },
+      { ...testCards[1], tags: ['Questions'] },
+      { ...testCards[2], tags: ['Unique End.'] },
+    ];
+    const { getSession } = createSessionController(filteredCards);
 
     act(() => {
       getSession().toggleCategoryFilter('uniqueBeginning');
@@ -295,7 +285,7 @@ describe('FlashcardSessionContext', () => {
     let session = getSession();
     expect(session.settings.categoryFilters).toEqual(['uniqueBeginning']);
     expect(session.totalCards).toBe(1);
-    expect(session.currentVerse?.id).toBe('t1');
+    expect(session.currentCard?.cardId).toBe('t1');
 
     act(() => {
       getSession().setDefaultSide('quote');
@@ -308,15 +298,12 @@ describe('FlashcardSessionContext', () => {
   });
 
   it('clears all category filters and restores the full deck', () => {
-    const filteredDeck: FlashcardDeck = {
-      ...testDeck,
-      verses: [
-        { ...testVerses[0], tags: ['Unique Beg.'] },
-        { ...testVerses[1], tags: ['Questions'] },
-        { ...testVerses[2], tags: ['Unique End.'] },
-      ],
-    };
-    const { getSession } = createSessionController(filteredDeck);
+    const filteredCards: Card[] = [
+      { ...testCards[0], tags: ['Unique Beg.'] },
+      { ...testCards[1], tags: ['Questions'] },
+      { ...testCards[2], tags: ['Unique End.'] },
+    ];
+    const { getSession } = createSessionController(filteredCards);
 
     act(() => {
       getSession().toggleCategoryFilter('uniqueBeginning');

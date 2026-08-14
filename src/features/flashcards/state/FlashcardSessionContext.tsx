@@ -8,9 +8,8 @@ import React, {
 } from 'react';
 import type { ReactNode } from 'react';
 
-import { DEFAULT_DECK } from '../data/defaultDeck';
+import type { Card } from '../domain/card';
 import type { CardSide, CategoryFilterId, FlashcardSettings } from '../types/settings';
-import type { FlashcardDeck } from '../types/verse';
 import { buildStudyVerses } from '../utils/buildStudyVerses';
 import {
   flashcardSessionReducer,
@@ -29,7 +28,6 @@ export {
   flashcardSettingsReducer,
   INITIAL_SETTINGS_STATE,
 } from './flashcardSettingsReducer';
-export { DEFAULT_DECK } from '../data/defaultDeck';
 
 export interface FlashcardSessionActions {
   markCorrect: () => void;
@@ -46,7 +44,9 @@ export interface FlashcardSessionActions {
 }
 
 interface FlashcardSessionStateValue {
-  deck: FlashcardDeck;
+  seasonId: string;
+  title: string;
+  cards: readonly Card[];
   state: FlashcardSessionState;
   settings: FlashcardSettings;
 }
@@ -62,17 +62,21 @@ const FlashcardSessionActionsContext = createContext<FlashcardSessionActions | u
 export const FlashcardSessionContext = FlashcardSessionStateContext;
 
 export interface FlashcardSessionProviderProps {
-  /** Defaults to the bundled Luke 2 mock deck. */
-  deck?: FlashcardDeck;
+  seasonId: string;
+  title: string;
+  cards: readonly Card[];
   children: ReactNode;
 }
 
 /**
  * Feature-local session store. Mount under the Study route so navigation chrome
  * and other tabs do not re-render on card answers.
+ * Curriculum is injected by the route — this provider does not load data.
  */
 export function FlashcardSessionProvider({
-  deck = DEFAULT_DECK,
+  seasonId,
+  title,
+  cards,
   children,
 }: FlashcardSessionProviderProps): React.JSX.Element {
   const [state, dispatch] = useReducer(flashcardSessionReducer, INITIAL_SESSION_STATE);
@@ -86,41 +90,41 @@ export function FlashcardSessionProvider({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const versesRef = useRef(deck.verses);
-  versesRef.current = deck.verses;
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
 
-  const resolveActiveVerses = useCallback(() => {
-    const ids = stateRef.current.activeVerseIds;
+  const resolveActiveCards = useCallback(() => {
+    const ids = stateRef.current.activeCardIds;
     if (ids === null) {
-      return versesRef.current;
+      return cardsRef.current;
     }
-    const byId = new Map(versesRef.current.map((verse) => [verse.id, verse]));
+    const byId = new Map(cardsRef.current.map((card) => [card.cardId, card]));
     return ids.flatMap((id) => {
-      const verse = byId.get(id);
-      return verse === undefined ? [] : [verse];
+      const card = byId.get(id);
+      return card === undefined ? [] : [card];
     });
   }, []);
 
   const answer = useCallback((status: AnsweredStatus) => {
-    const activeVerses = resolveActiveVerses();
-    const verse = activeVerses[stateRef.current.currentIndex];
-    if (verse === undefined) {
+    const activeCards = resolveActiveCards();
+    const card = activeCards[stateRef.current.currentIndex];
+    if (card === undefined) {
       return;
     }
     dispatch({
       type: 'answer',
-      verseId: verse.id,
+      cardId: card.cardId,
       status,
-      totalCards: activeVerses.length,
+      totalCards: activeCards.length,
     });
-  }, [resolveActiveVerses]);
+  }, [resolveActiveCards]);
 
   const applyStudyOrder = useCallback(
     (nextSettings: FlashcardSettings, resetProgress: boolean) => {
-      const ordered = buildStudyVerses(versesRef.current, nextSettings);
+      const ordered = buildStudyVerses(cardsRef.current, nextSettings);
       dispatch({
         type: 'setActiveOrder',
-        verseIds: ordered.map((verse) => verse.id),
+        cardIds: ordered.map((card) => card.cardId),
         resetProgress,
       });
     },
@@ -131,16 +135,16 @@ export function FlashcardSessionProvider({
   const markNeedsWork = useCallback(() => answer('needsWork'), [answer]);
 
   const goToNext = useCallback(() => {
-    dispatch({ type: 'next', totalCards: resolveActiveVerses().length });
-  }, [resolveActiveVerses]);
+    dispatch({ type: 'next', totalCards: resolveActiveCards().length });
+  }, [resolveActiveCards]);
 
   const goToPrevious = useCallback(() => dispatch({ type: 'previous' }), []);
 
   const goToIndex = useCallback(
     (index: number) => {
-      dispatch({ type: 'goToIndex', index, totalCards: resolveActiveVerses().length });
+      dispatch({ type: 'goToIndex', index, totalCards: resolveActiveCards().length });
     },
-    [resolveActiveVerses],
+    [resolveActiveCards],
   );
 
   const resetSession = useCallback(() => dispatch({ type: 'reset' }), []);
@@ -213,8 +217,8 @@ export function FlashcardSessionProvider({
   );
 
   const stateValue = useMemo<FlashcardSessionStateValue>(
-    () => ({ deck, state, settings }),
-    [deck, state, settings],
+    () => ({ seasonId, title, cards, state, settings }),
+    [seasonId, title, cards, state, settings],
   );
 
   return (

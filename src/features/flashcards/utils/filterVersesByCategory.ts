@@ -1,5 +1,5 @@
+import type { Card } from '../domain/card';
 import type { CategoryFilterId } from '../types/settings';
-import type { Verse } from '../types/verse';
 
 /**
  * Normalized tag/rule needles for each category filter.
@@ -33,16 +33,16 @@ function labelMatchesCategory(label: string, filterId: CategoryFilterId): boolea
   );
 }
 
-/** True when the verse's tags or matched rules hit the given category. */
-export function verseMatchesCategory(verse: Verse, filterId: CategoryFilterId): boolean {
-  for (const tag of verse.tags) {
+/** True when the card's tags or matched rules hit the given category. */
+export function verseMatchesCategory(card: Card, filterId: CategoryFilterId): boolean {
+  for (const tag of card.tags) {
     if (labelMatchesCategory(tag, filterId)) {
       return true;
     }
   }
 
-  for (const rule of verse.matched_rules) {
-    if (labelMatchesCategory(rule.rule_name, filterId)) {
+  for (const rule of card.matchedRules) {
+    if (labelMatchesCategory(rule.ruleName, filterId)) {
       return true;
     }
   }
@@ -51,18 +51,18 @@ export function verseMatchesCategory(verse: Verse, filterId: CategoryFilterId): 
 }
 
 /**
- * Filters verses by selected categories (union). Empty filters return the
+ * Filters cards by selected categories (union). Empty filters return the
  * original order unchanged.
  */
 export function filterVersesByCategory(
-  verses: readonly Verse[],
+  cards: readonly Card[],
   categoryFilters: readonly CategoryFilterId[],
-): Verse[] {
+): Card[] {
   if (categoryFilters.length === 0) {
-    return [...verses];
+    return [...cards];
   }
 
-  return verses.filter((verse) =>
-    categoryFilters.some((filterId) => verseMatchesCategory(verse, filterId)),
+  return cards.filter((card) =>
+    categoryFilters.some((filterId) => verseMatchesCategory(card, filterId)),
   );
 }

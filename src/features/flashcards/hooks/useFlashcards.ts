@@ -20,25 +20,25 @@ export type UseFlashcardsResult = FlashcardSessionViewWithSegments &
 
 /**
  * Feature hook: derived session view + stable actions.
- * Verse parsing is cached by id and only recomputed when the current verse changes.
+ * Verse parsing is cached by season+card and only recomputed when the current card changes.
  */
 export function useFlashcards(): UseFlashcardsResult {
-  const { deck, state, settings } = useFlashcardSessionState();
+  const { seasonId, title, cards, state, settings } = useFlashcardSessionState();
   const actions = useFlashcardSessionActions();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     clearVerseSegmentCache();
-  }, [deck.deckId]);
+  }, [seasonId]);
 
   const view = useMemo(
-    () => deriveFlashcardSession(deck, state, settings),
-    [deck, state, settings],
+    () => deriveFlashcardSession({ seasonId, title, cards }, state, settings),
+    [seasonId, title, cards, state, settings],
   );
 
   const currentSegments = useMemo(
-    () => (view.currentVerse === undefined ? [] : getVerseSegments(view.currentVerse)),
-    [view.currentVerse],
+    () => (view.currentCard === undefined ? [] : getVerseSegments(view.currentCard)),
+    [view.currentCard],
   );
 
   return useMemo(
