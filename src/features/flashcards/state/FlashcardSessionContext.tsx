@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 
 import type { Card } from '../domain/card';
 import type { CardSide, CategoryFilterId, FlashcardSettings } from '../types/settings';
-import { buildStudyVerses } from '../utils/buildStudyVerses';
+import { buildStudyCards } from '../utils/buildStudyCards';
 import {
   flashcardSessionReducer,
   INITIAL_SESSION_STATE,
@@ -121,7 +121,7 @@ export function FlashcardSessionProvider({
 
   const applyStudyOrder = useCallback(
     (nextSettings: FlashcardSettings, resetProgress: boolean) => {
-      const ordered = buildStudyVerses(cardsRef.current, nextSettings);
+      const ordered = buildStudyCards(cardsRef.current, nextSettings);
       dispatch({
         type: 'setActiveOrder',
         cardIds: ordered.map((card) => card.cardId),

@@ -44,8 +44,8 @@ export const FlashcardStudyScreen: React.FC = () => {
   // Complete and empty-filter must not mount FlashcardStudyActive ("Tap to flip").
   const body = isComplete ? (
     <SessionComplete
-      masteredCount={correctCount}
-      practicingCount={needsWorkCount}
+      correctCount={correctCount}
+      needsWorkCount={needsWorkCount}
       totalCards={totalCards}
       onRestart={restartFlashcards}
     />
@@ -61,13 +61,13 @@ export const FlashcardStudyScreen: React.FC = () => {
       card={currentCard}
       segments={currentSegments}
       defaultSide={settings.defaultSide}
-      onSwipeMastered={markCorrect}
-      onSwipePracticing={markNeedsWork}
+      onSwipeCorrect={markCorrect}
+      onSwipeNeedsWork={markNeedsWork}
     />
   ) : (
     <SessionComplete
-      masteredCount={correctCount}
-      practicingCount={needsWorkCount}
+      correctCount={correctCount}
+      needsWorkCount={needsWorkCount}
       totalCards={totalCards}
       onRestart={restartFlashcards}
     />
@@ -79,8 +79,8 @@ export const FlashcardStudyScreen: React.FC = () => {
         title={title}
         current={currentCardNumber}
         total={totalCards}
-        masteredCount={correctCount}
-        practicingCount={needsWorkCount}
+        correctCount={correctCount}
+        needsWorkCount={needsWorkCount}
         progress={progress}
         onSettingsPress={openSettings}
       />

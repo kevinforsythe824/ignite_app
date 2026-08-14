@@ -23,7 +23,7 @@ ignite_app/
 │   ├── features/                # Feature modules (feature-first)
 │   │   └── flashcards/          # Only full feature today
 │   │       ├── components/      # Presentation UI
-│   │       ├── data/            # Feature fixtures (default deck)
+│   │       ├── data/            # Feature fixtures + JSON → Card mapper
 │   │       ├── hooks/           # Feature hooks (useFlashcards)
 │   │       ├── screens/         # Feature routes (provider + screen)
 │   │       ├── state/           # Reducer, context, derived view
@@ -32,7 +32,7 @@ ignite_app/
 │   ├── screens/                 # App-level / placeholder screens
 │   ├── shared/                  # Cross-feature only (theme, utils, …)
 │   ├── services/                # Firebase / storage / API stubs (no prod wiring yet)
-│   └── data/                    # Shared mock JSON (e.g. verses)
+│   └── data/                    # Shared mock JSON (e.g. curriculum fixtures)
 ```
 
 **Rule of thumb:** if only flashcards use it, it belongs under `features/flashcards/`. If two features need it, promote it to `shared/` or `services/`.
@@ -57,7 +57,7 @@ AppProviders
                            └─ Flashcard → Front (Locate) / Back (Quote + RichVerseText)
 ```
 
-User swipe → `markMastered` / `markPracticing` → reducer updates `statusById` + index → hook derives view → UI re-renders. **Parsing never runs inside UI components.**
+User swipe → `markCorrect` / `markNeedsWork` → reducer updates `statusById` + index → hook derives view → UI re-renders. **Parsing never runs inside UI components.** Session grades are Correct / Needs Work. Mastered is reserved for the Sprint 7 Mastery domain.
 
 ---
 
@@ -146,7 +146,7 @@ Prefer **named exports**; default exports are used for some screens/components f
 
 - **Library:** React Navigation (not Expo Router).
 - **Root:** native stack (`MainTabs`, `TournamentDetails` placeholder).
-- **Tabs (PRD 5-slot):** Home · Study · AI Coach · Practice · Profile.
+- **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
 - **Default entry:** Study → Flashcards (current product experience).
 - Placeholder tabs live in `src/screens/*` until their features exist.
 - Tab screens are `lazy: true`.
@@ -161,8 +161,8 @@ Route param lists: `src/app/navigation/types.ts`.
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Auth + Firestore deck/progress surfaces |
-| `storage/` | Offline decks + preferences |
+| `firebase/` | Auth stub only. No Deck/Verse/DeckProgress APIs — Sprint 1.75 persistence will use feature repositories. |
+| `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 
 Features should depend on these interfaces later — never on SDKs directly in UI.
@@ -205,7 +205,7 @@ Move code before rewriting it. Preserve behavior. Prefer small commits.
 | I need to… | Start here |
 |------------|------------|
 | Change flip/swipe UI | `features/flashcards/components/Flashcard.tsx` |
-| Change mastery rules / session flow | `state/flashcardSessionReducer.ts` |
+| Change session grading / flow | `state/flashcardSessionReducer.ts` |
 | Change keyword/slash rendering rules | `utils/parseVerseToSegments.ts` |
 | Change Study screen layout | `screens/FlashcardStudyScreen.tsx` (thin) + components |
 | Add a tab destination | `app/navigation/BottomTabNavigator.tsx` + feature route |

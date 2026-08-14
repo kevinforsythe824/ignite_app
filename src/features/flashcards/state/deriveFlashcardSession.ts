@@ -2,7 +2,7 @@ import type { Card } from '../domain/card';
 import type { StudyCurriculum } from '../repositories/curriculumRepository';
 import type { FlashcardSettings } from '../types/settings';
 import type { CardStatus, VerseSegment } from '../types/verse';
-import { resolveVersesByIds } from '../utils/buildStudyVerses';
+import { resolveCardsByIds } from '../utils/buildStudyCards';
 import type { FlashcardSessionState } from './flashcardSessionReducer';
 
 export interface FlashcardSessionView {
@@ -76,14 +76,14 @@ export function countActiveAnsweredStatuses(
 }
 
 /** Resolves the active study cards from session order or curriculum order. */
-export function resolveStudyVerses(
+export function resolveStudyCards(
   cards: readonly Card[],
   state: FlashcardSessionState,
 ): Card[] {
   if (state.activeCardIds === null) {
     return [...cards];
   }
-  return resolveVersesByIds(cards, state.activeCardIds);
+  return resolveCardsByIds(cards, state.activeCardIds);
 }
 
 /** Pure projection of session state without verse parsing. */
@@ -92,7 +92,7 @@ export function deriveFlashcardSession(
   state: FlashcardSessionState,
   settings: FlashcardSettings,
 ): FlashcardSessionView {
-  const cards = resolveStudyVerses(curriculum.cards, state);
+  const cards = resolveStudyCards(curriculum.cards, state);
   const totalCards = cards.length;
   /** `undefined` when index is past the last card (session finished). */
   const currentCard =

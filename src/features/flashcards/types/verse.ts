@@ -13,12 +13,6 @@ export interface Verse {
   tags: string[];
 }
 
-export interface FlashcardDeck {
-  deckId: string;
-  title: string;
-  verses: Verse[];
-}
-
 export type SegmentType =
   | 'text'
   | 'keyword1x'

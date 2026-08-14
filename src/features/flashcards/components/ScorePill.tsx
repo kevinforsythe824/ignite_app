@@ -4,7 +4,7 @@ import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { colors, radius, spacing, typography } from '../../../shared/theme';
 
-export type ScorePillVariant = 'mastered' | 'practicing';
+export type ScorePillVariant = 'correct' | 'needsWork';
 
 export interface ScorePillProps {
   variant: ScorePillVariant;
@@ -19,12 +19,12 @@ interface VariantConfig {
 }
 
 const variantConfig: Record<ScorePillVariant, VariantConfig> = {
-  mastered: {
+  correct: {
     icon: 'checkmark',
     tint: colors.masteredGreen,
     background: colors.masteredGreenBg,
   },
-  practicing: {
+  needsWork: {
     icon: 'close',
     tint: colors.practicingRed,
     background: colors.practicingRedBg,

@@ -1,7 +1,6 @@
 export type {
   MatchedRule,
   Verse,
-  FlashcardDeck,
   SegmentType,
   VerseMark,
   VerseSegment,

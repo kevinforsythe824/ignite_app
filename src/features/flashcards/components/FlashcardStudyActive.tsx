@@ -11,8 +11,8 @@ export interface FlashcardStudyActiveProps {
   card: Card;
   segments: VerseSegment[];
   defaultSide: CardSide;
-  onSwipeMastered: () => void;
-  onSwipePracticing: () => void;
+  onSwipeCorrect: () => void;
+  onSwipeNeedsWork: () => void;
 }
 
 /** Active study body: flip/swipe card plus the tap hint. */
@@ -20,8 +20,8 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
   card,
   segments,
   defaultSide,
-  onSwipeMastered,
-  onSwipePracticing,
+  onSwipeCorrect,
+  onSwipeNeedsWork,
 }) => (
   <View style={styles.cardSection}>
     <View style={styles.cardArea}>
@@ -29,8 +29,8 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
         card={card}
         segments={segments}
         defaultSide={defaultSide}
-        onSwipeMastered={onSwipeMastered}
-        onSwipePracticing={onSwipePracticing}
+        onSwipeCorrect={onSwipeCorrect}
+        onSwipeNeedsWork={onSwipeNeedsWork}
       />
     </View>
     <Text style={styles.hint}>Tap to flip</Text>

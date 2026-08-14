@@ -341,6 +341,20 @@ describe('FlashcardSessionContext', () => {
     expect(session.isComplete).toBe(false);
   });
 
+  it('exposes Correct / Needs Work session APIs, not mastered', () => {
+    const { getSession } = createSessionController();
+    const session = getSession();
+
+    expect(session).toHaveProperty('correctCount');
+    expect(session).toHaveProperty('needsWorkCount');
+    expect(session).toHaveProperty('markCorrect');
+    expect(session).toHaveProperty('markNeedsWork');
+    expect(session).not.toHaveProperty('masteredCount');
+    expect(session).not.toHaveProperty('practicingCount');
+    expect(session).not.toHaveProperty('markMastered');
+    expect(session).not.toHaveProperty('markPracticing');
+  });
+
   it('throws when useFlashcards is used outside the provider', () => {
     function BrokenProbe(): null {
       useFlashcards();

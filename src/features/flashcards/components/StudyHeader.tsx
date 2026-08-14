@@ -11,8 +11,8 @@ export interface StudyHeaderProps {
   /** 1-based position of the card being studied. */
   current: number;
   total: number;
-  masteredCount: number;
-  practicingCount: number;
+  correctCount: number;
+  needsWorkCount: number;
   /** Completion ratio between 0 and 1. */
   progress: number;
   onBackPress?: () => void;
@@ -26,8 +26,8 @@ export const StudyHeader: React.FC<StudyHeaderProps> = React.memo(({
   title,
   current,
   total,
-  masteredCount,
-  practicingCount,
+  correctCount,
+  needsWorkCount,
   progress,
   onBackPress,
   onSettingsPress,
@@ -65,8 +65,8 @@ export const StudyHeader: React.FC<StudyHeaderProps> = React.memo(({
     <ProgressBar progress={progress} style={styles.progressBar} />
 
     <View style={styles.pillRow}>
-      <ScorePill variant="practicing" count={practicingCount} />
-      <ScorePill variant="mastered" count={masteredCount} />
+      <ScorePill variant="needsWork" count={needsWorkCount} />
+      <ScorePill variant="correct" count={correctCount} />
     </View>
   </View>
 ));

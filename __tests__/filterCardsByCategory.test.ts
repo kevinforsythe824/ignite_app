@@ -1,9 +1,9 @@
 import type { Card } from '../src/features/flashcards/domain/card';
 import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import {
-  filterVersesByCategory,
-  verseMatchesCategory,
-} from '../src/features/flashcards/utils/filterVersesByCategory';
+  filterCardsByCategory,
+  cardMatchesCategory,
+} from '../src/features/flashcards/utils/filterCardsByCategory';
 
 function card(partial: Partial<Card> & Pick<Card, 'cardId' | 'tags'>): Card {
   return {
@@ -17,7 +17,7 @@ function card(partial: Partial<Card> & Pick<Card, 'cardId' | 'tags'>): Card {
   };
 }
 
-describe('verseMatchesCategory', () => {
+describe('cardMatchesCategory', () => {
   it('matches Unique Beg. tags and rule names', () => {
     const withTag = card({ cardId: 'a', tags: ['Unique Beg.'] });
     const withRule = card({
@@ -32,17 +32,17 @@ describe('verseMatchesCategory', () => {
       ],
     });
 
-    expect(verseMatchesCategory(withTag, 'uniqueBeginning')).toBe(true);
-    expect(verseMatchesCategory(withRule, 'uniqueBeginning')).toBe(true);
-    expect(verseMatchesCategory(withTag, 'uniqueEnding')).toBe(false);
+    expect(cardMatchesCategory(withTag, 'uniqueBeginning')).toBe(true);
+    expect(cardMatchesCategory(withRule, 'uniqueBeginning')).toBe(true);
+    expect(cardMatchesCategory(withTag, 'uniqueEnding')).toBe(false);
   });
 
   it('matches Questions and Exclamations labels', () => {
     const question = card({ cardId: 'q', tags: ['Questions'] });
     const exclamation = card({ cardId: 'e', tags: ['Exclamation'] });
 
-    expect(verseMatchesCategory(question, 'question')).toBe(true);
-    expect(verseMatchesCategory(exclamation, 'exclamation')).toBe(true);
+    expect(cardMatchesCategory(question, 'question')).toBe(true);
+    expect(cardMatchesCategory(exclamation, 'exclamation')).toBe(true);
   });
 
   it('matches keyword tier tags and rule names', () => {
@@ -60,10 +60,10 @@ describe('verseMatchesCategory', () => {
     });
     const threeX = card({ cardId: 'k3', tags: ['3x Keyword'] });
 
-    expect(verseMatchesCategory(withTag, 'keyword1x')).toBe(true);
-    expect(verseMatchesCategory(withTag, 'keyword2x')).toBe(false);
-    expect(verseMatchesCategory(withRule, 'keyword2x')).toBe(true);
-    expect(verseMatchesCategory(threeX, 'keyword3x')).toBe(true);
+    expect(cardMatchesCategory(withTag, 'keyword1x')).toBe(true);
+    expect(cardMatchesCategory(withTag, 'keyword2x')).toBe(false);
+    expect(cardMatchesCategory(withRule, 'keyword2x')).toBe(true);
+    expect(cardMatchesCategory(threeX, 'keyword3x')).toBe(true);
   });
 
   it('matches semantic category tags and rule names', () => {
@@ -82,15 +82,15 @@ describe('verseMatchesCategory', () => {
     const body = card({ cardId: 'b1', tags: ['Body Parts'] });
     const geo = card({ cardId: 'g1', tags: ['Geo Location'] });
 
-    expect(verseMatchesCategory(animals, 'animals')).toBe(true);
-    expect(verseMatchesCategory(proper, 'properName')).toBe(true);
-    expect(verseMatchesCategory(body, 'bodyParts')).toBe(true);
-    expect(verseMatchesCategory(geo, 'geoLocation')).toBe(true);
-    expect(verseMatchesCategory(animals, 'properName')).toBe(false);
+    expect(cardMatchesCategory(animals, 'animals')).toBe(true);
+    expect(cardMatchesCategory(proper, 'properName')).toBe(true);
+    expect(cardMatchesCategory(body, 'bodyParts')).toBe(true);
+    expect(cardMatchesCategory(geo, 'geoLocation')).toBe(true);
+    expect(cardMatchesCategory(animals, 'properName')).toBe(false);
   });
 });
 
-describe('filterVersesByCategory', () => {
+describe('filterCardsByCategory', () => {
   const cards = [
     card({ cardId: 'v1', tags: ['Unique Beg.'] }),
     card({ cardId: 'v2', tags: ['Unique End.'] }),
@@ -101,7 +101,7 @@ describe('filterVersesByCategory', () => {
   ];
 
   it('returns the full list when no filters are selected', () => {
-    expect(filterVersesByCategory(cards, []).map((item) => item.cardId)).toEqual([
+    expect(filterCardsByCategory(cards, []).map((item) => item.cardId)).toEqual([
       'v1',
       'v2',
       'v3',
@@ -113,19 +113,19 @@ describe('filterVersesByCategory', () => {
 
   it('unions multiple selected filters', () => {
     expect(
-      filterVersesByCategory(cards, ['uniqueBeginning', 'question']).map((item) => item.cardId),
+      filterCardsByCategory(cards, ['uniqueBeginning', 'question']).map((item) => item.cardId),
     ).toEqual(['v1', 'v3']);
   });
 
   it('filters keyword and semantic categories', () => {
     expect(
-      filterVersesByCategory(cards, ['keyword1x', 'animals', 'bodyParts']).map(
+      filterCardsByCategory(cards, ['keyword1x', 'animals', 'bodyParts']).map(
         (item) => item.cardId,
       ),
     ).toEqual(['v3', 'v4', 'v6']);
 
     expect(
-      filterVersesByCategory(cards, ['keyword2x', 'geoLocation']).map((item) => item.cardId),
+      filterCardsByCategory(cards, ['keyword2x', 'geoLocation']).map((item) => item.cardId),
     ).toEqual(['v5']);
   });
 });

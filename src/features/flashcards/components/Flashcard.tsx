@@ -27,9 +27,9 @@ export interface FlashcardProps {
   /** Which face is shown when a new card arrives. */
   defaultSide?: CardSide;
   /** Swipe right — card answered correctly. */
-  onSwipeMastered: () => void;
-  /** Swipe left — card needs more practice. */
-  onSwipePracticing: () => void;
+  onSwipeCorrect: () => void;
+  /** Swipe left — card needs more work. */
+  onSwipeNeedsWork: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -56,8 +56,8 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   card,
   segments,
   defaultSide = 'locate',
-  onSwipeMastered,
-  onSwipePracticing,
+  onSwipeCorrect,
+  onSwipeNeedsWork,
   style,
 }) => {
   const rotation = useSharedValue(rotationForSide(defaultSide));
@@ -68,12 +68,12 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   const commitSwipe = useCallback(
     (direction: SwipeDirection) => {
       if (direction === 'right') {
-        onSwipeMastered();
+        onSwipeCorrect();
       } else {
-        onSwipePracticing();
+        onSwipeNeedsWork();
       }
     },
-    [onSwipeMastered, onSwipePracticing],
+    [onSwipeCorrect, onSwipeNeedsWork],
   );
 
   // A new verse means the previous card already flew off screen: recentre it,
@@ -157,7 +157,7 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     transform: [{ perspective: 1000 }, { rotateY: `${rotation.value + 180}deg` }],
   }));
 
-  const masteredOverlayStyle = useAnimatedStyle(() => ({
+  const correctOverlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateX.value,
       [0, SWIPE_THRESHOLD],
@@ -166,7 +166,7 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     ),
   }));
 
-  const practicingOverlayStyle = useAnimatedStyle(() => ({
+  const needsWorkOverlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateX.value,
       [-SWIPE_THRESHOLD, 0],
@@ -190,11 +190,11 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
 
         <Animated.View
           pointerEvents="none"
-          style={[styles.overlay, styles.masteredOverlay, masteredOverlayStyle]}
+          style={[styles.overlay, styles.correctOverlay, correctOverlayStyle]}
         />
         <Animated.View
           pointerEvents="none"
-          style={[styles.overlay, styles.practicingOverlay, practicingOverlayStyle]}
+          style={[styles.overlay, styles.needsWorkOverlay, needsWorkOverlayStyle]}
         />
       </Animated.View>
     </GestureDetector>
@@ -245,10 +245,10 @@ const styles = StyleSheet.create({
     ...ABSOLUTE_FILL,
     borderRadius: radius.card,
   },
-  masteredOverlay: {
+  correctOverlay: {
     backgroundColor: colors.masteredGreen,
   },
-  practicingOverlay: {
+  needsWorkOverlay: {
     backgroundColor: colors.practicingRed,
   },
 });

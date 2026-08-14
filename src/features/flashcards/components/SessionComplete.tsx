@@ -5,23 +5,23 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, shadows, spacing, typography } from '../../../shared/theme';
 
 export interface SessionCompleteProps {
-  masteredCount: number;
-  practicingCount: number;
+  correctCount: number;
+  needsWorkCount: number;
   totalCards: number;
   onRestart: () => void;
 }
 
 export const SessionComplete: React.FC<SessionCompleteProps> = React.memo(({
-  masteredCount,
-  practicingCount,
+  correctCount,
+  needsWorkCount,
   totalCards,
   onRestart,
 }) => (
   <View style={styles.completeSection}>
     <Ionicons name="trophy-outline" size={56} color={colors.accentRed} />
-    <Text style={styles.completeTitle}>Deck complete</Text>
+    <Text style={styles.completeTitle}>Study complete</Text>
     <Text style={styles.completeSummary}>
-      {`${masteredCount} mastered · ${practicingCount} to practice · ${totalCards} cards`}
+      {`${correctCount} correct · ${needsWorkCount} needs work · ${totalCards} cards`}
     </Text>
     <Pressable
       onPress={onRestart}

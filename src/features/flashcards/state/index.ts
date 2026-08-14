@@ -23,7 +23,7 @@ export {
   countAnsweredStatuses,
   countActiveAnsweredStatuses,
   deriveFlashcardSession,
-  resolveStudyVerses,
+  resolveStudyCards,
 } from './deriveFlashcardSession';
 export type {
   FlashcardSessionView,

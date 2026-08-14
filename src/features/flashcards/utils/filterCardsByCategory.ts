@@ -34,7 +34,7 @@ function labelMatchesCategory(label: string, filterId: CategoryFilterId): boolea
 }
 
 /** True when the card's tags or matched rules hit the given category. */
-export function verseMatchesCategory(card: Card, filterId: CategoryFilterId): boolean {
+export function cardMatchesCategory(card: Card, filterId: CategoryFilterId): boolean {
   for (const tag of card.tags) {
     if (labelMatchesCategory(tag, filterId)) {
       return true;
@@ -54,7 +54,7 @@ export function verseMatchesCategory(card: Card, filterId: CategoryFilterId): bo
  * Filters cards by selected categories (union). Empty filters return the
  * original order unchanged.
  */
-export function filterVersesByCategory(
+export function filterCardsByCategory(
   cards: readonly Card[],
   categoryFilters: readonly CategoryFilterId[],
 ): Card[] {
@@ -63,6 +63,6 @@ export function filterVersesByCategory(
   }
 
   return cards.filter((card) =>
-    categoryFilters.some((filterId) => verseMatchesCategory(card, filterId)),
+    categoryFilters.some((filterId) => cardMatchesCategory(card, filterId)),
   );
 }

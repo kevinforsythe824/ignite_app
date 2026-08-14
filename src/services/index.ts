@@ -9,12 +9,7 @@ export type {
   AuthService,
   AuthStateListener,
   AuthUser,
-  DatabaseService,
-  DeckProgress,
   FirebaseService,
-  RemoteDeck,
-  RemoteMatchedRule,
-  RemoteVerse,
   Unsubscribe,
 } from './firebase';
 
@@ -23,10 +18,8 @@ export {
   storageService,
 } from './storage';
 export type {
-  OfflineSettings,
   StorageKey,
   StorageService,
-  StoredDeckBundle,
 } from './storage';
 
 export {
