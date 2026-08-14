@@ -3,7 +3,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 
 import FlashcardStudyRoute from '../../features/flashcards/screens/FlashcardStudyRoute';
-import AiCoachScreen from '../../screens/AiCoachScreen';
 import HomeScreen from '../../screens/HomeScreen';
 import PracticeScreen from '../../screens/PracticeScreen';
 import ProfileScreen from '../../screens/ProfileScreen';
@@ -17,12 +16,11 @@ type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 const TAB_ICONS: Record<keyof MainTabParamList, { focused: TabIconName; idle: TabIconName }> = {
   Home: { focused: 'home', idle: 'home-outline' },
   Study: { focused: 'book', idle: 'book-outline' },
-  AiCoach: { focused: 'sparkles', idle: 'sparkles-outline' },
   Practice: { focused: 'fitness', idle: 'fitness-outline' },
   Profile: { focused: 'person', idle: 'person-outline' },
 };
 
-/** PRD 5-slot shell. Study (Flashcards) is the default entry tab. */
+/** MVP tab shell. Study (Flashcards) is the default entry tab. AI Coach is Post-MVP. */
 export function BottomTabNavigator(): React.JSX.Element {
   return (
     <Tab.Navigator
@@ -44,7 +42,6 @@ export function BottomTabNavigator(): React.JSX.Element {
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="Study" component={FlashcardStudyRoute} options={{ title: 'Study' }} />
-      <Tab.Screen name="AiCoach" component={AiCoachScreen} options={{ title: 'AI Coach' }} />
       <Tab.Screen name="Practice" component={PracticeScreen} options={{ title: 'Practice' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
