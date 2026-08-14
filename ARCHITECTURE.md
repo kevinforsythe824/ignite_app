@@ -161,7 +161,7 @@ Route param lists: `src/app/navigation/types.ts`.
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. Curriculum still uses `JsonCurriculumRepository`; feature repositories will consume `getFirebaseFirestore()` later. |
+| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. Live curriculum still uses `JsonCurriculumRepository`. `FirestoreCurriculumRepository` reads via `getFirebaseFirestore()` but is not wired into Study yet. |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 
