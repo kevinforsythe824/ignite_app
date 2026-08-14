@@ -3,6 +3,17 @@ import React from 'react';
 
 import App from '../App';
 
+jest.mock('../src/features/flashcards/repositories/firebaseCurriculumSource', () => {
+  const { jsonCurriculumRepository } = jest.requireActual(
+    '../src/features/flashcards/repositories/jsonCurriculumRepository',
+  ) as typeof import('../src/features/flashcards/repositories/jsonCurriculumRepository');
+
+  return {
+    createFirebaseCurriculumSource: jest.fn(),
+    firestoreCurriculumRepository: jsonCurriculumRepository,
+  };
+});
+
 describe('App', () => {
   it('renders the Luke 2 deck title and first verse reference', async () => {
     const { findByText } = await render(<App />);

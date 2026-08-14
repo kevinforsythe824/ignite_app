@@ -6,14 +6,21 @@ import FlashcardStudyScreen from '../../../screens/FlashcardStudyScreen';
 import { colors, spacing, typography } from '../../../shared/theme';
 import { TEST_SEASON_ID } from '../domain/testSeason';
 import { useFlashcardCurriculum } from '../hooks/useFlashcardCurriculum';
+import { firestoreCurriculumRepository } from '../repositories';
 import { FlashcardSessionProvider } from '../state/FlashcardSessionContext';
+
+/** Live Study curriculum source — Firestore, not the JSON fixture. */
+export const studyCurriculumRepository = firestoreCurriculumRepository;
 
 /**
  * Study tab entry: loads curriculum, then mounts session state inside the
  * feature boundary so other tabs are unaffected by session updates.
  */
 export function FlashcardStudyRoute(): React.JSX.Element {
-  const { loadState, reload } = useFlashcardCurriculum(TEST_SEASON_ID);
+  const { loadState, reload } = useFlashcardCurriculum(
+    TEST_SEASON_ID,
+    studyCurriculumRepository,
+  );
 
   if (loadState.status === 'ready') {
     return (

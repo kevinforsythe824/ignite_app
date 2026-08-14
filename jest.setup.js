@@ -1,11 +1,17 @@
 jest.mock('firebase/app', () => ({
   getApps: jest.fn(() => []),
   getApp: jest.fn(),
-  initializeApp: jest.fn(),
+  initializeApp: jest.fn(() => ({ name: '[DEFAULT]' })),
 }));
 
 jest.mock('firebase/firestore', () => ({
-  getFirestore: jest.fn(),
+  getFirestore: jest.fn(() => ({})),
+  doc: jest.fn(() => ({})),
+  collection: jest.fn(() => ({})),
+  query: jest.fn(() => ({})),
+  orderBy: jest.fn(() => ({})),
+  getDoc: jest.fn(() => Promise.reject(new Error('Firestore is mocked in tests'))),
+  getDocs: jest.fn(() => Promise.reject(new Error('Firestore is mocked in tests'))),
 }));
 
 jest.mock('@expo/vector-icons', () => {

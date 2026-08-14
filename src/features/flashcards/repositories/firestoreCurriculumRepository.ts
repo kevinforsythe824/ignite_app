@@ -1,3 +1,4 @@
+import { FirebaseNotConfiguredError } from '../../../services/firebase';
 import type { FirestoreCardSnapshot } from '../data/mapFirestoreToCard';
 import { InvalidCurriculumDocumentError, mapFirestoreCardsToDomain } from '../data/mapFirestoreToCard';
 import {
@@ -57,6 +58,10 @@ function translateCurriculumError(error: unknown, seasonId: string): never {
     throw error;
   }
 
+  if (error instanceof FirebaseNotConfiguredError) {
+    throw new CurriculumPersistenceError('unexpected', UNEXPECTED_MESSAGE, seasonId);
+  }
+
   const code = firestoreErrorCode(error);
   if (code === 'not-found') {
     throw new UnknownSeasonError(seasonId);
@@ -88,7 +93,7 @@ function readSeasonTitle(data: unknown, seasonId: string): string {
   return title.trim();
 }
 
-/** Firestore-backed CurriculumRepository. Not wired into the live Study tab yet. */
+/** Firestore-backed CurriculumRepository used by the live Study tab. */
 export class FirestoreCurriculumRepository implements CurriculumRepository {
   constructor(private readonly source: CurriculumFirestoreSource) {}
 

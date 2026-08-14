@@ -220,4 +220,22 @@ describe('FirestoreCurriculumRepository', () => {
       message: 'Unable to load curriculum.',
     });
   });
+
+  it('translates missing Firebase client config without leaking env key names', async () => {
+    const { FirebaseNotConfiguredError } = jest.requireActual(
+      '../../src/services/firebase/firebaseConfig',
+    ) as typeof import('../../src/services/firebase/firebaseConfig');
+    const source = createSource({
+      getSeason: jest.fn().mockRejectedValue(
+        new FirebaseNotConfiguredError(['EXPO_PUBLIC_FIREBASE_API_KEY']),
+      ),
+    });
+    const repository = new FirestoreCurriculumRepository(source);
+
+    await expect(repository.getCurriculum(TEST_SEASON_ID)).rejects.toMatchObject({
+      name: 'CurriculumPersistenceError',
+      code: 'unexpected',
+      message: 'Unable to load curriculum.',
+    });
+  });
 });

@@ -4,7 +4,6 @@ import type {
   CurriculumRepository,
   StudyCurriculum,
 } from '../repositories/curriculumRepository';
-import { jsonCurriculumRepository } from '../repositories/jsonCurriculumRepository';
 
 export type CurriculumLoadState =
   | { status: 'loading' }
@@ -23,11 +22,11 @@ function errorMessage(error: unknown): string {
 
 /**
  * Feature-local curriculum load state. Not a global data-fetching layer.
- * Inject a repository in tests; production defaults to the JSON implementation.
+ * Callers inject the repository; Study composes Firestore at the route.
  */
 export function useFlashcardCurriculum(
   seasonId: string,
-  repository: CurriculumRepository = jsonCurriculumRepository,
+  repository: CurriculumRepository,
 ): UseFlashcardCurriculumResult {
   const [loadState, setLoadState] = useState<CurriculumLoadState>({ status: 'loading' });
   const [reloadToken, setReloadToken] = useState(0);
