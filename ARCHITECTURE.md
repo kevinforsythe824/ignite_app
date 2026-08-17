@@ -2,7 +2,7 @@
 
 Ignite is an Expo SDK 57 React Native app (TypeScript) for competitive Bible quiz study. Today the shipped feature is **Flashcards** on the Study tab; other PRD modules are scaffolded as placeholders behind a 5-tab shell.
 
-**Sources of truth:** product/features/sprints → [`docs/PRD.md`](docs/PRD.md); engineering layout → this file. Also read `AGENTS.md` and `.cursor/rules/` before changing code. Prefer [Expo SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/).
+**Sources of truth:** product/features/sprints → [`docs/product/PRD.md`](docs/product/PRD.md); how we build and verify → [`docs/development/Ignite_Development_Playbook.md`](docs/development/Ignite_Development_Playbook.md); engineering layout → this file. Also read `AGENTS.md` and `.cursor/rules/` before changing code. Prefer [Expo SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/).
 
 ---
 
@@ -13,7 +13,16 @@ ignite_app/
 ├── App.tsx                      # Root: AppProviders + RootNavigator
 ├── AGENTS.md                    # Expo SDK 57 reminder
 ├── ARCHITECTURE.md              # This file (engineering source of truth)
-├── docs/PRD.md                  # Product source of truth
+├── docs/
+│   ├── product/PRD.md           # Product source of truth
+│   ├── development/             # Development Playbook (how we build/verify)
+│   ├── architecture/decisions/  # ADRs
+│   ├── operations/              # Runbooks (incl. Firebase environments)
+│   └── testing/                 # Test-strategy notes
+├── .firebaserc                  # Firebase CLI aliases: dev / staging / prod
+├── firebase.json                # Firestore rules/indexes paths (do not deploy casually)
+├── firestore.rules              # Local baseline; reconcile before first deploy
+├── firestore.indexes.json
 ├── __tests__/                   # Jest business-logic & smoke tests
 ├── scripts/                     # Developer tooling (not shipped in the app)
 │   └── firestore-seed/          # Admin SDK import of the JSON test curriculum
@@ -165,7 +174,7 @@ Route param lists: `src/app/navigation/types.ts`.
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. |
+| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 

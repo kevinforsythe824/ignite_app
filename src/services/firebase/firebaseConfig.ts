@@ -4,6 +4,11 @@
  * server credentials. Do not add service-account or Admin SDK keys here.
  */
 
+import {
+  assertProjectIdForEnvironment,
+  readIgniteEnvironment,
+} from './firebaseEnvironments';
+
 export interface FirebaseClientConfig {
   apiKey: string;
   authDomain: string;
@@ -45,6 +50,7 @@ function readEnvValue(env: EnvSource, key: string): string | undefined {
 export function readFirebaseClientConfig(
   env: EnvSource = process.env,
 ): FirebaseClientConfig {
+  const environment = readIgniteEnvironment(env);
   const missingKeys: string[] = [];
   const values: Partial<FirebaseClientConfig> = {};
 
@@ -63,5 +69,7 @@ export function readFirebaseClientConfig(
     throw new FirebaseNotConfiguredError(missingKeys);
   }
 
-  return values as FirebaseClientConfig;
+  const config = values as FirebaseClientConfig;
+  assertProjectIdForEnvironment(environment, config.projectId);
+  return config;
 }

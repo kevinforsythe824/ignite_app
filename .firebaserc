@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "wpf-bible-qizzing",
+    "dev": "wpf-bible-qizzing",
+    "staging": "ignite-staging-01",
+    "prod": "ignite-prod-01"
+  }
+}

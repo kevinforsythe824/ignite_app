@@ -6,6 +6,7 @@ import {
   FIREBASE_CLIENT_ENV_KEYS,
   FirebaseNotConfiguredError,
 } from '../../src/services/firebase/firebaseConfig';
+import { IGNITE_ENV_KEY } from '../../src/services/firebase/firebaseEnvironments';
 import { getFirebaseApp } from '../../src/services/firebase/firebaseApp';
 import { getFirebaseFirestore } from '../../src/services/firebase/firestore';
 
@@ -60,10 +61,13 @@ describe('Firebase JS SDK initialization', () => {
   it('throws when no app exists and client config is missing', () => {
     mockGetApps.mockReturnValue([]);
     const envKeys = Object.values(FIREBASE_CLIENT_ENV_KEYS);
-    const previous = envKeys.map((key) => [key, process.env[key]] as const);
+    const previous = [...envKeys, IGNITE_ENV_KEY].map(
+      (key) => [key, process.env[key]] as const,
+    );
     envKeys.forEach((key) => {
       delete process.env[key];
     });
+    process.env[IGNITE_ENV_KEY] = 'dev';
 
     try {
       expect(() => getFirebaseApp()).toThrow(FirebaseNotConfiguredError);

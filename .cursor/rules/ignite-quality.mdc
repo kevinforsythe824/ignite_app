@@ -1,0 +1,30 @@
+---
+description: Ignite quality, privacy, verification, and Definition of Done guardrails
+alwaysApply: true
+---
+
+# Ignite Quality
+
+Process: [`docs/development/Ignite_Development_Playbook.md`](docs/development/Ignite_Development_Playbook.md) (§§3–5, 11–12, 15, 17).
+Privacy, states, and testing requirements: [`docs/product/PRD.md`](docs/product/PRD.md) (§§43–44, 48, 51).
+
+## Before implementing
+
+- Inspect current code, relevant PRD sections, the playbook, and ADRs first.
+- Explain what exists, then implement only the requested change.
+
+## Implementation quality
+
+- Add or update automated tests appropriate to the change.
+- Treat loading, empty, error, access/entitlement, and relevant lifecycle states as required product states (PRD §48).
+- Consider accessibility and mobile UX in every sprint (playbook §11). Do not defer that work to Sprint 11.
+- Review privacy and security implications. Backend authorization is required; UI hiding is not enough (PRD §43).
+- Collect and log only the minimum necessary Quizzer information.
+- Never log sensitive tokens, credentials, or unnecessary child/learning data (PRD §44, playbook §12).
+
+## Verification
+
+- Audit changed files for newly introduced hard-coded business rules and magic numbers (playbook §6).
+- Check regressions and scope creep before considering the work done.
+- Report what was manually tested, on what environment/device, or explicitly what was not tested.
+- Record durable architectural decisions as ADRs in `docs/architecture/decisions/` rather than silently embedding them in code (playbook §15).

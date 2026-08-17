@@ -10,6 +10,7 @@ import {
   TEST_SEED_TITLE,
   type FirestoreCardSeedRecord,
 } from './buildSeedRecords';
+import { resolveSeedTarget } from './assertSeedTarget';
 
 const BATCH_LIMIT = 400;
 const FIXTURE_PATH = resolve(process.cwd(), 'src/data/mock-verse-data.json');
@@ -35,18 +36,6 @@ function loadEnvFile(filePath: string): void {
       process.env[key] = value;
     }
   }
-}
-
-function requireProjectId(): string {
-  const projectId =
-    process.env.FIREBASE_PROJECT_ID?.trim() ||
-    process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-  if (!projectId) {
-    throw new Error(
-      'Missing FIREBASE_PROJECT_ID (or EXPO_PUBLIC_FIREBASE_PROJECT_ID in .env.local).',
-    );
-  }
-  return projectId;
 }
 
 function chunkRecords<T>(items: readonly T[], size: number): T[][] {
@@ -79,12 +68,17 @@ async function commitSeasonAndCards(
 async function main(): Promise<void> {
   loadEnvFile(ENV_LOCAL_PATH);
 
+  const target = resolveSeedTarget(process.env);
+  console.log(
+    `[Ignite] Seeding Firestore environment=${target.environment} project=${target.projectId}`,
+  );
+
   const fixtures = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')) as unknown;
   const records = buildFirestoreCardSeedRecords(fixtures);
 
   initializeApp({
     credential: applicationDefault(),
-    projectId: requireProjectId(),
+    projectId: target.projectId,
   });
 
   await commitSeasonAndCards(records);

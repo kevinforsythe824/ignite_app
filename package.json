@@ -37,7 +37,10 @@
     "web": "expo start --web",
     "test": "jest",
     "test:ci": "jest --watchAll=false --ci",
-    "seed:firestore": "tsx scripts/firestore-seed/seedFirestore.ts"
+    "seed:firestore": "tsx scripts/firestore-seed/seedFirestore.ts",
+    "firebase:target": "npx -y firebase-tools@latest use",
+    "firebase:use:dev": "npx -y firebase-tools@latest use dev",
+    "firebase:use:staging": "npx -y firebase-tools@latest use staging"
   },
   "jest": {
     "preset": "jest-expo",
