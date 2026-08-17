@@ -1,0 +1,37 @@
+---
+description: Ignite product, domain, and architecture guardrails that always apply
+alwaysApply: true
+---
+
+# Ignite Core
+
+Canonical sources (read them; do not duplicate them here):
+- Product/business/architecture: [`docs/product/PRD.md`](docs/product/PRD.md)
+- How we build: [`docs/development/Ignite_Development_Playbook.md`](docs/development/Ignite_Development_Playbook.md)
+- Folder layout: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+
+## Truth and scope
+
+- The canonical PRD is the product/business/architecture source of truth.
+- Explicit current product-owner decisions override older implementation assumptions (playbook §1).
+- Before significant product or business-rule work, read the relevant PRD sections.
+- Do not implement features the PRD explicitly defers (PRD §§54–55).
+- Do not silently invent unresolved business rules; ask or record the gap.
+- Keep work scoped to the requested sprint/phase. Avoid broad refactors unless required.
+
+## Architecture
+
+- Preserve dependency direction: Presentation → Feature/Application → Domain → Repository → Persistence (PRD §§27–28, 39).
+- UI must not call Firebase/Firestore directly.
+- Firebase is infrastructure, not the Ignite domain model. Domain types stay independent of Firestore documents and Firebase APIs.
+
+## Domain invariants
+
+- Respect strict Season isolation: seasons do not share curriculum or learning state (PRD §§5, 7).
+- Respect active-season content immutability once a season is Active/Locked (PRD §6).
+- Learning state is owned by Quizzer + Season + Card, not by Deck (PRD §§13.4, 15).
+
+## Configuration vs literals
+
+- Do not hard-code season, division, tournament, entitlement, mastery, product, environment, or similar business values when they belong in configuration or domain policy (playbook §6).
+- Named local layout/animation constants are allowed. Values that encode product behavior are not.

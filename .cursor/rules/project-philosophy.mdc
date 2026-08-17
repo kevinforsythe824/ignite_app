@@ -7,8 +7,9 @@ alwaysApply: true
 
 ## Sources of truth
 
-- Treat [`docs/PRD.md`](docs/PRD.md) as the product source of truth.
-- Before making product or feature decisions, read and follow `docs/PRD.md`.
+- Treat [`docs/product/PRD.md`](docs/product/PRD.md) as the product source of truth.
+- Before making product or feature decisions, read and follow `docs/product/PRD.md`.
+- Treat [`docs/development/Ignite_Development_Playbook.md`](docs/development/Ignite_Development_Playbook.md) as the development-process source of truth (how we build and verify).
 - Treat [`ARCHITECTURE.md`](ARCHITECTURE.md) as the engineering source of truth.
 - Prefer extending existing patterns instead of inventing new ones.
 

@@ -1,6 +1,7 @@
 import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 
 import { readFirebaseClientConfig, type FirebaseClientConfig } from './firebaseConfig';
+import { readIgniteEnvironment } from './firebaseEnvironments';
 
 /**
  * Returns the Firebase JS SDK app, initializing it once.
@@ -12,5 +13,13 @@ export function getFirebaseApp(config?: FirebaseClientConfig): FirebaseApp {
     return existing[0];
   }
 
-  return initializeApp(config ?? readFirebaseClientConfig());
+  const resolved = config ?? readFirebaseClientConfig();
+  if (config === undefined) {
+    const environment = readIgniteEnvironment();
+    console.log(
+      `[Ignite] Firebase environment=${environment} project=${resolved.projectId}`,
+    );
+  }
+
+  return initializeApp(resolved);
 }

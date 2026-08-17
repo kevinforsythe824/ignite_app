@@ -1,0 +1,157 @@
+name: Bug Report
+description: Report a bug in Ignite (mobile app or backend affecting the app)
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Privacy — read before submitting
+
+        **Do NOT include in this issue:**
+
+        - Passwords
+        - Authentication tokens or session cookies
+        - Firebase credentials, service account keys, or Admin SDK secrets
+        - API keys of any kind
+        - Private Quizzer information (real names, emails, contact details)
+        - Unnecessary child personal data
+        - Unnecessary detailed learning history (card recall results, mastery progress dumps, etc.)
+
+        Use **synthetic test personas** from [`docs/testing/TEST_PERSONAS.md`](../../docs/testing/TEST_PERSONAS.md) when describing test accounts. Redact or omit anything that could identify a real Quizzer.
+
+        For environment and Firebase project context, see [`docs/operations/ENVIRONMENTS.md`](../../docs/operations/ENVIRONMENTS.md).
+
+  - type: input
+    id: summary
+    attributes:
+      label: Short summary
+      description: One clear sentence describing the problem.
+      placeholder: "Flashcard deck fails to load after sign-in on Staging"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Which Ignite backend environment were you using?
+      options:
+        - Development
+        - Staging
+        - Production
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - iOS
+        - Android
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Semantic version shown in the app or build metadata (e.g. 0.2.0).
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: build-number
+    attributes:
+      label: Build number
+      description: Native build number or Expo update identifier when available.
+      placeholder: "42"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (reporter estimate)
+      description: |
+        P0 — security/privacy exposure or destructive data corruption.
+        P1 — core app unusable, auth/purchase/access broadly broken, or major data-integrity risk.
+        P2 — important feature broken with a workaround or limited impact.
+        P3 — cosmetic or minor usability issue.
+      options:
+        - P0
+        - P1
+        - P2
+        - P3
+    validations:
+      required: true
+
+  - type: input
+    id: feature-area
+    attributes:
+      label: Feature / area affected
+      description: e.g. Authentication, Onboarding, Flashcards, Practice, Settings, Firebase rules, Seed tooling.
+      placeholder: "Flashcards"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps starting from a known state (signed out, signed in, persona used, etc.).
+      placeholder: |
+        1. Sign in with synthetic persona s2-quizzer-beginner-001 on Development.
+        2. Open Flashcards tab.
+        3. Tap Start review.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Reproducibility / frequency
+      options:
+        - Always (100%)
+        - Often (>50%)
+        - Sometimes (10–50%)
+        - Rarely (<10%)
+        - Unable to reproduce
+        - Not yet attempted
+    validations:
+      required: true
+
+  - type: input
+    id: error-reference
+    attributes:
+      label: Non-sensitive error code or support reference
+      description: Application error category/code or incident reference only — no tokens, payloads, or PII.
+      placeholder: "AUTH_SESSION_EXPIRED or INC-2026-0817-001"
+    validations:
+      required: false
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Screenshot / log details (optional)
+      description: |
+        Paste redacted log excerpts or describe screenshots. Do not attach files containing credentials or real user data.
+        Prefer error category, feature name, and stack trace over full request/response bodies.
+    validations:
+      required: false

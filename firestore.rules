@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Official season curriculum (read-only from clients).
+    // Matches currently deployed DEV behavior for the Flashcard flow.
+    // Sprint 2+ will add authenticated-user rules; do not broaden writes here.
+    match /seasons/{seasonId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /cards/{cardId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+  }
+}

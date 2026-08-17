@@ -8,6 +8,10 @@ export {
   readFirebaseClientConfig,
   FirebaseNotConfiguredError,
   FIREBASE_CLIENT_ENV_KEYS,
+  IGNITE_ENV_KEY,
+  IGNITE_FIREBASE_PROJECTS,
+  FirebaseEnvironmentError,
+  readIgniteEnvironment,
 } from './firebase';
 export type {
   AuthCredentials,
@@ -16,6 +20,7 @@ export type {
   AuthUser,
   FirebaseClientConfig,
   FirebaseService,
+  IgniteEnvironmentName,
   Unsubscribe,
 } from './firebase';
 
