@@ -1,7 +1,7 @@
 Ignite
 Product Requirements & Architecture Document
-(PRD) v3.0
-Status: Canonical working specification
+(PRD) v3.2
+Status: Canonical working specification — minor account/privacy/eligibility clarification revision
 Product: Ignite
 Platform: iOS and Android
 Primary Technology: React Native + TypeScript
@@ -10,6 +10,7 @@ Local Persistence: Online-first MVP; SQLite planned for post-MVP offline learnin
 Architecture: Feature-oriented application architecture with domain and repository boundaries
 Primary Core Experience: Flashcard-based Bible memorization
 Document Purpose: Product, domain, architecture, data, UX, and development source of truth
+Revision Scope: v3.2 preserves the v3.1 product/architecture decisions and incorporates minor clarifications for Sprint 2 account/profile identity, U.S. under-13 consent boundaries, one-account/one-Quizzer MVP ownership, season-scoped eligibility/division setup, and the adult full-material study track.
 
 
 
@@ -55,6 +56,8 @@ The larger goal is to prepare a Quizzer to:
 # 5. Prepare for tournament competition.
 The core product loop is Flashcard study.
 
+## 2.2 Initial Launch Market
+The initial MVP launch market is the United States. International expansion is outside the initial launch scope and requires jurisdiction-specific privacy, child-safety, and platform-compliance review before release in additional markets.
 
 
 # 3. Product Principles
@@ -119,12 +122,16 @@ The Quizzer may be:
 The product does not initially create separate Parent and Child account experiences.
 
 
-## 4.2 Account Creation Context
-During onboarding, the application should ask whether:
-   - The account is being created for the person using it.
-   - The account is being created by an adult helping a Quizzer.
-This distinction is onboarding/consent context.
-It does not create separate Parent and Child application experiences.
+## 4.2 Account and Guardian Consent Context
+The MVP does not create separate Parent and Child application experiences and does not ask every user whether an adult is assisting with account creation.
+
+For the initial United States launch, applicable COPPA treatment must be confirmed through appropriate privacy/legal review, including whether Ignite may use a mixed-audience age screen or must apply child-directed protections more broadly.
+
+If an age/privacy screen is used, it must occur before collecting the Quizzer's first/last name, account email, or other persistent personal profile information. A user identified as under 13 must be routed into any required parent/guardian notice and verifiable-consent process before normal account/profile provisioning continues. This compliance path does not create a Parent role, Parent Portal, or separate parent application experience.
+
+The MVP account relationship is one authenticated Account → one Quizzer profile → one unique email address. Families with multiple Quizzers therefore use separate accounts/emails for each Quizzer in the MVP.
+
+The exact verifiable-parental-consent mechanism for under-13 users must be finalized through appropriate privacy/legal review before production release and must not be invented as ordinary onboarding UI logic.
 
 
 ## 4.3 Future Coach
@@ -281,18 +288,27 @@ Ages 12–14 and first-year Quizzers ages 15–18.
 Experienced / Senior
 
 Advanced Quizzers ages 12–18.
+
+Adult / Full Material Study Track
+
+Users age 19+ may use Ignite for Bible memorization and receive access to the full season material. This is a noncompetitive study track and must not be represented as the Experienced / Senior youth division.
+
 The exact number of cards/material required for each division may change every season
 according to the committee's material and requirements.
 
 
-## 8.2 Division Onboarding
-During onboarding:
-# 1. User provides age.
-# 2. Ignite determines eligible divisions.
-# 3. User selects their division.
-# 4. Ignite associates that division with the current season.
-# 5. Ignite displays the corresponding season/division material available for purchase.
-The division is scoped to the season.
+## 8.2 Season Eligibility and Division Setup
+During current-season setup:
+# 1. The user provides the age that should be used for Bible Quizzing eligibility for that season. Date of birth is not required.
+# 2. Ignite collects only additional minimum eligibility information when needed, including first-year Quizzer status for the applicable ages 15–18 flow.
+# 3. Ignite determines eligible youth divisions or the Adult / Full Material study track.
+# 4. The user selects from eligible options where selection is applicable.
+# 5. Ignite associates the resulting participation/division with the current season.
+# 6. Ignite displays the corresponding season material available for access/purchase.
+
+If the Quizzer is unsure which age should be used for official division eligibility, Ignite should instruct them to confirm with their Coach rather than attempting to calculate edge cases from a stored date of birth.
+
+Division/participation is scoped to the season.
 
 
 ## 8.3 Division Changes
@@ -556,6 +572,25 @@ UI and domain model.
 
 
 
+## 14.6 Study Hub / Material Selection
+Study is the product-level entry point into Flashcard learning.
+
+The Study landing page sits between the Study tab and the Flashcard engine. Its purpose is to let the Quizzer choose what material to study before entering an active Flashcard session.
+
+The Study hub may progressively contain:
+- Current-season/division official material
+- Custom Decks
+- Tournament Scope
+- Recently Studied
+- Review Due
+- Needs Work
+- Mastered
+- Other derived smart collections
+
+Sprint 3 establishes the initial Study hub foundation using current-season/division material and launches the selected material into the existing Flashcard engine. Sprint 6 adds real recent-study/activity data. Sprint 7 adds mastery/review-driven smart collections and recommendations.
+
+The Study hub does not own Card, Progress, Mastery, or Tournament data. It composes those authoritative sources through application/domain boundaries.
+
 # 15. Flashcard Progress
 Progress is scoped to:
 
@@ -708,6 +743,20 @@ Analytics must not become a second authoritative database of detailed user behav
 
 
 
+## 19.1 Analytics Experience
+The MVP Analytics screen is implemented primarily in Sprint 9 after Study, Mastery/Review, and Practice have produced authoritative activity data.
+
+The Analytics UI may combine season-scoped information such as:
+- Study time/activity
+- Cards or verses learned/studied
+- Streaks
+- Mastery and review activity
+- Practice history/performance
+- Progress trends
+- Tournament preparation/readiness
+
+Metrics must only be shown when Ignite has a clear, testable definition and an authoritative data source for them. Product-design concepts such as a Focus Score, peak-performance time, or similar derived metrics must not be displayed as factual analytics until their definitions and data requirements are explicitly established.
+
 # 20. Achievements
 Achievements are generated from defined product milestones.
 Examples include:
@@ -742,6 +791,32 @@ The purpose is to help a Quizzer understand whether they are prepared for upcomi
 tournament material.
 
 
+
+## 21.1 Tournament Details Experience
+Basic tournament information and preparation support are part of the Core MVP; full tournament simulation remains future scope.
+
+Sprint 3 establishes tournament configuration as season-owned authoritative data. The model may include:
+- Tournament identity/name
+- Date/time
+- Venue name
+- Venue address/location text
+- Required material/Card scope
+- Division-specific material requirements where applicable
+
+Sprint 5 may surface the next tournament on Home and provide a Tournament Details screen containing:
+- Tournament name
+- Date/time
+- Venue/location information
+- Map/location presentation where appropriate
+- Required study material
+- Study Now action
+- Get Directions action
+
+Study Now should open the Study/Flashcard experience scoped to the tournament's required material without duplicating Cards.
+
+Directions should hand off to the device/platform mapping experience where practical. Ignite does not need to collect or persist the Quizzer's precise location to provide tournament venue information or directions.
+
+Sprint 6 may add studied/progress information, Sprint 7 may add mastery/review readiness, and Sprint 9 may add higher-level tournament preparation analytics.
 
 # 22. Practice System
 Practice is a separate domain from Flashcard study.
@@ -812,6 +887,18 @@ A shared Practice framework should allow each game to define its own:
   - Completion rules
 
 
+
+## 22.6 Practice Hub
+The Practice tab should include a Practice landing page that acts as the primary entry point into Practice experiences.
+
+The Practice hub may show:
+- Available Practice games/challenges
+- Basic Practice progress or history where authoritative data exists
+- Entry points into individual Practice modes
+
+Sprint 8 builds the Practice hub, Practice architecture, and at least one strong functioning Practice mode based on official/predetermined material. The MVP does not require every game shown in product mockups to be implemented in Sprint 8.
+
+Sprint 9 may enrich the Practice hub with authoritative Practice summaries and analytics after PracticeSession and PracticeResult data exist.
 
 # 23. Tournament Simulation
 Tournament simulation is a future feature.
@@ -1319,19 +1406,21 @@ The goal is to avoid a giant global state object containing the entire applicati
 
 
 # 39. Dependency Direction
-The dependency direction must be:
+The dependency direction must keep the Domain independent of infrastructure concerns.
+
+Conceptually:
 
   Presentation
      ↓
   Application / Feature
-     ↓
-  Domain
-     ↓
-  Repository Interfaces
-     ↓
-  Persistence Implementations
-     ↓
-  Firebase / SQLite
+     ├──→ Domain
+     └──→ Repository Interfaces
+              ↓
+        Persistence Implementations
+              ↓
+        Firebase / SQLite
+
+Application/use-case code may depend on Domain models and repository interfaces. Repository implementations satisfy those interfaces and may map persistence data to/from Domain models. Core Domain entities and business rules must not depend on repositories, Firebase, SQLite, or other infrastructure.
 
 Never:
 
@@ -1343,40 +1432,75 @@ and never:
 
   Domain
   ↓
-  Firebase SDK
+  Firebase SDK / Repository Implementation
 
-This keeps Firebase replaceable and prevents infrastructure from becoming the domain model.
+This keeps the Domain pure, Firebase replaceable, and infrastructure from becoming the application model.
 
 # 40. Navigation Architecture
-Navigation should be organized around product-level destinations rather than individual
-database concepts.
-Initial major destinations include:
-   - Home
-   - Flashcards
-   - Practice
-   - Analytics
-   - Settings
-Authentication/onboarding/purchase flows remain outside the main authenticated application
-experience.
-Historical season analytics should be accessible through a read-only archive/history experience.
+Navigation should be organized around product-level destinations rather than individual database concepts.
 
+The preferred Core MVP bottom navigation is:
+- Home
+- Study
+- Practice
+- Profile
+
+Study is the product-level destination for Flashcard learning. It contains the Study landing page/material-selection experience and launches the underlying Flashcard engine.
+
+Profile is the product-level destination for Quizzer identity and user-level information. Settings lives beneath Profile rather than occupying a permanent bottom-navigation destination.
+
+Analytics remains a full MVP experience but does not require a permanent bottom-navigation tab. It may be accessed from Home and/or Profile through appropriate entry points.
+
+Authentication, onboarding, and purchase flows remain outside the main authenticated application experience.
+Historical season analytics should be accessible through a read-only archive/history experience.
 
 
 # 41. Home Experience
 The Home experience should provide a concise overview of the Quizzer's current season.
 Planned elements include:
-    - Greeting/banner
-    - Daily progress
-    - Study streak
-    - Flame indicator
-    - Verses learned/mastered
-    - Tournament preparation
-    - Study overview
-    - Progress visualization
-    - Important review activity
-Home should primarily summarize information.
-It should not become the owner of learning logic.
+- Greeting/banner
+- Daily progress
+- Study streak
+- Flame indicator
+- Verses learned/mastered
+- Tournament preparation
+- Next-tournament summary when configured
+- Study overview
+- Progress visualization
+- Important review activity
+- Entry points to Study, Practice, Analytics, and other relevant product areas
 
+The Home experience may surface the next configured tournament. Selecting that tournament should open a Tournament Details experience when that screen becomes available in Sprint 5.
+
+Home should primarily summarize information.
+It should not become the owner of learning, analytics, tournament, or mastery logic.
+
+## 41.1 Profile Experience
+Profile is a Core MVP product destination.
+
+The Profile foundation begins in Sprint 2 and should initially provide:
+- Quizzer first and last name as the primary private display identity
+- Basic account/profile information
+- Initials and/or an optional controlled/preset avatar
+- Entry point to Settings
+- Appropriate account-level actions
+
+Profile may progressively display real product activity as the underlying systems become available. Real study streak/activity data should come from Sprint 6, richer analytics from Sprint 9, and final integration/polish from Sprint 10.
+
+Because Ignite may be used by minors, the MVP should not require user-uploaded profile photos. Initials are the default fallback and controlled/preset avatars may be offered as an optional lightweight personalization feature unless a later privacy-reviewed requirement changes this decision.
+
+## 41.2 Settings Experience
+Settings lives under Profile.
+
+The Sprint 2 Settings Foundation should contain only account-related functionality that naturally belongs to the authenticated-user lifecycle, such as:
+- First and last name management (Edit Name)
+- Email/account controls, including secure reauthentication and verification of a new email when changing the account email
+- Password controls
+- Sign-out
+- Appropriate account-lifecycle controls
+- Basic About/version information where useful
+
+Settings must not imply that deferred features already exist. Push-notification controls should not be functional until notification infrastructure is intentionally implemented. Offline Study controls such as Download Cards and Auto-download belong to Sprint 12 Post-MVP.
 
 
 # 42. Authentication
@@ -1386,6 +1510,8 @@ Authentication is handled through Firebase Authentication.
 The authentication layer should remain independent from Quizzer domain data.
 
 The authenticated identity maps to the application's User/Quizzer record.
+
+For the MVP, one authenticated account maps to one Quizzer profile and uses one unique email address. Firebase Authentication identity remains separate from Quizzer profile/domain data.
 
 
 
@@ -1405,8 +1531,11 @@ The architecture must prevent unauthorized cross-user access at the persistence 
 
 # 44. Privacy and Child Safety
 Ignite must follow privacy-by-design and privacy-by-default.
+
+Ignite may collect a Quizzer's first and last name because they are required for account identity, Profile presentation, personalization, and future authorized Coach/Quizzer relationships. These names are private profile data and must not be exposed to unauthorized users, unnecessary telemetry, crash logs, or public discovery.
+
 The application should not unnecessarily collect:
-  - Real name
+  - Additional name or identity information beyond the required first and last name
   - Address
   - Phone number
   - Precise location
@@ -1424,14 +1553,16 @@ Crash reporting and diagnostics must avoid unnecessary child personal data and l
 Applicable legal and platform requirements must be reviewed before launch.
 
 # 45. Notifications
-Notifications are a future/controlled capability.
-Any notification system must:
-  - Avoid sensitive information on lock screens.
-  - Respect user settings.
-  - Avoid unnecessary notification permissions.
-  - Not expose detailed child learning information.
-  - Be evaluated for privacy before implementation.
+Notifications are a future/controlled capability and are not required for the Core MVP unless deliberately reprioritized.
 
+Any notification system must:
+- Avoid sensitive information on lock screens.
+- Respect user settings.
+- Avoid unnecessary notification permissions.
+- Not expose detailed child learning information.
+- Be evaluated for privacy before implementation.
+
+Profile or Settings designs may reserve a future entry point, but the application must not present a functional Push Notifications control until the supporting notification capability exists.
 
 
 # 46. Analytics and Telemetry
@@ -1711,7 +1842,7 @@ Backend                 Firebase
 Database                Cloud Firestore
 
 
-Local V1 persistence    SQLite
+Local learning persistence    None in Core MVP; SQLite planned post-MVP
 
 
 Authentication          Firebase Authentication
@@ -1726,7 +1857,7 @@ Persistence boundary    Repository interfaces
 State management        Feature-local + Zustand for client/UI state
 
 
-Flashcard offline       Yes
+Flashcard offline       Post-MVP (Sprint 12)
 
 
 Practice offline V1     No
@@ -1765,7 +1896,7 @@ Global Verse identity   Not used for learning state
  Season content                            Immutable once active
 
 
- Division                                  User-selected within age eligibility
+ Division                                  Season-scoped youth selection within eligibility; adult full-material track separate
 
 
  Division changes                          Next season
@@ -1793,7 +1924,7 @@ The intended high-level architecture is:
   ┌──────────────────────────────────────────────┐
   │         PRESENTATION               │
   │                           │
-  │ Home │ Flashcards │ Practice │ Analytics │
+  │ Home │ Study │ Practice │ Profile │ Analytics │
   └──────────────────────┬───────────────────────┘
               │
               ▼
@@ -1811,7 +1942,12 @@ The intended high-level architecture is:
   │                             │
   │ Season │ Card │ Progress │ Mastery         │
   │ Recall │ Study │ Practice │ Tournament     │
-  └──────────────────────┬───────────────────────┘
+  │                                             │
+  │ Pure domain models/rules; no repository or  │
+  │ infrastructure dependencies                 │
+  └──────────────────────────────────────────────┘
+
+  FEATURE / APPLICATION also depends on:
                 │
                 ▼
   ┌──────────────────────────────────────────────┐
@@ -1881,15 +2017,15 @@ Sprint Summary Table
 | 1 | Flashcard Foundation | MVP | Complete |
 | 1.5 | Flashcard Architecture & Core Experience | MVP | In Progress |
 | 1.75 | Flashcard Persistence & Data Foundation | MVP | Pending |
-| 2 | Authentication & User Onboarding | MVP | Pending |
-| 3 | Season & Official Content System | MVP | Pending |
+| 2 | Authentication, Onboarding, Profile & Settings Foundation | MVP | Pending |
+| 3 | Season, Official Content & Study Hub Foundation | MVP | Pending |
 | 4 | Season Purchase & Access | MVP | Pending |
-| 5 | Home / Dashboard Foundation | MVP | Pending |
+| 5 | Home / Dashboard & Tournament Details Foundation | MVP | Pending |
 | 6 | Study Progress & Activity | MVP | Pending |
 | 7 | Mastery & Review System | MVP | Pending |
-| 8 | Practice Foundation | MVP | Pending |
+| 8 | Practice Foundation & Practice Hub | MVP | Pending |
 | 9 | MVP Analytics | MVP | Pending |
-| 10 | MVP Home & Product Integration | MVP | Pending |
+| 10 | MVP Product Integration & Polish | MVP | Pending |
 | 11 | MVP Stabilization & Release Readiness | MVP | Pending |
 | 12 | Offline Flashcard Study & Synchronization | Post-MVP | Future |
 | 13 | AI Architecture Foundation | Post-MVP | Future |
@@ -2053,33 +2189,75 @@ A future local data source may implement the same repository contracts without r
 Flashcard content and required user data persist correctly through the intended online persistence architecture, with boundaries that allow post-MVP offline support to be added later.
 
 
-# 62. Sprint 2 — Authentication & User Onboarding
+# 62. Sprint 2 — Authentication, User Onboarding, Profile & Settings Foundation
 
 ### Objective
 
-Create the complete account and Quizzer onboarding experience.
+Create the complete account and Quizzer onboarding experience and establish the MVP Profile/Settings foundation for the authenticated user.
 
 ### Product Features
 - Account creation.
 - Sign-in.
 - Sign-out.
 - Authentication persistence.
+- Forgot Password / Firebase password-reset email flow.
+- Email + password authentication for MVP.
+- Email verification is not required for MVP.
 - User profile foundation.
 - Quizzer onboarding.
-- Age collection.
-- Division selection.
-- Age/division eligibility validation.
+- First and last name collection; Profile displays the full name and Home may later use the first name for personalization.
+- Optional controlled/preset avatar selection with initials fallback; no user-uploaded profile photos.
+- U.S. child-privacy/consent boundary that can support an approved early age/privacy screen before persistent personal information is collected, without storing date of birth.
+- One authenticated Account → one Quizzer profile → one unique email address for MVP.
 - Returning-user behavior.
+- Interrupted/incomplete onboarding recovery.
+- Basic Profile screen.
+- Settings entry point from Profile.
+- Settings Foundation for account-related controls.
 
-### Division Requirement
+### Profile Foundation
+The Sprint 2 Profile experience should remain intentionally thin.
 
-The Quizzer provides:
-# 1. Age.
-# 2. Division selection.
+It should provide:
+- Quizzer first and last name as the private display identity.
+- Basic account/profile information.
+- Initials and/or optional controlled/preset avatar presentation.
+- Entry point to Settings.
+- Appropriate account-level navigation/actions.
 
-The system enforces the eligibility rules for the selected division.
+Do not fabricate streaks, activity, achievements, or analytics in Sprint 2. Real study streak/activity data arrives from Sprint 6, richer analytics from Sprint 9, and final integration/polish from Sprint 10.
 
-The selected division determines the appropriate material presented to the Quizzer.
+The MVP should not require user-uploaded profile photos. Prefer initials or controlled/preset avatars unless a later privacy-reviewed requirement changes this decision.
+
+### Settings Foundation
+Sprint 2 Settings should include only account functionality that naturally belongs to the authenticated-user lifecycle, such as:
+- First and last name management through an Edit Name flow.
+- Email/account controls, including reauthentication and verification of a new email for email changes.
+- Password controls.
+- Sign-out.
+- Appropriate account lifecycle/deletion architecture and controls as required before release.
+- Basic About/version information where useful.
+
+Do not build Offline Study settings in Sprint 2. Download Cards and Auto-download belong to Sprint 12 Post-MVP.
+
+Do not implement a full push-notification system in Sprint 2. Notification functionality remains deferred unless deliberately reprioritized.
+
+### Season Eligibility Handoff
+Sprint 2 does not own season-scoped division assignment. It establishes the account/onboarding state and routing boundary required to hand an authenticated Quizzer into current-season setup.
+
+Sprint 3 owns the season-scoped eligibility age, first-year status where applicable, youth division selection/validation, Adult / Full Material study track, and resulting current-season participation. Date of birth is not required.
+
+Any still-unresolved committee rule, including final Experienced/Senior criteria, must remain configurable rather than being guessed or scattered as hard-coded UI logic.
+
+### Account Lifecycle / Routing
+Sprint 2 should establish routing for:
+- Signed-out users.
+- Authenticated users with onboarding incomplete.
+- Authenticated users with onboarding complete.
+- Current-season setup/participation state.
+- Future entitlement handoff/state without implementing Sprint 4 purchasing.
+- Returning-user/new-season behavior.
+- Expected error/maintenance/recovery states.
 
 ### Architecture Work
 - Establish authenticated user state.
@@ -2087,33 +2265,50 @@ The selected division determines the appropriate material presented to the Quizz
 - Separate authentication state from application/domain state.
 - Establish user repository/service boundaries.
 - Establish onboarding state.
-- Define persistence ownership for user profile data.
-- Establish navigation guards for authenticated/unauthenticated states.
+- Define persistence ownership for user profile data, including private first/last name and optional preset-avatar identity.
+- Establish recoverable/idempotent profile provisioning so authentication success followed by profile-write failure, app interruption, or missing profile state can safely resume.
+- Establish Profile and Settings feature boundaries without making them owners of study/analytics logic.
+- Establish navigation guards for authenticated/unauthenticated/onboarding states.
 - Apply privacy-by-design and child-safety requirements to account architecture.
+- Collect only the minimum personal information necessary; do not store date of birth unless a later requirement explicitly requires it.
+- Continue accessibility/UX validation during the sprint rather than deferring it to final stabilization.
+- Maintain explicit bug-diagnosis/observability and realistic test-persona coverage.
 
 ### Important UX Principle
+There is no separate Parent Portal or Parent role in MVP.
 
-There is no separate Parent Portal in MVP.
+Ignite does not ask every user whether an adult is assisting with signup. For the initial U.S. launch, the final COPPA treatment must be privacy/legal reviewed. If an age screen is used, it occurs before persistent personal profile information is collected, and an under-13 user is routed through the required parent/guardian consent step before normal account/profile provisioning continues. That compliance step does not create a separate parent application experience.
 
-An adult may create/use an account to assist a Quizzer, but the core application experience remains the same.
+### Preferred Main Navigation Direction
+After the authenticated application shell is established, the preferred MVP product-level destinations are:
+Home | Study | Practice | Profile
+
+Settings lives under Profile. Analytics remains an MVP screen accessible from appropriate product entry points rather than requiring a permanent bottom-navigation tab.
 
 ### Explicitly Do Not Build
+- Real study streak/activity calculations.
+- Rich Profile analytics.
+- Full push-notification infrastructure.
+- Offline Study settings/functionality.
 - Coach portal.
 - Parent portal.
 - Multiple dashboard experiences.
 - Team relationships.
 - Advanced role-management systems.
+- Season purchase implementation.
 
 ### Dependencies
-
 Sprint 1.5 and Sprint 1.75 architecture.
 
+### Outcome
+The user can securely create/sign into an account, complete/resume base Quizzer onboarding, reach the correct authenticated state, view a basic Profile with private name/identity information, manage appropriate account settings, and return to the application with account/onboarding state restored. Under-13 users can be routed into the required guardian-consent boundary without creating a Parent Portal. Current-season eligibility/division setup is handed off cleanly to Sprint 3. Future Study, Home, analytics, notification, offline, and purchase systems remain outside Sprint 2 ownership.
 
-# 63. Sprint 3 — Season & Official Content System
+
+# 63. Sprint 3 — Season, Official Content & Study Hub Foundation
 
 ### Objective
 
-Establish the application's season and curriculum model.
+Establish the application's season/curriculum model and build the first real Study landing experience that connects eligible current-season material to the existing Flashcard engine.
 
 ### Product Features
 - Current season.
@@ -2126,17 +2321,55 @@ Establish the application's season and curriculum model.
 - Season-specific quiz rules.
 - Season activation.
 - Season availability states.
+- Season-scoped eligibility age collection without date of birth.
+- First-year Quizzer status collection where required for ages 15–18.
+- Youth division eligibility/selection and validation.
+- Adult / Full Material study track for users age 19+.
+- Current-season Quizzer participation/setup state.
+- Study landing page / Flashcards hub foundation.
+- Current-season/division study material displayed in Study.
+- Selecting study material launches the Flashcard engine.
+- Tournament configuration/data foundation.
 
-Critical Business Rule
+### Season Eligibility & Division Setup
+Sprint 3 completes current-season participation after base account onboarding.
 
+The app should collect only the minimum season-scoped eligibility information needed to determine the Quizzer's valid division/material. Date of birth is not required. If the Quizzer is unsure which age should be used for official eligibility, the app should instruct them to confirm with their Coach rather than implementing birthday/cutoff edge-case calculations.
+
+The standard working youth rule remains Beginner (8 and under), Junior (9–11), Intermediate (12–14 and first-year Quizzers 15–18), and Experienced / Senior for the approved non-first-year 15–18 flow unless the committee provides an updated rule. Exceptional younger Experienced placements are not exposed as ordinary self-service choices.
+
+Users age 19+ use the Adult / Full Material study track and receive the full season curriculum without being classified as Experienced / Senior youth Quizzers.
+
+### Study Hub Foundation
+The Study landing page sits between the Study tab and the Flashcard engine.
+
+Sprint 3 should initially support:
+- Eligible current-season/division official material.
+- Clear material/deck/collection selection.
+- Launching selected material into the Flashcard engine.
+- Architecture that can later receive custom decks, Tournament Scope, Recently Studied, Review Due, Needs Work, Mastered, and other smart collections without duplicating Cards.
+
+Do not fabricate recent-study, mastery, or review data in Sprint 3. Sprint 6 provides real recent activity/progress; Sprint 7 provides mastery/review-driven smart collections and recommendations.
+
+### Tournament Configuration Foundation
+Tournament information is season-owned authoritative configuration. Sprint 3 should establish the data/domain foundation needed for later tournament UI, including where provided by the committee:
+- Tournament identity/name.
+- Date/time.
+- Venue name.
+- Venue address/location text.
+- Required material/Card scope.
+- Division-specific requirements where applicable.
+
+The complete Tournament Details UI belongs to Sprint 5.
+
+### Critical Business Rule
 Once official season material is confirmed and released:
 
 The season's official material is locked for the duration of that season.
 
 The application must not support changing official material during an active season.
 
-Season Isolation
-
+### Season Isolation
 Each season is independent.
 
 The same verse may appear in multiple seasons, but those instances are not assumed to be the same domain content.
@@ -2155,21 +2388,31 @@ No progress transfers between seasons.
 - Establish Season → Division → Content relationships.
 - Establish content ownership.
 - Establish season context.
+- Establish season-scoped Quizzer participation/eligibility ownership so eligibility age, first-year status, youth division, or Adult / Full Material track do not become stale global profile fields.
 - Ensure Cards are season-specific.
 - Ensure active-season selection is not scattered throughout the UI.
 - Establish season-aware repository queries.
 - Establish future season transition boundaries.
 - Ensure published season content is immutable.
+- Establish Study hub composition/application boundary without making the UI own curriculum logic.
+- Establish tournament configuration/domain boundaries as season-owned data.
+- Keep all official rules/ranges/configuration data-driven rather than hard-coded.
 
 ### Explicitly Do Not Build
+- Recently Studied based on real study history (Sprint 6).
+- Mastery/review smart collections (Sprint 7).
+- Full Tournament Details/Home tournament UI (Sprint 5).
+- Tournament simulation.
 - Mid-season content editing.
 - Cross-season progress transfer.
 - Cross-season active curriculum.
 - Advanced content management systems.
 
 ### Dependencies
-
 Authentication and user identity.
+
+### Outcome
+The app understands the authoritative current Season, completes season-scoped eligibility/participation setup, and resolves the correct youth division or Adult / Full Material track. The Study tab can show valid current-season material and launch it into the Flashcard engine, and tournament configuration exists as authoritative season data ready for later Home/details experiences.
 
 
 # 64. Sprint 4 — Season Purchase & Access
@@ -2223,11 +2466,11 @@ Season Access
 - Complex subscription tiers.
 
 
-# 65. Sprint 5 — Home / Dashboard Foundation
+# 65. Sprint 5 — Home / Dashboard & Tournament Details Foundation
 
 ### Objective
 
-Create the primary post-onboarding experience and central navigation point.
+Create the primary post-onboarding experience and central navigation point, including the initial tournament-information experience.
 
 Home is a core MVP feature.
 
@@ -2237,20 +2480,44 @@ Home is a core MVP feature.
 - Current season.
 - Current division.
 - Study entry point.
-- Flashcard entry point.
-- Current progress.
+- Current progress where available.
 - Study goals.
-- Streak information.
+- Streak information where available.
 - Mastery summary where available.
 - Review recommendations where available.
 - Practice entry point.
 - Analytics entry point.
+- Profile access through main navigation.
+- Next-tournament summary/card when tournament configuration exists.
+- Tournament Details screen.
+- Tournament date/time.
+- Tournament venue/location information.
+- Required material summary.
+- Study Now action into tournament-scoped Study material.
+- Get Directions handoff to the platform/device mapping experience where appropriate.
 - Loading states.
 - Empty states.
 - Error states.
 
-### Architecture Work
+### Tournament Details Foundation
+Tournament data comes from the authoritative Sprint 3 season configuration.
 
+The Tournament Details screen may show:
+- Tournament name.
+- Date/time/countdown presentation.
+- Venue name and address/location text.
+- Map/location presentation.
+- Required material for the Quizzer's division.
+- Study Now.
+- Get Directions.
+
+Study Now should scope the existing Study/Flashcard experience to the tournament's required Cards rather than duplicating curriculum.
+
+Ignite does not need to collect or persist the Quizzer's precise location to display a tournament venue or hand off directions.
+
+Progress/readiness information should be progressively enhanced by later systems rather than fabricated in Sprint 5: Sprint 6 adds study progress/activity, Sprint 7 adds mastery/review readiness, and Sprint 9 may add higher-level tournament preparation analytics.
+
+### Architecture Work
 Home is a composition layer, not a business-logic container.
 
 Home should consume data from the appropriate application/domain layers.
@@ -2261,26 +2528,29 @@ Home should NOT calculate:
 - Practice scores.
 - Analytics.
 - Season rules.
+- Tournament requirements.
+
+Tournament details should consume season-owned tournament configuration and existing Study/application boundaries rather than becoming a second source of curriculum truth.
 
 Some Home sections may initially display empty states because their underlying systems are implemented in later MVP sprints.
 
 ### Explicitly Do Not Build
 - Advanced recommendations.
 - AI recommendations.
-- Full tournament dashboard.
+- Full tournament simulation/dashboard.
+- Tournament competition mechanics.
 - Social feed.
 - Coach dashboard.
 
 ### Outcome
-
-The application has a stable Home shell that can progressively consume the outputs of the MVP's learning, Practice, and analytics systems.
+The application has a stable Home shell, can surface the Quizzer's next configured tournament and required material, and can navigate into Study without duplicating business logic. Home can progressively consume outputs from later learning, Practice, and analytics systems.
 
 
 # 66. Sprint 6 — Study Progress & Activity
 
 ### Objective
 
-Establish the system that records and interprets Quizzer study activity.
+Establish the system that records and interprets Quizzer study activity and use that authoritative activity to begin populating previously established product surfaces.
 
 ### Product Features
 - Study activity.
@@ -2290,6 +2560,9 @@ Establish the system that records and interprets Quizzer study activity.
 - Study progress.
 - Study streak.
 - Progress summaries.
+- Recently Studied / Recents data for the Study hub.
+- Real study streak/activity data for Profile where included.
+- Study-progress information for tournament preparation/details where applicable.
 
 ### Architecture Work
 - Establish Study Activity domain model.
@@ -2302,15 +2575,17 @@ Establish the system that records and interprets Quizzer study activity.
 - Establish testing patterns for business rules.
 - Ensure historical events are treated as authoritative learning history.
 - Ensure progress is scoped to Quizzer + Season + Card.
+- Establish server-side authoritative RecallEvent processing, including idempotency validation and authoritative Progress snapshot updates.
+- Ensure Study, Profile, Home, and Tournament surfaces consume progress/activity rather than recalculating it independently.
 
 ### Important Business Rule
-
 Study activity belongs to the Quizzer's experience within a specific season.
 
 A new season starts new progress.
 
 ### Explicitly Do Not Build
 - Advanced mastery algorithms.
+- Rich analytics calculations owned by Sprint 9.
 - AI analysis.
 - Practice scoring.
 - Offline synchronization.
@@ -2320,7 +2595,7 @@ A new season starts new progress.
 
 ### Objective
 
-Convert study activity into meaningful mastery and review behavior.
+Convert study activity into meaningful mastery/review behavior and use those outputs to enrich Study and tournament preparation experiences.
 
 ### Product Features
 - Learning state.
@@ -2333,6 +2608,8 @@ Convert study activity into meaningful mastery and review behavior.
 - Recommended study material.
 - Needs Work cards.
 - Mastery summaries.
+- Study hub smart collections such as Review Due, Needs Work, and Mastered.
+- Mastery/review readiness information for tournament material where appropriate.
 
 ### Architecture Work
 - Establish Mastery domain model.
@@ -2341,11 +2618,13 @@ Convert study activity into meaningful mastery and review behavior.
 - Establish mastery calculation/testing boundaries.
 - Ensure Home consumes mastery rather than calculating it.
 - Ensure Analytics consumes mastery rather than recalculating it independently.
+- Ensure Study hub smart collections derive from mastery/review state rather than duplicating Cards.
+- Ensure Tournament Details/Preparation consumes authoritative mastery/progress rather than owning its own learning state.
 - Preserve RecallEvent history as the authoritative learning record.
+- Establish server-side authoritative Mastery processing from RecallEvents, including idempotent event handling and authoritative materialized Progress/Mastery snapshot updates.
 - Use materialized Progress/Mastery state for efficient reads.
 
 ### Dependencies
-
 Sprint 6 Study Activity.
 
 ### Explicitly Do Not Build
@@ -2355,14 +2634,15 @@ Sprint 6 Study Activity.
 - Advanced adaptive learning beyond MVP requirements.
 
 
-# 68. Sprint 8 — Practice Foundation
+# 68. Sprint 8 — Practice Foundation & Practice Hub
 
 ### Objective
 
-Introduce Practice as the second core learning experience.
+Introduce Practice as the second core learning experience and build the Practice landing page that users enter from the main Practice tab.
 
 ### Product Features
-- Practice feature.
+- Practice landing page / Practice hub.
+- Available challenge/game list.
 - Practice navigation.
 - Practice session.
 - Practice question.
@@ -2370,13 +2650,21 @@ Introduce Practice as the second core learning experience.
 - Practice result.
 - Initial practice mode.
 - Practice scoring.
-- Practice history.
+- Practice history foundation.
+- At least one strong functioning Practice experience based on official/predetermined material.
+- Appropriate loading/empty/error states.
+
+### Practice Hub Scope
+The Practice landing page may show multiple planned game/challenge types, but the MVP does not require every product-mockup game to be implemented in this sprint.
+
+Sprint 8 should prioritize the reusable Practice architecture and at least one excellent working Practice mode. Additional modes can be introduced later without restructuring the Practice domain.
+
+Top-of-page Practice summaries should only display real values that can be derived from PracticeSession/PracticeResult data. Richer Practice analytics belong to Sprint 9.
 
 ### Architecture Work
-
 Establish a separate Practice domain:
 
-### Practice
+Practice
 ↓
 Practice Session
 ↓
@@ -2398,15 +2686,17 @@ Practice scoring must remain separate from Flashcard correctness.
 - AI-generated questions.
 - Coach Practice.
 - Advanced multiplayer Practice.
+- Rich cross-feature analytics owned by Sprint 9.
 
 
 # 69. Sprint 9 — MVP Analytics
 
 ### Objective
 
-Give the Quizzer meaningful visibility into their season progress.
+Give the Quizzer meaningful visibility into season progress through the dedicated Analytics experience and populate richer summaries on other established product surfaces using authoritative data.
 
 ### Product Features
+- Dedicated Analytics screen.
 - Study history.
 - Practice history.
 - Study frequency.
@@ -2415,12 +2705,22 @@ Give the Quizzer meaningful visibility into their season progress.
 - Cards mastered.
 - Review activity.
 - Practice performance.
+- Practice summaries for the Practice hub where appropriate.
 - Season progress.
 - Progress trends.
+- Tournament preparation/readiness analytics where supported by authoritative definitions/data.
+- Richer Profile activity/analytics summaries where appropriate.
 - Basic historical season view.
+- Appropriate loading/empty/error states.
+
+Analytics does not require a permanent bottom-navigation tab. It may be reached from Home and/or Profile through appropriate entry points.
+
+### Metric Integrity
+Only metrics with a clear, testable definition and authoritative source should be shown.
+
+Concepts such as Focus Score, peak-performance time, break patterns, or similar derived metrics from product mockups should remain deferred unless their definitions, required data, privacy impact, and calculation rules are explicitly approved.
 
 ### Historical Season Behavior
-
 Previous seasons may be retained for historical analytics/badges, but their curriculum does not become active again.
 
 Progress does not transfer into a new season.
@@ -2434,27 +2734,32 @@ Progress does not transfer into a new season.
 - Establish analytics query patterns.
 - Establish testing for important calculations.
 - Ensure analytics remain privacy-preserving and do not become a second source of truth.
+- Ensure Profile, Practice, Home, and Tournament surfaces consume shared authoritative analytics outputs where appropriate rather than implementing separate competing calculations.
 
 
-# 70. Sprint 10 — MVP Home & Product Integration
+# 70. Sprint 10 — MVP Product Integration & Polish
 
 ### Objective
 
-Connect all major MVP systems into a coherent application experience.
+Connect all major MVP systems and established product surfaces into a coherent application experience.
 
 ### Product Features
-
-Integrate:
+Integrate and polish:
 - Home.
-- Flashcards.
+- Study hub.
+- Flashcard engine.
+- Profile.
+- Settings.
+- Tournament Details.
 - Progress.
 - Mastery.
 - Review.
-- Practice.
+- Practice hub and Practice experiences.
 - Analytics.
 - Season.
 - User state.
 - Entitlement/access state.
+- Main navigation: Home | Study | Practice | Profile.
 
 ### Architecture Work
 - Validate feature boundaries.
@@ -2471,30 +2776,32 @@ Integrate:
 - Confirm future offline functionality can be added through repository/persistence boundaries without changing core domain ownership.
 
 ### End-to-End Experience
-
-### Account
+Account
 ↓
 Onboarding
 ↓
 Age + Division
 ↓
-### Season
+Season
 ↓
 Purchase
 ↓
-### Home
+Home
 ↓
-### Flashcards
+Study / Tournament / Practice / Profile
 ↓
-Study Activity
+Flashcard Study + Study Activity
 ↓
 Mastery / Review
 ↓
-### Practice
+Practice
 ↓
-### Analytics
+Analytics
 ↓
-### Home
+Integrated Home/Profile summaries
+
+### Outcome
+The MVP product surfaces behave as one coherent application rather than a set of separately developed features, while retaining clean domain/repository boundaries.
 
 
 # 71. Sprint 11 — MVP Stabilization & Release Readiness
@@ -2507,14 +2814,19 @@ Prepare the complete core product for real-world MVP release.
 - Authentication.
 - Onboarding.
 - Division eligibility.
+- Profile.
+- Settings/account controls.
 - Season access.
 - Purchase/access.
+- Study hub.
 - Flashcards.
+- Tournament Details/basic preparation flow.
 - Progress.
 - Mastery.
 - Review.
-- Practice.
+- Practice hub and functioning Practice mode(s).
 - Analytics.
+- Main navigation and cross-feature routing.
 
 Architecture Validation
 - Domain boundaries.
@@ -2555,7 +2867,7 @@ No post-MVP feature should be required to declare the MVP complete.
 
 ### Objective
 
-Add offline Flashcard studying after the MVP has validated the core online experience.
+Add offline Flashcard studying after the MVP has validated the core online experience, including the Settings controls needed to manage offline content.
 
 ### Product Features
 - Offline Flashcard content.
@@ -2564,6 +2876,9 @@ Add offline Flashcard studying after the MVP has validated the core online exper
 - Offline recall events.
 - Offline progress queue.
 - Synchronization when connectivity returns.
+- Settings: Download Cards.
+- Settings: Auto-download where appropriate.
+- Offline storage/status/error presentation.
 
 ### Architecture Work
 - Local data source.
@@ -2575,6 +2890,7 @@ Add offline Flashcard studying after the MVP has validated the core online exper
 - Online/local data coordination.
 - Idempotent event processing.
 - Multi-device synchronization behavior.
+- Offline Settings/preferences boundary.
 
 ### Critical Tests
 - Offline study.
@@ -2584,6 +2900,7 @@ Add offline Flashcard studying after the MVP has validated the core online exper
 - Season isolation.
 - Mastery transitions after synchronization.
 - Review scheduling after synchronization.
+- Download/auto-download state and failure handling.
 
 The architecture established in the MVP should allow this work to be introduced without rewriting the Flashcard domain.
 
@@ -2712,21 +3029,37 @@ Potential future work:
 
 The MVP should be considered complete when the following are functional and reliable:
 
-### Account
+### Account / Profile
 - Authentication
 - Quizzer onboarding
-- Age
-- Division selection
+- First and last name identity
+- Optional preset avatar / initials fallback
+- U.S. child-privacy/guardian-consent routing boundary, with final COPPA treatment privacy/legal reviewed before release
+- Profile foundation
+- Settings/account controls
 - Season purchase
+
+### Main Navigation
+- Home
+- Study
+- Practice
+- Profile
+- Settings accessible under Profile
+- Analytics accessible through appropriate Home/Profile entry points
 
 ### Season
 - Current season
+- Season-scoped eligibility age/minimum eligibility information
+- Youth division selection/validation
+- Adult / Full Material study track for users age 19+
 - Season-specific curriculum
 - Locked content
 - Entitlement
 - Season transition
+- Basic authoritative tournament configuration required for MVP preparation experiences
 
-### Flashcards
+### Study / Flashcards
+- Study landing page/material selection
 - Full Flashcard experience
 - Study
 - Review
@@ -2735,23 +3068,40 @@ The MVP should be considered complete when the following are functional and reli
 - Mastery
 - Review scheduling
 - Smart collections
+- Tournament-scoped Study entry where configured
 
 ### Analytics
+- Dedicated Analytics experience
 - Study activity
 - Streak
 - Mastery
 - Progress
+- Practice performance/history as available
+- Tournament preparation progress where supported
 - Basic historical view
 
 ### Practice
+- Practice landing page / hub
 - At least one functioning Practice experience based on official/predetermined material
+- Practice session/result foundation
 
 ### Home
 - Primary Home experience
 - Current season/context
 - Study/progress summary
+- Next-tournament summary when configured
+- Tournament Details entry point
 - Navigation to core product areas
 - Appropriate loading, empty, and error states
+
+### Profile / Settings
+- Basic Quizzer identity/account presentation
+- Settings entry point
+- First and last name management (Edit Name)
+- Optional preset avatar / initials presentation
+- Email/password/account controls as implemented for MVP
+- Sign-out
+- Required account-lifecycle controls before release
 
 ### Security
 - Authentication
@@ -2764,17 +3114,21 @@ The MVP should be considered complete when the following are functional and reli
 - Appropriate consent mechanisms
 - Privacy-safe telemetry
 - Privacy-safe diagnostics
+- No requirement for user-uploaded profile photos
 
 The MVP does not require:
 - Offline Flashcard studying
 - Offline progress synchronization
+- Offline Study Settings such as Download Cards/Auto-download
 - Offline Practice
+- Full push-notification functionality
 - Coach portal
 - Parent portal
 - Community
 - AI
 - Tournament simulation
 - Advanced gamification
+- Undefined/unsupported analytics metrics such as Focus Score unless later explicitly specified
 
 
 # 81. Definition of Done for Architectural Work
@@ -2932,7 +3286,7 @@ The following are intentionally dependent on information outside the current pro
 - Official tournament schedules
 - Final tournament material requirements
 - Final season dates
-- Applicable legal/privacy requirements
+- Applicable legal/privacy requirements, including the final U.S. under-13 parental-consent implementation
 - App-store compliance requirements
 - Final AI provider/service contracts
 
