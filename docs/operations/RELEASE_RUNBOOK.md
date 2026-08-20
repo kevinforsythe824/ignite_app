@@ -6,7 +6,7 @@ High-level lifecycle for shipping Ignite to real users.
 
 **Sources:** [PRD](../product/PRD.md) (§71), [Development Playbook](../development/Ignite_Development_Playbook.md) (§§11, 14, 17), [ENVIRONMENTS.md](ENVIRONMENTS.md), [BUG_TRIAGE_RUNBOOK.md](BUG_TRIAGE_RUNBOOK.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md), [ADRs](../architecture/decisions/README.md).
 
-Related: [CONTENT_PUBLISHING_RUNBOOK.md](CONTENT_PUBLISHING_RUNBOOK.md), [SEASON_TRANSITION_RUNBOOK.md](SEASON_TRANSITION_RUNBOOK.md).
+Related: [SPRINT_PROMOTION.md](SPRINT_PROMOTION.md), [CONTENT_PUBLISHING_RUNBOOK.md](CONTENT_PUBLISHING_RUNBOOK.md), [SEASON_TRANSITION_RUNBOOK.md](SEASON_TRANSITION_RUNBOOK.md).
 
 ---
 

@@ -1,0 +1,37 @@
+---
+description: Environment safety — DEV default; STAGING/PROD actions require explicit instruction
+alwaysApply: true
+---
+
+# Environment Safety
+
+Canonical details: [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). Sprint promotion flow: [`docs/operations/SPRINT_PROMOTION.md`](docs/operations/SPRINT_PROMOTION.md).
+
+## Default development environment
+
+- **DEV** is the normal development environment. Feature work uses the DEV Firebase project (`wpf-bible-qizzing`).
+- Local Expo (`npm start`) should run against DEV via `.env.local` copied from `.env.dev.example`.
+- Do **not** change `.env.local` away from DEV unless the user explicitly asks.
+- Never use production credentials or `.env.prod.example` for ordinary local development.
+
+## Do not perform without explicit user instruction
+
+- Deploy to **STAGING** or **PROD** (Firebase CLI or Console).
+- Seed, migrate, import, or modify **STAGING** or **PROD** data.
+- Run `npm run seed:firestore` against anything other than DEV unless the user explicitly targets staging.
+- Never seed PROD with test data. The seed script refuses prod in code — do not attempt workarounds.
+
+## Before consequential Firebase CLI actions
+
+1. Run `npm run firebase:target` and confirm the active CLI project.
+2. Confirm `EXPO_PUBLIC_IGNITE_ENV` and `EXPO_PUBLIC_FIREBASE_PROJECT_ID` match the intended environment.
+3. If the target is `prod`, `ignite-prod-01`, or intent is unclear — **stop and ask** before proceeding.
+
+## After intentional STAGING CLI work
+
+- Run `npm run firebase:use:dev` to restore the Firebase CLI default to DEV.
+- Verify with `npm run firebase:target` — should show `wpf-bible-qizzing` (dev).
+
+## When intent is ambiguous
+
+Do not perform the consequential action. Ask the user which environment they intend.

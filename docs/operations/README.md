@@ -8,6 +8,7 @@ Do not copy product rules from the PRD into runbooks. Point at the PRD for requi
 
 | Runbook | Status |
 |---------|--------|
+| [SPRINT_PROMOTION.md](SPRINT_PROMOTION.md) | Active — sprint and release promotion (DEV → STAGING → PROD) |
 | [ENVIRONMENTS.md](ENVIRONMENTS.md) | Active — Firebase Development, Staging, and Production |
 | [BUG_TRIAGE_RUNBOOK.md](BUG_TRIAGE_RUNBOOK.md) | Active — bug investigation, fix, verify, release |
 | [CONTENT_PUBLISHING_RUNBOOK.md](CONTENT_PUBLISHING_RUNBOOK.md) | Skeleton — official season import/publish (Sprint 3+) |

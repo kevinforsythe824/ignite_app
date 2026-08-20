@@ -2,6 +2,8 @@
 
 Ignite uses **one codebase** and **three isolated Firebase projects**. A build must point at exactly one project. Development never defaults to production.
 
+Sprint and release promotion flow: [SPRINT_PROMOTION.md](SPRINT_PROMOTION.md).
+
 | Name | `EXPO_PUBLIC_IGNITE_ENV` | Firebase project ID | CLI alias |
 |------|--------------------------|---------------------|-----------|
 | Development | `dev` | `wpf-bible-qizzing` | `dev` (CLI default) |
@@ -56,10 +58,10 @@ prod     → ignite-prod-01
 ```bash
 npm run firebase:target          # show the active CLI project (should be dev)
 npm run firebase:use:dev         # restore the default to development
-npm run firebase:use:staging     # optional; points the persistent default at staging
+npm run firebase:use:staging     # optional; changes the persistent default to staging — reset with firebase:use:dev afterward
 ```
 
-There is **no** `firebase:use:prod` script. Do not run `firebase use prod`; that would rewrite the persistent default. Production CLI operations must pass an explicit project flag:
+`npm run firebase:use:staging` is convenient for a focused STAGING deploy session but **changes the persistent CLI default**. Prefer `--project staging` on individual commands when you do not need a persistent staging default. There is no `firebase:use:prod` script — that asymmetry is intentional. Do not run `firebase use prod`; that would rewrite the persistent default. Production CLI operations must pass an explicit project flag:
 
 ```bash
 npx -y firebase-tools@latest deploy --only firestore:rules --project prod
@@ -67,6 +69,13 @@ npx -y firebase-tools@latest deploy --only firestore:rules --project staging
 ```
 
 If the local default is ever changed, reset it with `npm run firebase:use:dev` and do not commit a default of `prod`.
+
+### After STAGING CLI work
+
+When you used `firebase:use:staging` or ran staging-targeted CLI commands:
+
+1. Run `npm run firebase:use:dev` before returning to normal development.
+2. Verify with `npm run firebase:target` — should show `wpf-bible-qizzing` (dev).
 
 ## Verify the active target before deploying
 
