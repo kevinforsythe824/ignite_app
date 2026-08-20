@@ -1,6 +1,6 @@
 import type { AuthenticatedIdentity } from '../domain/authenticatedIdentity';
 import type { EmailPasswordCredentials } from '../domain/emailPasswordCredentials';
-import { translateAuthError } from '../errors/translateAuthError';
+import { isMissingAccountAuthError, translateAuthError } from '../errors/translateAuthError';
 import type { AuthRepository, AuthStateUnsubscribe } from './authRepository';
 
 export interface AuthFirebaseUserSnapshot {
@@ -80,6 +80,9 @@ export class FirebaseAuthRepository implements AuthRepository {
     try {
       await this.source.sendPasswordResetEmail(email);
     } catch (error: unknown) {
+      if (isMissingAccountAuthError(error)) {
+        return;
+      }
       throw translateAuthError(error);
     }
   }

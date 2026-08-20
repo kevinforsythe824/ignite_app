@@ -16,10 +16,25 @@ describe('translateAuthError', () => {
     expect(translated.message).toBe('Email or password is incorrect.');
   });
 
+  it('maps invalid-login-credentials to invalid-credentials', () => {
+    const translated = translateAuthError({ code: 'auth/invalid-login-credentials' });
+    expect(translated.code).toBe('invalid-credentials');
+    expect(translated.message).not.toContain('auth/');
+  });
+
   it('maps missing-email to invalid-email', () => {
     const translated = translateAuthError({ code: 'auth/missing-email' });
     expect(translated.code).toBe('invalid-email');
     expect(translated.message).not.toContain('auth/');
+  });
+
+  it('maps user-disabled, too-many-requests, network, and weak-password', () => {
+    expect(translateAuthError({ code: 'auth/user-disabled' }).code).toBe('user-disabled');
+    expect(translateAuthError({ code: 'auth/too-many-requests' }).code).toBe('too-many-requests');
+    expect(translateAuthError({ code: 'auth/network-request-failed' }).code).toBe(
+      'network-unavailable',
+    );
+    expect(translateAuthError({ code: 'auth/weak-password' }).code).toBe('weak-password');
   });
 
   it('never exposes raw Firebase code strings in the message', () => {

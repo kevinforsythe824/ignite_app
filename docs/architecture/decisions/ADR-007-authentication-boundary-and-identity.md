@@ -24,8 +24,9 @@ Mirrors ADR-001 repository isolation for a non-Firestore concern. Keeps future o
 ## Consequences
 
 - Legacy `AuthService` / `AuthUser` stubs in `src/services/firebase/` are removed; authentication consumers import from `src/features/auth/`.
-- Forgot Password / reset email is part of the Phase 1 authentication contract (`sendPasswordResetEmail`). Reauthentication and email-change operations wait for the Settings phase.
-- Navigation guards and auth screens are implemented in later phases; Phase 1 provider does not gate routing.
+- Forgot Password / reset email is part of the authentication contract (`sendPasswordResetEmail`). A missing account (`user-not-found`) is treated as success so reset does not enumerate emails; other reset failures still become `AuthenticationError`. Reauthentication and email-change operations wait for the Settings phase.
+- Sign-up creates a Firebase Auth account only. It does not provision a Quizzer profile. Authenticated identity with a missing profile is a valid later onboarding/recovery state.
+- Navigation guards and auth screens are implemented in later phases; the session provider does not gate routing.
 
 ## Alternatives considered
 

@@ -26,6 +26,7 @@ const CODE_MAP: Record<string, AuthenticationErrorCode> = {
   'invalid-email': 'invalid-email',
   'missing-email': 'invalid-email',
   'invalid-credential': 'invalid-credentials',
+  'invalid-login-credentials': 'invalid-credentials',
   'wrong-password': 'invalid-credentials',
   'user-not-found': 'invalid-credentials',
   'email-already-in-use': 'email-already-in-use',
@@ -45,6 +46,11 @@ const MESSAGE_BY_CODE: Record<AuthenticationErrorCode, string> = {
   'network-unavailable': NETWORK_MESSAGE,
   unexpected: UNEXPECTED_MESSAGE,
 };
+
+/** True only for Firebase's missing-account code. Used by password reset, not sign-in. */
+export function isMissingAccountAuthError(error: unknown): boolean {
+  return firebaseAuthErrorCode(error) === 'user-not-found';
+}
 
 /** Maps Firebase Auth failures into Ignite application-facing authentication errors. */
 export function translateAuthError(error: unknown): AuthenticationError {

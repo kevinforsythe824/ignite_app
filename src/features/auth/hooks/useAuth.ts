@@ -1,11 +1,13 @@
 import { useContext } from 'react';
 
+import type { AuthenticatedIdentity } from '../domain/authenticatedIdentity';
 import type { EmailPasswordCredentials } from '../domain/emailPasswordCredentials';
 import { AuthActionsContext, AuthSessionContext } from '../state/AuthProvider';
 import type { AuthSessionState } from '../state/authSessionState';
 
 export interface UseAuthResult {
   session: AuthSessionState;
+  identity: AuthenticatedIdentity | null;
   signIn(credentials: EmailPasswordCredentials): Promise<void>;
   signUp(credentials: EmailPasswordCredentials): Promise<void>;
   signOut(): Promise<void>;
@@ -22,6 +24,7 @@ export function useAuth(): UseAuthResult {
 
   return {
     session,
+    identity: session.status === 'authenticated' ? session.identity : null,
     signIn: actions.signIn,
     signUp: actions.signUp,
     signOut: actions.signOut,
