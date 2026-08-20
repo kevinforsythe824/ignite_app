@@ -1,4 +1,5 @@
 export { getFirebaseApp } from './firebaseApp';
+export { getFirebaseAuth, resetFirebaseAuthForTests } from './firebaseAuth';
 export {
   FIREBASE_CLIENT_ENV_KEYS,
   FirebaseNotConfiguredError,
@@ -18,10 +19,5 @@ export {
 export type { IgniteEnvironmentName } from './firebaseEnvironments';
 export { createFirebaseService, firebaseService } from './firebaseService';
 export { getFirebaseFirestore } from './firestore';
-export type { AuthService, FirebaseService } from './firebaseService';
-export type {
-  AuthCredentials,
-  AuthStateListener,
-  AuthUser,
-  Unsubscribe,
-} from './types';
+export type { FirebaseService } from './firebaseService';
+export type { Unsubscribe } from './types';

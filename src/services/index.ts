@@ -4,6 +4,7 @@ export {
   createFirebaseService,
   firebaseService,
   getFirebaseApp,
+  getFirebaseAuth,
   getFirebaseFirestore,
   readFirebaseClientConfig,
   FirebaseNotConfiguredError,
@@ -14,10 +15,6 @@ export {
   readIgniteEnvironment,
 } from './firebase';
 export type {
-  AuthCredentials,
-  AuthService,
-  AuthStateListener,
-  AuthUser,
   FirebaseClientConfig,
   FirebaseService,
   IgniteEnvironmentName,

@@ -14,6 +14,13 @@ jest.mock('../src/features/flashcards/repositories/firebaseCurriculumSource', ()
   };
 });
 
+jest.mock('../src/features/auth', () => {
+  const React = require('react');
+  return {
+    AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+  };
+});
+
 describe('App', () => {
   it('renders the Luke 2 deck title and first verse reference', async () => {
     const { findByText } = await render(<App />);

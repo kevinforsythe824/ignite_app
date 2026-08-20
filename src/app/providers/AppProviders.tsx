@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AuthProvider } from '../../features/auth';
 import { colors } from '../../shared/theme';
 
 export interface AppProvidersProps {
@@ -17,7 +18,7 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -30,9 +30,15 @@ ignite_app/
 ├── src/
 │   ├── app/                     # App shell only
 │   │   ├── navigation/          # React Navigation (stack + tabs)
-│   │   └── providers/           # Gesture/safe-area providers
+│   │   └── providers/           # Gesture/safe-area + AuthProvider
 │   ├── features/                # Feature modules (feature-first)
-│   │   └── flashcards/          # Only full feature today
+│   │   ├── auth/                # Authentication application layer + Firebase adapter
+│   │   │   ├── domain/          # AuthenticatedIdentity (not Quizzer profile)
+│   │   │   ├── errors/          # Application-facing AuthenticationError
+│   │   │   ├── hooks/           # useAuth
+│   │   │   ├── repositories/    # AuthRepository; Firebase Auth live adapter
+│   │   │   └── state/           # Session reducer + AuthProvider
+│   │   └── flashcards/          # Full Study/Flashcards feature
 │   │       ├── components/      # Presentation UI
 │   │       ├── data/            # JSON + Firestore persistence DTOs → Card mappers
 │   │       ├── hooks/           # Feature hooks (useFlashcards)
@@ -55,19 +61,20 @@ ignite_app/
 
 ```text
 AppProviders
-  └─ RootNavigator (native stack)
-       └─ MainTabs (bottom tabs, initial = Study)
-            └─ FlashcardStudyRoute
-                 ├─ useFlashcardCurriculum(test-season, firestoreCurriculumRepository)
-                 ├─ FlashcardSessionProvider   ← feature-local state
-                 └─ FlashcardStudyScreen       ← thin: hooks + components
-                      ├─ useFlashcards()
-                      │    ├─ session state + actions (context)
-                      │    ├─ deriveFlashcardSession()   (counts, progress, flags)
-                      │    └─ getVerseSegments()         (cached parse)
-                      ├─ StudyHeader
-                      └─ FlashcardStudyActive / SessionComplete
-                           └─ Flashcard → Front (Locate) / Back (Quote + RichVerseText)
+  └─ AuthProvider (app-wide auth session; does not gate routing in Phase 1)
+       └─ RootNavigator (native stack)
+            └─ MainTabs (bottom tabs, initial = Study)
+                 └─ FlashcardStudyRoute
+                      ├─ useFlashcardCurriculum(test-season, firestoreCurriculumRepository)
+                      ├─ FlashcardSessionProvider   ← feature-local state
+                      └─ FlashcardStudyScreen       ← thin: hooks + components
+                           ├─ useFlashcards()
+                           │    ├─ session state + actions (context)
+                           │    ├─ deriveFlashcardSession()   (counts, progress, flags)
+                           │    └─ getVerseSegments()         (cached parse)
+                           ├─ StudyHeader
+                           └─ FlashcardStudyActive / SessionComplete
+                                └─ Flashcard → Front (Locate) / Back (Quote + RichVerseText)
 ```
 
 User swipe → `markCorrect` / `markNeedsWork` → reducer updates `statusById` + index → hook derives view → UI re-renders. **Parsing never runs inside UI components.** Session grades are Correct / Needs Work. Mastered is reserved for the Sprint 7 Mastery domain.
@@ -150,7 +157,8 @@ Prefer **named exports**; default exports are used for some screens/components f
   - `flashcardSessionReducer` — pure transitions (`answer`, `next`, `previous`, `goToIndex`, `reset`)
   - `deriveFlashcardSession` — counts, progress, `showCard`, `isComplete`
   - `useFlashcards` — the screen-facing API
-- Mount providers **next to the feature route**, not in `AppProviders`, unless state is truly app-wide (auth later).
+- Mount providers **next to the feature route**, not in `AppProviders`, unless state is truly app-wide.
+- **Authentication** session state is app-wide via `AuthProvider` in `AppProviders` (`src/features/auth/`).
 - Derived values belong in pure functions or hooks — not duplicated in components.
 
 ---
@@ -170,11 +178,11 @@ Route param lists: `src/app/navigation/types.ts`.
 
 ## 8. Services
 
-`src/services` holds Firebase JS SDK initialization plus remaining service stubs. Unwired methods (auth, storage, AI) still throw `ServiceNotConnectedError`.
+`src/services` holds Firebase JS SDK initialization plus remaining service stubs. Unwired methods (storage, AI) still throw `ServiceNotConnectedError`.
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app + Firestore init. Auth remains a stub. The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
+| `firebase/` | Firebase JS SDK app, Firestore, and Auth singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`). Authentication application logic lives in `src/features/auth/`. The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 

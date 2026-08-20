@@ -85,6 +85,7 @@ Folder layout remains in [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 | [ADR-004](ADR-004-practice-as-separate-domain.md) | Practice is a separate domain | Accepted |
 | [ADR-005](ADR-005-ai-advisory-and-provider-isolation.md) | AI is optional, advisory, and provider-isolated | Accepted |
 | [ADR-006](ADR-006-privacy-by-design.md) | Privacy-by-design and minimum personal data | Accepted |
+| [ADR-007](ADR-007-authentication-boundary-and-identity.md) | Authentication boundary and identity separation | Accepted |
 
 ## Open Decisions
 

@@ -107,3 +107,25 @@ jest.mock('react-native-gesture-handler', () => {
     },
   };
 });
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  createAsyncStorage: jest.fn(() => ({
+    getItem: jest.fn(async () => null),
+    setItem: jest.fn(async () => undefined),
+    removeItem: jest.fn(async () => undefined),
+  })),
+}));
+
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({ currentUser: null })),
+  initializeAuth: jest.fn(() => ({ currentUser: null })),
+  getReactNativePersistence: jest.fn(() => ({})),
+  onAuthStateChanged: jest.fn((_auth, listener) => {
+    listener(null);
+    return jest.fn();
+  }),
+  signInWithEmailAndPassword: jest.fn(),
+  createUserWithEmailAndPassword: jest.fn(),
+  signOut: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
+}));
