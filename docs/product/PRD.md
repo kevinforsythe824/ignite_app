@@ -1,7 +1,7 @@
 Ignite
 Product Requirements & Architecture Document
-(PRD) v3.2
-Status: Canonical working specification — minor account/privacy/eligibility clarification revision
+(PRD) v3.3
+Status: Canonical working specification — division/material-set/region and Study experience clarification revision
 Product: Ignite
 Platform: iOS and Android
 Primary Technology: React Native + TypeScript
@@ -10,7 +10,7 @@ Local Persistence: Online-first MVP; SQLite planned for post-MVP offline learnin
 Architecture: Feature-oriented application architecture with domain and repository boundaries
 Primary Core Experience: Flashcard-based Bible memorization
 Document Purpose: Product, domain, architecture, data, UX, and development source of truth
-Revision Scope: v3.2 preserves the v3.1 product/architecture decisions and incorporates minor clarifications for Sprint 2 account/profile identity, U.S. under-13 consent boundaries, one-account/one-Quizzer MVP ownership, season-scoped eligibility/division setup, and the adult full-material study track.
+Revision Scope: v3.3 preserves the v3.2 product/architecture decisions and incorporates targeted clarifications for the five official division material sets, Cadet eligibility, the age-19+ Study Track, region-aware season participation/tournaments, section-based curriculum organization, annotated scrollable Scripture reading, material-set-aware entitlements, and related Sprint 3+ roadmap adjustments.
 
 
 
@@ -151,28 +151,39 @@ Coach functionality is explicitly outside the initial product scope.
 ## 5.1 Season Definition
 A Season represents one Bible-quizzing curriculum year.
 
-The product season is approximately:
+Ignite targets approximately:
 October → July
-October is the preparation/start period when new curriculum becomes available.
+
+The Bible Quiz Board may release source material earlier during the transition/preparation period. Ignite uses that lead time to prepare, validate, test, and stage the next season before the material is made available in the app.
+
+Ignite targets October 1 as the normal annual in-app material availability date. This is a product/operations target rather than a hard-coded application rule.
+
 January → July represents the primary tournament period.
 July ends with Nationals.
 August and September are the transition/preparation period for the next season.
-The exact end date is configurable per season.
+
+All relevant season dates remain configurable.
 
 
 ## 5.2 Season Dates
-Each Season must contain explicit configuration:
+Each Season should support explicit configuration such as:
 
   seasonId
   name
+  sourceMaterialReleaseDate
+  igniteAvailabilityDate
   startDate
   endDate
   status
 
+`igniteAvailabilityDate` should normally target October 1 unless an intentional season-specific decision changes it.
+
 Dates must be configuration data.
 The application must never hard-code rules such as:
   "The season ends seven days after Nationals."
-Instead, the administrator/content system configures the actual end date.
+  "Every season must publish on October 1."
+
+Instead, the administrator/content process configures the actual dates for that season.
 
 
 ## 5.3 Season Lifecycle
@@ -199,83 +210,91 @@ The official material has been reviewed and approved by the Bible Quiz Committee
 
 Published
 
-The approved season is entered into Ignite and made available for purchase/access.
+The approved season/material sets are entered into Ignite and may become available on the configured Ignite availability date.
 
 Active / Locked
 
-When the season becomes active, authoritative content is immutable.
+When the season/material sets become active, authoritative Scripture content, Card structure, sections, and annotations are immutable through ordinary application workflows.
 
 Archived
 
 After the configured season end date, the season becomes historical.
 
 
-
 # 6. Season Content Immutability
-Once a season is locked, the following cannot be modified during the active season:
-  - Curriculum
+Once a season/material set is locked, the following authoritative learning content cannot be modified during the active season through ordinary product workflows:
+  - Division material sets
   - Cards
-  - Card numbering
+  - Card numbering/order within each material set
   - Scripture content
+  - Curriculum sections/groupings
   - Annotations
   - Highlights
   - Underlines
   - Unique beginnings
   - Unique endings
+  - Frequency markings
   - People
   - Proper names
   - Animals
   - Body parts
   - Keywords
   - Cross references
-  - Quiz rules
-  - Division requirements
-  - Tournament configuration
+  - Quiz rules that define official competition behavior
+  - Division eligibility/configuration
+  - Other official season learning configuration
 
-  - Other official season configuration
 Normal users, Quizzers, and future Coaches cannot modify authoritative season content.
 
-Administrative correction policy
+### Controlled Tournament Operational Updates
+Tournament operational data is different from locked Scripture/curriculum content. Official tournament information may receive controlled updates during the season when the Board/region changes authoritative event information, including where applicable:
+- Date/time
+- Venue/location
+- Registration information
+- Event status/cancellation
+- Division participation
+- Division-specific tournament material scope
 
-The normal active-season system does not support content mutation.
-If a genuine official correction is ever required, it must be handled through a controlled
-administrative process outside ordinary user functionality and must preserve an audit trail.
-The V1 application does not need to implement an in-season correction workflow.
+These changes must come through an authorized administrative/content process and must not be editable by ordinary users.
 
+### Administrative Correction Policy
+The normal active-season learning system does not support arbitrary curriculum mutation.
+If a genuine official correction is ever required, it must be handled through a controlled administrative process outside ordinary user functionality and should preserve an audit trail.
+The V1 application does not need to implement a general in-season curriculum editor.
 
 
 # 7. Season Independence
-The same Scripture reference may appear in multiple seasons.
-However, seasons must not share curriculum state.
-For example:
+The same Scripture reference may appear in multiple seasons and may also appear in multiple division material sets within the same season.
 
-  Season 2026–2027
-  Card #13
-  John 1:1
-  Season-specific text/annotations/rules
+Those appearances must not be assumed to be the same learning object.
 
-and:
+For example, the same verse may appear in Junior and Intermediate but have different:
+- Card/order numbering
+- Section placement
+- Highlights/underlines
+- Unique beginnings/endings
+- Frequency markings
+- Other annotations or quiz metadata
 
-  Season 2027–2028
-  Card #42
-  John 1:1
-  Different season-specific content/annotations/rules
+Each division's official material file is treated as an independent authoritative material set for that season.
 
-These are independent curriculum entities.
-A Scripture reference is descriptive metadata, not the identity of the learning object across
-seasons.
-Card #13 in one season does not imply any relationship with Card #13 in another season.
+A Scripture reference is descriptive metadata, not the identity of the Card across seasons or material sets.
 
+This prevents one division's official structure or annotations from accidentally changing another division's material.
 
 
 # 8. Division System
 ## 8.1 Official Divisions
 
-Ignite supports:
+Ignite supports five official competitive divisions:
+
+Cadet
+
+Generally ages 2–4. For ages 2–4, Ignite may present both Cadet and Beginner as eligible choices because a parent/coach may determine that the Quizzer is ready for Beginner material.
 
 Beginner
 
-Ages 8 and under.
+Standard ages 5–8. Ages 2–4 may also select Beginner when appropriate.
 
 Junior
 
@@ -285,51 +304,86 @@ Intermediate
 
 Ages 12–14 and first-year Quizzers ages 15–18.
 
-Experienced / Senior
+Experienced
 
-Advanced Quizzers ages 12–18.
+The official user-facing terminology is `Experienced` (not `Experienced`). Standard placement is the approved non-first-year 15–18 flow. Exceptional younger placements may be authorized by the appropriate real-world team/coach process, but Ignite does not expose an ordinary self-service exception option in MVP onboarding.
 
-Adult / Full Material Study Track
-
-Users age 19+ may use Ignite for Bible memorization and receive access to the full season material. This is a noncompetitive study track and must not be represented as the Experienced / Senior youth division.
-
-The exact number of cards/material required for each division may change every season
-according to the committee's material and requirements.
+The exact material for each division may change every season. Lower divisions must not be modeled as simple subsets of Experienced material.
 
 
-## 8.2 Season Eligibility and Division Setup
+## 8.2 Competitive Eligibility and January 1 Age Basis
+Competitive division eligibility uses the Quizzer's official age for the season based on the January 1 eligibility basis communicated by WPF.
+
+Ignite does not need to store date of birth for this purpose. During current-season setup, the app may ask for the age that should be used for Bible Quizzing eligibility for that season and explain that users who are unsure should confirm with their Coach.
+
+Current working eligibility behavior:
+- Age 2–4 → Cadet or Beginner
+- Age 5–8 → Beginner
+- Age 9–11 → Junior
+- Age 12–14 → Intermediate in the normal self-service flow
+- Age 15–18 → Intermediate if first-year Quizzer; otherwise Experienced
+
+Any officially authorized exceptional placement should be handled through a future controlled/admin/coach override rather than a general user-facing "choose any division" option.
+
+
+## 8.3 Study Track for Users Age 19+
+Users age 19+ do not join a competitive youth division.
+
+They use a `Study Track` flow.
+
 During current-season setup:
-# 1. The user provides the age that should be used for Bible Quizzing eligibility for that season. Date of birth is not required.
-# 2. Ignite collects only additional minimum eligibility information when needed, including first-year Quizzer status for the applicable ages 15–18 flow.
-# 3. Ignite determines eligible youth divisions or the Adult / Full Material study track.
-# 4. The user selects from eligible options where selection is applicable.
-# 5. Ignite associates the resulting participation/division with the current season.
-# 6. Ignite displays the corresponding season material available for access/purchase.
+# 1. The user is identified as age 19+.
+# 2. Ignite asks the user to choose a Study Track.
+# 3. The user selects exactly one official division material set: Cadet, Beginner, Junior, Intermediate, or Experienced.
+# 4. That Study Track determines the material offered for purchase/access for the season.
+# 5. The selected Study Track remains locked for that season in the MVP.
 
-If the Quizzer is unsure which age should be used for official division eligibility, Ignite should instruct them to confirm with their Coach rather than attempting to calculate edge cases from a stored date of birth.
+This supports adults such as Coaches, parents, alumni, or independent Bible memorizers who want to study the exact material used by a specific division without representing the adult as a competitive member of that youth division.
 
-Division/participation is scoped to the season.
+Multiple Study Tracks/switching tracks are deferred from MVP.
 
 
-## 8.3 Division Changes
-A Quizzer's division does not change during an active season in V1.
-Division can change when the next season is established.
-This prevents mid-season transfer complexity.
+## 8.4 Region Selection
+Region is a first-class season-participation concept.
 
+During current-season setup, users select their official WPF region. The selected region is season-scoped rather than permanent global Quizzer identity so it can change in a future season if the user moves or changes organizations.
+
+Region should drive the tournament experience so the app primarily presents tournaments for the user's selected region.
+
+Both competitive Quizzers and age-19+ Study Track users may select a region so parents/Coaches/adult users can see the relevant regional tournament calendar.
+
+
+## 8.5 Division / Study Track Changes
+A competitive Quizzer's division does not change during an active season in MVP.
+An adult user's selected Study Track does not change during an active season in MVP.
+Division or Study Track may be re-established for the next season.
+
+This prevents mid-season transfer/material-entitlement complexity.
 
 
 # 9. Purchase and Entitlement Model
 
-## 9.1 Season Purchase
-The primary product is purchased once per season.
-A season purchase grants access to the core product for that season, including:
+## 9.1 Season Material Purchase
+The primary product is purchased once per season for the user's selected/eligible material set.
+
+The entitlement is therefore material-set-aware.
+
+Examples:
+- Junior competitive Quizzer → purchases/receives access to the Junior material set for that season.
+- Age-30 user who selects Junior Study Track → purchases/receives access to the same Junior material set for that season.
+
+A season/material-set purchase grants access to the included core product features for that material set and season, including:
   - Flashcards
   - Study functionality
-  - Practice functionality
+  - Annotated Scripture List
+  - Practice functionality included in MVP
   - Analytics
   - Achievements
   - Other included season features
+
 The season purchase does not include future premium AI functionality.
+
+For MVP, one account has one selected competitive division or Study Track material set for the active season. Access to multiple material sets is deferred.
 
 
 ## 9.2 AI Subscription
@@ -340,25 +394,26 @@ AI can be disabled or unavailable without preventing use of the primary product.
 
 
 ## 9.3 Season Availability
-New season material is targeted to be available for purchase around October 1.
-This allows Quizzers to begin preparation before the main tournament period beginning in
-January.
+Ignite targets October 1 as the normal annual date when the next season's prepared material becomes available for purchase/access in the app.
+
+The Board may release source material earlier, allowing the developer to import, validate, test in DEV/STAGING, and prepare the season before Ignite availability.
+
+The actual `igniteAvailabilityDate` remains configurable per season and must not be hard-coded.
 
 
 ## 9.4 Mid-Season Purchase
-If a user purchases the active season after the season has begun, they receive the same
-access to the current season's available material and functionality.
+If a user purchases the active season after the season has begun, they receive the same access to their selected/eligible current-season material set and functionality.
+
 Ignite does not fabricate historical activity for time before the user began using the application.
 Example:
 A Quizzer purchases in March.
-They can access all current season material.
+They can access their current-season material set.
 Their analytics begin when they begin using Ignite.
 The system does not create artificial October–February activity.
 
 
 ## 9.5 Previous Seasons
-
-Users may retain ownership records for previously purchased seasons.
+Users may retain ownership records for previously purchased season/material-set entitlements.
 However:
   - Previous curriculum is not available for active study.
   - Previous cards cannot be studied.
@@ -366,7 +421,6 @@ However:
   - Previous analytics may be viewed in read-only form.
   - Historical achievements may remain available.
 Only one season can be active for learning at a time.
-
 
 
 # 10. Season-End Behavior
@@ -388,7 +442,11 @@ The primary domain concepts are:
 ### Account
   Quizzer
 ### Season
+  Region
   Division
+  QuizzerSeasonParticipation
+  MaterialSet
+  CurriculumSection
   Curriculum
   Card
   Deck
@@ -404,6 +462,7 @@ The primary domain concepts are:
   PracticeAttempt
   PracticeResult
   Tournament
+  TournamentDivisionScope
   Achievement
   SeasonEntitlement
   AnalyticsEvent
@@ -411,20 +470,34 @@ The primary domain concepts are:
 Not every domain concept is necessarily persisted as a standalone database entity.
 
 
-
 # 12. Canonical Curriculum Model
-## 12.1 Card Is the Canonical Study Unit
-A Card is the fundamental learning unit.
-A Card belongs to exactly one Season.
-A Card contains season-specific:
-  - Card number
+## 12.1 Division Material Sets
+Each Season contains independent authoritative material sets for:
+- Cadet
+- Beginner
+- Junior
+- Intermediate
+- Experienced
+
+Each material set is imported from its own official source file and owns its own ordering, Card numbering, section membership, annotations, and metadata.
+
+A lower division is not modeled as a filtered subset of another division.
+
+
+## 12.2 Card Is the Canonical Study Unit
+A Card is the fundamental learning unit within one Season + MaterialSet.
+
+A Card contains material-set-specific:
+  - Card number/order
   - Scripture reference
   - Scripture text
-  - Annotations
+  - Section membership
+  - Annotation data
   - Highlighting
   - Underlining
-  - Quiz metadata
   - Unique beginnings/endings
+  - Frequency markings/levels where supplied
+  - Quiz metadata
   - Keywords
   - People
   - Places
@@ -433,31 +506,50 @@ A Card contains season-specific:
   - Cross references
   - Other committee-provided metadata
 
+The annotation model should be data-driven/extensible so new official annotation types can be introduced in future season transitions without requiring a redesign of the Card domain or persistence architecture.
 
-## 12.2 Card Identity
+
+## 12.3 Card Identity
 The canonical identity is:
 
-  seasonId + cardId
+  seasonId + materialSetId + cardId
 
-Card number is unique within a season.
+Card number/order is unique within a material set, not necessarily across the entire season.
 Card number is not a global identifier.
 
+The same Scripture reference in two material sets may represent two independent Cards because the official numbering, section, and annotations may differ.
 
-## 12.3 Scripture Reference
+
+## 12.4 Curriculum Sections
+Official season material may be grouped into ordered thematic/content sections supplied by the Board.
+
+A `CurriculumSection` should support concepts such as:
+- sectionId
+- materialSetId
+- title
+- description where supplied
+- displayOrder
+- Card membership/order
+
+Sections organize the material but do not duplicate Cards.
+
+"All Material" remains the primary complete material set. Sections are optional secondary groupings/filtering/navigation over those same Cards.
+
+
+## 12.5 Scripture Reference
 The Scripture reference is stored as content metadata.
-It is not the cross-season identity of the Card.
-This allows the same Scripture to appear in different seasons with completely different
-season-specific content.
+It is not the identity of the Card across seasons or material sets.
 
 
-## 12.4 KJV
+## 12.6 KJV
 The application uses the King James Version (KJV) as the Bible text source for the curriculum.
-
 
 
 # 13. Deck Architecture
 ## 13.1 Official Season Material
-The full season curriculum is the canonical collection of Cards available to the Quizzer.
+The user's selected/eligible division MaterialSet is the authoritative collection of Cards available to that user for the active season.
+
+"All Material" means all Cards in that MaterialSet, not all Cards from every division.
 
 
 ## 13.2 Custom Decks
@@ -495,7 +587,7 @@ This prevents duplicated state and synchronization problems.
 ## 13.4 Decks Do Not Own Mastery
 Mastery belongs to:
 
-  Quizzer + Season + Card
+  Quizzer + Season + MaterialSet + Card
 
 not:
 
@@ -573,12 +665,30 @@ UI and domain model.
 
 
 ## 14.6 Study Hub / Material Selection
-Study is the product-level entry point into Flashcard learning.
+Study is the product-level entry point into Scripture learning.
 
-The Study landing page sits between the Study tab and the Flashcard engine. Its purpose is to let the Quizzer choose what material to study before entering an active Flashcard session.
+The Study landing page sits between the Study tab and the Flashcard engine. It should keep the full official material set easy to access while also exposing useful secondary views without making the page confusing.
 
-The Study hub may progressively contain:
-- Current-season/division official material
+Sprint 3 establishes three MVP ways to consume the same authoritative selected MaterialSet:
+
+### 1. Study All Material — Flashcards
+Launch the complete selected division/Study Track material set into the existing Flashcard engine.
+
+### 2. Explore by Section
+Show official Curriculum Sections as secondary navigation/filtering. Selecting a section launches or displays only the Cards belonging to that section without duplicating Cards.
+
+### 3. View All Material — Annotated Scripture List
+Provide a vertically scrollable Scripture-reading view of the same selected MaterialSet.
+
+The Annotated Scripture List must:
+- Group the material by the official Curriculum Sections/order supplied for that material set.
+- Display every verse/card in the official order within its section.
+- Display the Scripture reference and full Scripture text.
+- Render the same official material-set-specific annotations used by the Flashcard experience, including highlights, underlines, unique beginnings/endings, frequency markings, and other supported annotation types.
+- Read from the same Card/annotation source of truth as Flashcards rather than storing a second unannotated or duplicated Scripture dataset.
+- Remain a reading/browsing presentation in MVP; it does not own separate progress/mastery state merely because the user scrolls through it.
+
+The Study hub may progressively also contain:
 - Custom Decks
 - Tournament Scope
 - Recently Studied
@@ -587,14 +697,15 @@ The Study hub may progressively contain:
 - Mastered
 - Other derived smart collections
 
-Sprint 3 establishes the initial Study hub foundation using current-season/division material and launches the selected material into the existing Flashcard engine. Sprint 6 adds real recent-study/activity data. Sprint 7 adds mastery/review-driven smart collections and recommendations.
+Sprint 6 adds real recent-study/activity data. Sprint 7 adds mastery/review-driven smart collections and recommendations.
 
-The Study hub does not own Card, Progress, Mastery, or Tournament data. It composes those authoritative sources through application/domain boundaries.
+The Study hub and Annotated Scripture List do not own Card, annotations, Progress, Mastery, or Tournament data. They compose those authoritative sources through application/domain boundaries.
+
 
 # 15. Flashcard Progress
 Progress is scoped to:
 
-  Quizzer + Season + Card
+  Quizzer + Season + MaterialSet + Card
 
 Progress must never be shared across seasons.
 Progress includes information such as:
@@ -772,51 +883,54 @@ They are historical records of accomplishments, not inputs into the mastery engi
 
 # 21. Tournament Progress
 Tournament preparation is a major product concept.
-The application may define tournament milestones such as:
 
-  Tournament 1
-  Required Cards: 1–50
+The actual tournament schedule and material requirements are official configuration supplied by the Board/regions rather than hard-coded milestones.
 
-
-  Tournament 2
-  Required Cards: 1–100
-
-  Tournament 3
-  Required Cards: ...
-
-The actual tournament schedule and required Card ranges are season configuration provided
-by the committee.
-Ignite should compare the Quizzer's current mastery/progress against those requirements.
-The purpose is to help a Quizzer understand whether they are prepared for upcoming
-tournament material.
+Tournament configuration should support region-aware events and division/material-set-specific scopes so Ignite can compare the user's selected material set and later progress/mastery against the appropriate event requirements.
 
 
+## 21.1 Tournament Visibility and Division Scope
+Users should see the complete tournament calendar for their selected Region regardless of their competitive division or Study Track.
 
-## 21.1 Tournament Details Experience
+A tournament should not disappear merely because the user's division does not participate in that event.
+
+This applies to Cadet as well: Cadet users can see every tournament in their Region even though Cadet competition currently occurs only in the first two official tournaments of the season. Cadet participation should be represented through tournament configuration rather than hard-coded as "tournament #1/#2" application logic.
+
+Each Tournament may therefore define:
+- Region
+- Event identity/name
+- Date/time
+- Venue/location
+- Operational status
+- Participating divisions
+- Division/material-set-specific required material scope
+- Registration/other official operational information where needed
+
+For a division that does not participate in a displayed tournament, the UI should show an appropriate informational state rather than hiding the event or inventing a material requirement.
+
+
+## 21.2 Tournament Details Experience
 Basic tournament information and preparation support are part of the Core MVP; full tournament simulation remains future scope.
 
-Sprint 3 establishes tournament configuration as season-owned authoritative data. The model may include:
-- Tournament identity/name
-- Date/time
-- Venue name
-- Venue address/location text
-- Required material/Card scope
-- Division-specific material requirements where applicable
+Sprint 3 establishes tournament configuration as season-owned authoritative data.
 
-Sprint 5 may surface the next tournament on Home and provide a Tournament Details screen containing:
+Sprint 5 may surface regional tournament information on Home and provide a Tournament Details screen containing:
 - Tournament name
 - Date/time
 - Venue/location information
 - Map/location presentation where appropriate
-- Required study material
-- Study Now action
+- User-division/Study-Track material scope when one exists
+- Study Now action when there is applicable material
 - Get Directions action
 
-Study Now should open the Study/Flashcard experience scoped to the tournament's required material without duplicating Cards.
+Study Now should open the Study/Flashcard experience scoped to the tournament's configured required Cards without duplicating Cards.
 
 Directions should hand off to the device/platform mapping experience where practical. Ignite does not need to collect or persist the Quizzer's precise location to provide tournament venue information or directions.
 
 Sprint 6 may add studied/progress information, Sprint 7 may add mastery/review readiness, and Sprint 9 may add higher-level tournament preparation analytics.
+
+Regional Finals/Nationals eligibility enforcement is not part of the MVP and is deferred to a future tournament feature track.
+
 
 # 22. Practice System
 Practice is a separate domain from Flashcard study.
@@ -825,15 +939,16 @@ Practice is a separate domain from Flashcard study.
 ## 22.1 Practice Session
 A Practice Session represents a structured activity designed to apply knowledge.
 Examples include:
-  - Practice games
-  - Quiz practice
+  - Word/next-word games
+  - Fill-in-the-missing-word / verse builder experiences
+  - Matching
   - Multiple-choice practice
-  - Matching games
-  - Word progression games
-  - Tournament-style practice
+  - Games for younger Quizzers
+  - Future official question-set practice
+  - Future tournament-style practice
   - Future AI practice
-Flashcard memorization is represented as a Study Session, not a Practice Game, although both
-contribute to the user's broader activity history.
+
+Flashcard memorization is represented as a Study Session, not a Practice Game, although both contribute to the user's broader activity history.
 
 
 ## 22.2 Practice Architecture
@@ -842,34 +957,31 @@ All practice games should conform to a common model:
   Practice Session
      ↓
   Practice Game
-
-      ↓
-  Question
-      ↓
+     ↓
+  Question/Challenge
+     ↓
   Attempt
-      ↓
+     ↓
   Result
-      ↓
+     ↓
   Score
 
 This allows future games to be added without restructuring the entire Practice system.
 
 
-## 22.3 Initial Practice Games
-The product vision includes:
-  - Word/next-word games
-  - Matching
-  - Multiple-choice questions
-  - Games for younger Quizzers
-  - Specific question-set practice
-  - Buzzer-oriented practice
+## 22.3 MVP Practice Content
+The MVP does not depend on receiving an official tournament/practice question bank.
+
+Sprint 8 should implement at least one strong Scripture-derived Practice mode that can be generated deterministically from the user's authoritative division MaterialSet, such as a Next Word, Verse Builder, or Fill in the Missing Word experience.
+
+This lets Ignite ship a useful Practice MVP using the same approved Scripture material without inventing official Bible-quizzing questions or requiring the Rulebook/question-bank integration.
 
 
 ## 22.4 Official Questions
-Initial question sets are predetermined.
-Questions should be provided by the committee/quiz board rather than randomly generated by
-AI.
-AI-generated questions are deferred.
+Official/predetermined WPF question sets may be added in a future release if they are explicitly provided/authorized for Ignite.
+
+Ignite must not assume access to tournament question content and must not scrape or infer proprietary question banks.
+AI-generated official-style questions remain deferred.
 
 
 ## 22.5 Practice Scoring
@@ -882,10 +994,8 @@ A shared Practice framework should allow each game to define its own:
   - Correctness
   - Partial correctness
   - Points
-
-  - Penalties
+  - Penalties where applicable
   - Completion rules
-
 
 
 ## 22.6 Practice Hub
@@ -896,9 +1006,10 @@ The Practice hub may show:
 - Basic Practice progress or history where authoritative data exists
 - Entry points into individual Practice modes
 
-Sprint 8 builds the Practice hub, Practice architecture, and at least one strong functioning Practice mode based on official/predetermined material. The MVP does not require every game shown in product mockups to be implemented in Sprint 8.
+Sprint 8 builds the Practice hub, Practice architecture, and at least one strong functioning Scripture-derived Practice mode. The MVP does not require every game shown in product mockups to be implemented.
 
 Sprint 9 may enrich the Practice hub with authoritative Practice summaries and analytics after PracticeSession and PracticeResult data exist.
+
 
 # 23. Tournament Simulation
 Tournament simulation is a future feature.
@@ -918,10 +1029,21 @@ established.
 
 
 # 24. Official Quiz Rules
-Official Bible-quizzing rules are provided by the committee.
-The rules should eventually be represented as structured season configuration rather than
-embedded throughout application code.
-For example:
+Official Bible-quizzing rules are provided by the committee/WPF.
+
+The complete Rulebook is not required to ship the Core MVP because the MVP Practice experience does not attempt to fully reproduce tournament rules or simulation.
+
+Where a current MVP feature genuinely requires a specific approved rule, that rule should be represented as structured configuration rather than scattered through UI code.
+
+Full Rulebook ingestion/integration becomes more important for future capabilities such as:
+- Advanced tournament Practice
+- Buzzer-oriented games
+- Penalties/timing/question-type simulation
+- Tournament simulation
+- AI Coach
+- AI quizmaster
+
+Conceptually, future structured rules may live under:
 
 ### Season
   └── QuizRules
@@ -932,7 +1054,8 @@ For example:
      ├── DivisionRules
      └── OtherOfficialRules
 
-This allows the product to support future seasons without rewriting core gameplay logic.
+Profile may provide an Official Resources link to the WPF Bible Quizzing website so users can access current official resources/rulebook information outside Ignite.
+
 
 # 25. Audio
 ## 25.1 Standard Audio
@@ -1258,21 +1381,27 @@ This protects the learning model from clients incorrectly modifying authoritativ
 The exact physical schema is an implementation detail, but the conceptual model is:
 
   seasons/{seasonId}
-
     ├── metadata
     ├── divisions
+    ├── regions
     ├── quizRules
     ├── tournaments
-    └── cards/{cardId}
+    └── materialSets/{materialSetId}
+          ├── metadata (division, order, source/version)
+          ├── sections/{sectionId}
+          └── cards/{cardId}
 
   users/{userId}
     ├── profile
     ├── preferences
-    └── entitlements/{seasonId}
+    └── entitlements/{seasonId or entitlementId}
 
   users/{userId}/seasons/{seasonId}
     ├── participation
-    ├── progress/{cardId}
+    │     ├── regionId
+    │     ├── participationType
+    │     └── divisionId or studyTrackMaterialSetId
+    ├── progress/{materialSetId_cardId or equivalent}
     ├── recallEvents/{eventId}
     ├── studySessions/{sessionId}
     ├── decks/{deckId}
@@ -1280,87 +1409,39 @@ The exact physical schema is an implementation detail, but the conceptual model 
     ├── achievements/{achievementId}
     └── analytics summaries
 
-The exact collection structure may evolve during implementation as long as the ownership
-boundaries and domain contracts remain intact.
-
+The exact collection structure may evolve during implementation as long as the ownership boundaries, material-set identity, and domain contracts remain intact.
 
 
 # 37. Data Ownership Matrix
- Entity                   Scope                 Authority                Mutable
 
-
-
- User                     User                  User/account system      Yes
-
-
- User Preferences         User                  User                     Yes
-
-
- Season                   Global/official       Admin/content            No once active
-
-
- Division                 Season                Official configuration   No once active
-
-Entity               Scope             Authority                Mutable
-
-
-
-Card                 Season            Official configuration   No once active
-
-
-Quiz Rules           Season            Official configuration   No once active
-
-
-Tournament           Season            Official configuration   No once active
-
-
-Season Entitlement   User + Season     Purchase system          Controlled
-
-
-Progress             User + Season +   Derived/server           Yes
-                     Card
-
-
-Recall Event         User + Season +   User activity            Append-only
-                     Card
-
-
-Mastery              User + Season +   Derived/server           Materialized
-                     Card
-
-
-Study Session        User + Season     User activity            Append-only/controll
-                                                                ed
-
-
-Custom Deck          User + Season     User                     Yes
-
-
-Deck Membership      User + Season +   User                     Yes
-                     Card
-
-
-Practice Session     User + Season     User activity            Append-only
-
-
-Practice Attempt     User + Season     User activity            Append-only
-
-
-Achievement          User + Season     Derived                  Recorded
-
-
-Historical Summary   User + Season     Derived                  Read-only after
-                                                                archive
-
- Entity                   Scope                    Authority               Mutable
-
-
-
- Analytics Event          Minimum required         Analytics system        Append-only
-                          scope
+Entity | Scope | Authority | Mutable
+---|---|---|---
+User | User | User/account system | Yes
+User Preferences | User | User | Yes
+Season | Global/official | Admin/content | Controlled; core content locks when active
+Region | Official configuration / selected per User + Season | WPF/admin + user season setup | Official list controlled; selection per season
+Division | Season | Official configuration | No once active except controlled official correction
+MaterialSet | Season + Division | Official configuration | No once active
+CurriculumSection | Season + MaterialSet | Official configuration | No once active
+Card | Season + MaterialSet | Official configuration | No once active
+Quiz Rules | Season | Official configuration | No once active except controlled official correction
+Tournament | Season + Region | Official configuration | Controlled operational updates
+TournamentDivisionScope | Tournament + MaterialSet/Division | Official configuration | Controlled operational updates
+QuizzerSeasonParticipation | User + Season | User + official eligibility rules | Controlled
+Season Entitlement | User + Season + MaterialSet | Purchase system | Controlled
+Progress | User + Season + MaterialSet + Card | Derived/server | Yes
+Recall Event | User + Season + MaterialSet + Card | User activity | Append-only
+Mastery | User + Season + MaterialSet + Card | Derived/server | Materialized
+Study Session | User + Season + MaterialSet | User activity | Append-only/controlled
+Custom Deck | User + Season + MaterialSet | User | Yes
+Deck Membership | User + Season + MaterialSet + Card | User | Yes
+Practice Session | User + Season + MaterialSet | User activity | Append-only
+Practice Attempt | User + Season + MaterialSet | User activity | Append-only
+Achievement | User + Season | Derived | Recorded
+Historical Summary | User + Season | Derived | Read-only after archive
+Analytics Event | Minimum required scope | Analytics system | Append-only
 
 This implements the principle that every persistent entity must have an explicit ownership/scope.
-
 
 
 # 38. State Management
@@ -1483,6 +1564,7 @@ The Profile foundation begins in Sprint 2 and should initially provide:
 - Basic account/profile information
 - Initials and/or an optional controlled/preset avatar
 - Entry point to Settings
+- Official Resources entry point/link to the WPF Bible Quizzing website (may be introduced during later MVP integration rather than initial Sprint 2 account work)
 - Appropriate account-level actions
 
 Profile may progressively display real product activity as the underlying systems become available. Real study streak/activity data should come from Sprint 6, richer analytics from Sprint 9, and final integration/polish from Sprint 10.
@@ -1630,17 +1712,20 @@ These states must be treated as normal product states, not exceptional UI aftert
 
 
 # 49. Test Data
-Official curriculum is not currently available.
-Development therefore uses a small JSON test curriculum.
+Development fixtures should remain replaceable by official season material and should exercise the architecture expected from the five independent division MaterialSets.
 
-The test dataset should be expanded beyond the current nine-verse fixture so that it exercises:
-  - Card numbering
+Test data should cover:
+  - Multiple MaterialSets/divisions
+  - The same Scripture reference appearing in more than one MaterialSet with different annotations/order
+  - Card numbering/order within a MaterialSet
   - Multiple books
   - Multiple chapters
   - Long verses
   - Short verses
-  - Annotations
-  - Highlighting
+  - Curriculum Sections and section ordering
+  - Extensible annotations
+  - Highlighting/underlining
+  - Frequency markings
   - Keywords
   - Unique beginnings
   - Unique endings
@@ -1650,25 +1735,47 @@ The test dataset should be expanded beyond the current nine-verse fixture so tha
   - Mastery
   - Review scheduling
   - Season isolation
-  - Division requirements
-The test dataset should remain replaceable by official season content.
+  - MaterialSet isolation
+  - Region selection
+  - Tournament visibility and division-specific material scope
 
+The test dataset should remain replaceable by the official five-file season import without changing application/domain contracts.
 
 
 # 50. Content Import
-Official content is provided by the Bible Quiz Committee.
+Official content is provided by the Bible Quiz Committee/WPF.
 The developer is responsible for entering approved material into Ignite.
+
+Each season should support five independent official material source files/material sets:
+- Cadet
+- Beginner
+- Junior
+- Intermediate
+- Experienced
+
+The importer must not assume that one division is a subset of another.
+
+The same Scripture reference may appear in multiple files and should remain independent when the official numbering/sections/annotations differ.
+
 The import process should validate:
-   - Card numbering
+   - Material-set/division identity
+   - Card numbering/order within each material set
    - Required Scripture reference
    - Required Scripture text
-   - Division assignments
-   - Annotation structure
-   - Quiz metadata
-   - Tournament configuration
-   - Rules configuration
+   - Curriculum section identity/order/membership
+   - Annotation structure/types
+   - Highlight/underline/unique beginning/unique ending/frequency metadata where supplied
+   - Quiz metadata where supplied
+   - Region/tournament configuration
+   - Division/material-set-specific tournament scope
+   - Rules configuration where required
+   - Duplicate/conflicting IDs within a material set
+
+The annotation schema/import mapping should be extensible so future season-specific annotation types can be added intentionally without redesigning the domain model.
+
 Invalid content should fail validation before publication.
 
+The normal annual operations flow should allow Board source material released during the transition period to be imported and tested in DEV/STAGING before the configured Ignite availability date, normally targeted for October 1.
 
 
 # 51. Testing Strategy
@@ -1825,6 +1932,10 @@ support them:
   - Advanced tournament simulation
   - Advanced team management
   - Complex child/parent account relationships
+  - Regional Finals/Nationals eligibility enforcement
+  - Multiple Study Tracks or mid-season Study Track switching
+  - Full Rulebook ingestion/tournament-rule simulation
+  - Official tournament/practice question-bank integration unless explicitly provided/authorized
 The architecture should accommodate these features without implementing them prematurely.
 
 
@@ -1878,7 +1989,7 @@ Mastery current state   Materialized snapshot
 Cross-season progress   Never transferred
 
 
-Card identity           Season + Card
+Card identity           Season + MaterialSet + Card
 
 
 Global Verse identity   Not used for learning state
@@ -1893,13 +2004,13 @@ Global Verse identity   Not used for learning state
  Smart collections                         Derived
 
 
- Season content                            Immutable once active
+ Season learning content                   Immutable once active; tournament operational data controlled
 
 
- Division                                  Season-scoped youth selection within eligibility; adult full-material track separate
+ Division / Study Track                    Five division material sets; youth division season-scoped; age 19+ selects one Study Track
 
 
- Division changes                          Next season
+ Division / Study Track changes            Next season in MVP
 
 
  AI                                        Optional/advisory
@@ -2018,7 +2129,7 @@ Sprint Summary Table
 | 1.5 | Flashcard Architecture & Core Experience | MVP | In Progress |
 | 1.75 | Flashcard Persistence & Data Foundation | MVP | Pending |
 | 2 | Authentication, Onboarding, Profile & Settings Foundation | MVP | Pending |
-| 3 | Season, Official Content & Study Hub Foundation | MVP | Pending |
+| 3 | Season, Region, Material Sets & Study Hub Foundation | MVP | Pending |
 | 4 | Season Purchase & Access | MVP | Pending |
 | 5 | Home / Dashboard & Tournament Details Foundation | MVP | Pending |
 | 6 | Study Progress & Activity | MVP | Pending |
@@ -2245,9 +2356,9 @@ Do not implement a full push-notification system in Sprint 2. Notification funct
 ### Season Eligibility Handoff
 Sprint 2 does not own season-scoped division assignment. It establishes the account/onboarding state and routing boundary required to hand an authenticated Quizzer into current-season setup.
 
-Sprint 3 owns the season-scoped eligibility age, first-year status where applicable, youth division selection/validation, Adult / Full Material study track, and resulting current-season participation. Date of birth is not required.
+Sprint 3 owns the season-scoped eligibility age, first-year status where applicable, youth division selection/validation, age-19+ Study Track selection, Region selection, MaterialSet resolution, and resulting current-season participation. Date of birth is not required.
 
-Any still-unresolved committee rule, including final Experienced/Senior criteria, must remain configurable rather than being guessed or scattered as hard-coded UI logic.
+Any still-unresolved committee rule, including exceptional Experienced placement criteria, must remain configurable rather than being guessed or scattered as hard-coded UI logic.
 
 ### Account Lifecycle / Routing
 Sprint 2 should establish routing for:
@@ -2304,162 +2415,204 @@ Sprint 1.5 and Sprint 1.75 architecture.
 The user can securely create/sign into an account, complete/resume base Quizzer onboarding, reach the correct authenticated state, view a basic Profile with private name/identity information, manage appropriate account settings, and return to the application with account/onboarding state restored. Under-13 users can be routed into the required guardian-consent boundary without creating a Parent Portal. Current-season eligibility/division setup is handed off cleanly to Sprint 3. Future Study, Home, analytics, notification, offline, and purchase systems remain outside Sprint 2 ownership.
 
 
-# 63. Sprint 3 — Season, Official Content & Study Hub Foundation
+# 63. Sprint 3 — Season, Region, Material Sets & Study Hub Foundation
 
 ### Objective
-
-Establish the application's season/curriculum model and build the first real Study landing experience that connects eligible current-season material to the existing Flashcard engine.
+Establish the authoritative current-season participation model, Region context, five independent division MaterialSets, section-based curriculum structure, and the first real Study landing experience that connects the user's selected material to both Flashcards and an annotated scrollable Scripture view.
 
 ### Product Features
-- Current season.
-- Season identity.
-- Season lifecycle.
-- Division-specific material.
-- Official season content.
-- Season-specific Card/content identity.
-- Season-specific annotations.
-- Season-specific quiz rules.
-- Season activation.
-- Season availability states.
-- Season-scoped eligibility age collection without date of birth.
-- First-year Quizzer status collection where required for ages 15–18.
+- Current season identity/lifecycle/availability.
+- Configurable source-material release and Ignite availability dates; October 1 remains the normal Ignite target.
+- Region selection during current-season setup.
+- Five official competitive divisions: Cadet, Beginner, Junior, Intermediate, Experienced.
+- January 1 competitive age basis without storing date of birth.
+- Cadet/Beginner flexible eligibility for ages 2–4.
+- First-year Quizzer status where required for ages 15–18.
 - Youth division eligibility/selection and validation.
-- Adult / Full Material study track for users age 19+.
+- Age-19+ Study Track selection from Cadet, Beginner, Junior, Intermediate, or Experienced material.
+- One Study Track per active season in MVP.
 - Current-season Quizzer participation/setup state.
-- Study landing page / Flashcards hub foundation.
-- Current-season/division study material displayed in Study.
-- Selecting study material launches the Flashcard engine.
-- Tournament configuration/data foundation.
+- Five independent authoritative division MaterialSets.
+- Material-set-specific Card identity, order, annotations, and metadata.
+- Extensible annotation architecture.
+- CurriculumSection/grouping foundation.
+- Study landing page / Study hub foundation.
+- Study All Material via Flashcards.
+- Explore material by Curriculum Section.
+- View All Material via an Annotated Scripture List grouped by section and rendering the same annotations as Flashcards.
+- Region-aware tournament configuration/data foundation.
+- Tournament events remain visible to all divisions/Study Tracks in the user's Region, including Cadet.
 
-### Season Eligibility & Division Setup
+### Season Eligibility, Region & Participation Setup
 Sprint 3 completes current-season participation after base account onboarding.
 
-The app should collect only the minimum season-scoped eligibility information needed to determine the Quizzer's valid division/material. Date of birth is not required. If the Quizzer is unsure which age should be used for official eligibility, the app should instruct them to confirm with their Coach rather than implementing birthday/cutoff edge-case calculations.
+Competitive youth flow:
+1. Collect the minimum season-scoped eligibility age using the January 1 basis; date of birth is not required.
+2. Determine eligible division options.
+3. Collect first-year status only where required.
+4. Allow ages 2–4 to select Cadet or Beginner.
+5. Select the user's Region.
+6. Persist the resulting season participation.
 
-The standard working youth rule remains Beginner (8 and under), Junior (9–11), Intermediate (12–14 and first-year Quizzers 15–18), and Experienced / Senior for the approved non-first-year 15–18 flow unless the committee provides an updated rule. Exceptional younger Experienced placements are not exposed as ordinary self-service choices.
+Standard working eligibility:
+- 2–4 → Cadet or Beginner
+- 5–8 → Beginner
+- 9–11 → Junior
+- 12–14 → Intermediate in normal self-service onboarding
+- 15–18 → Intermediate when first-year; otherwise Experienced
 
-Users age 19+ use the Adult / Full Material study track and receive the full season curriculum without being classified as Experienced / Senior youth Quizzers.
+Authorized exceptional younger Experienced placement is not exposed as ordinary self-service MVP onboarding.
+
+Age-19+ flow:
+1. Identify the user as Study Track rather than competitive youth division.
+2. Select Region.
+3. Choose exactly one Study Track: Cadet, Beginner, Junior, Intermediate, or Experienced.
+4. Persist that material selection for the season.
+5. Keep it locked for the active season in MVP.
+
+### Division Material Architecture
+Each Season has five independent authoritative MaterialSets, imported from five independent source files.
+
+Do not assume lower divisions are subsets of another division.
+
+If the same Scripture reference appears in two MaterialSets, each MaterialSet may own a different Card/order number, section, and annotation structure. Those Cards remain independent authoritative learning objects.
+
+The architecture must support future seasonal changes to annotation types through extensible/data-driven mapping rather than scattered hard-coded display rules.
+
+### Curriculum Sections
+Official MaterialSets may contain ordered Curriculum Sections supplied by WPF/Board material.
+
+Sections are metadata/grouping over the MaterialSet's existing Cards. They must not duplicate Cards.
+
+"All Material" remains the primary complete Study option; sections are a secondary navigation/filtering experience.
 
 ### Study Hub Foundation
-The Study landing page sits between the Study tab and the Flashcard engine.
-
 Sprint 3 should initially support:
-- Eligible current-season/division official material.
-- Clear material/deck/collection selection.
-- Launching selected material into the Flashcard engine.
-- Architecture that can later receive custom decks, Tournament Scope, Recently Studied, Review Due, Needs Work, Mastered, and other smart collections without duplicating Cards.
+- Study All Material — launch the complete selected MaterialSet into Flashcards.
+- Explore by Section — launch/display a selected CurriculumSection using the same Cards.
+- View All Material — open the Annotated Scripture List.
+
+The Annotated Scripture List must be grouped by Curriculum Section, show Scripture reference + full Scripture text, and render the same material-set-specific annotations used in Flashcards (highlights, underlines, unique beginnings/endings, frequency markings, and other supported official annotation types).
+
+The Flashcard and annotated-list presentations must read from the same authoritative Card/annotation source of truth.
 
 Do not fabricate recent-study, mastery, or review data in Sprint 3. Sprint 6 provides real recent activity/progress; Sprint 7 provides mastery/review-driven smart collections and recommendations.
 
 ### Tournament Configuration Foundation
-Tournament information is season-owned authoritative configuration. Sprint 3 should establish the data/domain foundation needed for later tournament UI, including where provided by the committee:
+Tournament information is authoritative season/region configuration. Sprint 3 should establish the data/domain foundation needed for later tournament UI, including where provided:
 - Tournament identity/name.
+- Region.
 - Date/time.
-- Venue name.
-- Venue address/location text.
-- Required material/Card scope.
-- Division-specific requirements where applicable.
+- Venue name/address/location text.
+- Operational status.
+- Participating divisions.
+- Division/material-set-specific required material scope.
+- Other official operational information where needed.
+
+Every tournament in the user's selected Region should remain visible regardless of the user's division/Study Track. If a user's division does not participate, the event remains visible with an appropriate informational state.
+
+Cadet currently competes only in the first two official tournaments of the season, but this must be represented through configured event participation rather than hard-coded tournament ordinal logic.
 
 The complete Tournament Details UI belongs to Sprint 5.
 
 ### Critical Business Rule
-Once official season material is confirmed and released:
+Once an official division MaterialSet is confirmed and active, its Scripture/Card/section/annotation content is locked through ordinary user/application workflows.
 
-The season's official material is locked for the duration of that season.
-
-The application must not support changing official material during an active season.
+Official tournament operational data may receive controlled updates through the authorized content/admin process.
 
 ### Season Isolation
 Each season is independent.
-
-The same verse may appear in multiple seasons, but those instances are not assumed to be the same domain content.
-
-Each season may have different:
-- Content
-- Annotations
-- Quiz rules
-- Formatting
-- Metadata
-
+Each MaterialSet inside a season is also an independent official curriculum boundary for Card structure/annotations.
 No progress transfers between seasons.
 
 ### Architecture Work
-- Establish Season domain model.
-- Establish Season → Division → Content relationships.
-- Establish content ownership.
-- Establish season context.
-- Establish season-scoped Quizzer participation/eligibility ownership so eligibility age, first-year status, youth division, or Adult / Full Material track do not become stale global profile fields.
-- Ensure Cards are season-specific.
-- Ensure active-season selection is not scattered throughout the UI.
-- Establish season-aware repository queries.
-- Establish future season transition boundaries.
-- Ensure published season content is immutable.
-- Establish Study hub composition/application boundary without making the UI own curriculum logic.
-- Establish tournament configuration/domain boundaries as season-owned data.
-- Keep all official rules/ranges/configuration data-driven rather than hard-coded.
+- Establish Season domain model and configurable availability dates.
+- Establish Region configuration and season-scoped user Region selection.
+- Establish QuizzerSeasonParticipation ownership.
+- Establish five MaterialSet domain/configuration records.
+- Establish Season → MaterialSet → CurriculumSection → Card relationships.
+- Change Card identity/queries to respect `seasonId + materialSetId + cardId`.
+- Ensure progress/mastery/event ownership can remain material-set-aware.
+- Build/validate the five-file import/seeding pipeline and content validation contract.
+- Establish extensible annotation schema/mapping and shared rendering input for Flashcards + Annotated Scripture List.
+- Establish section ordering/membership without Card duplication.
+- Establish Study hub composition/application boundary.
+- Establish Annotated Scripture List presentation boundary using the same Card data.
+- Establish region-aware tournament/domain/configuration boundaries.
+- Keep division, region, material scopes, tournament participation/scopes, dates, and annotation definitions data-driven rather than scattered hard-coded UI logic.
+- Establish DEV → STAGING validation/promotion workflow for annual material preparation; no PROD automation assumption.
 
 ### Explicitly Do Not Build
 - Recently Studied based on real study history (Sprint 6).
 - Mastery/review smart collections (Sprint 7).
 - Full Tournament Details/Home tournament UI (Sprint 5).
+- Regional Finals/Nationals eligibility enforcement.
 - Tournament simulation.
-- Mid-season content editing.
+- Multiple Study Tracks per adult or mid-season Study Track switching.
+- Full Rulebook ingestion/simulation.
+- Official question-bank dependency.
+- Mid-season ordinary-user curriculum editing.
 - Cross-season progress transfer.
-- Cross-season active curriculum.
-- Advanced content management systems.
+- Advanced content-management UI.
 
 ### Dependencies
 Authentication and user identity.
 
 ### Outcome
-The app understands the authoritative current Season, completes season-scoped eligibility/participation setup, and resolves the correct youth division or Adult / Full Material track. The Study tab can show valid current-season material and launch it into the Flashcard engine, and tournament configuration exists as authoritative season data ready for later Home/details experiences.
+The app understands the authoritative current Season and Region, completes season-scoped competitive-division or age-19+ Study Track setup, resolves one authoritative MaterialSet for the user, can import and present five independent division materials with sections/annotations, supports both Flashcards and a section-grouped Annotated Scripture List from the same Card source of truth, and has region-aware tournament configuration ready for later Home/Tournament Details and purchase/access flows.
 
 
 # 64. Sprint 4 — Season Purchase & Access
 
 ### Objective
-
-Allow the Quizzer to obtain access to the appropriate current-season material.
+Allow the user to purchase/obtain access to the appropriate current-season MaterialSet selected/resolved during Sprint 3.
 
 ### Product Features
 - Available season display.
-- Division-specific material.
+- MaterialSet-aware purchase/access.
+- Competitive division material access.
+- Age-19+ Study Track material access.
 - Purchase flow.
 - Purchase state.
 - Entitlement/access state.
 - Locked/unlocked material.
 - Restore purchase/access where applicable.
-- Users without an active season.
+- Users without active-season access.
 - Expired season handling.
 - Purchase/access errors.
 
 ### User Flow
 
-Onboarding
+Base onboarding
 ↓
-Age
+Current Season Setup
 ↓
-Division
+Age / Eligibility or Study Track
 ↓
-Eligible Material
+Region
+↓
+Resolved MaterialSet
 ↓
 Purchase
 ↓
-Season Access
+Season + MaterialSet Access
 ↓
-### Home
+Home
 
 ### Architecture Work
-- Establish entitlement domain.
+- Establish material-set-aware entitlement domain.
+- Associate entitlement with User + Season + MaterialSet rather than Season alone where needed.
 - Separate purchase provider implementation from application logic.
 - Establish access-control boundaries.
 - Establish purchase state.
 - Establish entitlement persistence.
 - Ensure UI does not directly own purchase business logic.
 - Establish a clean boundary for future AI/subscription entitlements.
-- Enforce backend authorization and season/user access rules.
+- Enforce backend authorization and user/season/material-set access rules.
+- Preserve one selected/entitled MaterialSet per active season for MVP.
 
 ### Explicitly Do Not Build
+- Multiple MaterialSet purchases/switching in one active season.
 - AI subscription.
 - AI entitlement.
 - Advanced monetization.
@@ -2469,8 +2622,7 @@ Season Access
 # 65. Sprint 5 — Home / Dashboard & Tournament Details Foundation
 
 ### Objective
-
-Create the primary post-onboarding experience and central navigation point, including the initial tournament-information experience.
+Create the primary post-onboarding experience and central navigation point, including a Region-aware tournament-information experience.
 
 Home is a core MVP feature.
 
@@ -2478,7 +2630,8 @@ Home is a core MVP feature.
 - Home screen.
 - Greeting.
 - Current season.
-- Current division.
+- Current competitive division or Study Track.
+- Current Region.
 - Study entry point.
 - Current progress where available.
 - Study goals.
@@ -2488,30 +2641,35 @@ Home is a core MVP feature.
 - Practice entry point.
 - Analytics entry point.
 - Profile access through main navigation.
+- Region tournament summary/calendar entry point.
 - Next-tournament summary/card when tournament configuration exists.
 - Tournament Details screen.
 - Tournament date/time.
 - Tournament venue/location information.
-- Required material summary.
-- Study Now action into tournament-scoped Study material.
+- User material-scope summary where applicable.
+- Study Now action into tournament-scoped material when applicable.
 - Get Directions handoff to the platform/device mapping experience where appropriate.
 - Loading states.
 - Empty states.
 - Error states.
 
 ### Tournament Details Foundation
-Tournament data comes from the authoritative Sprint 3 season configuration.
+Tournament data comes from the authoritative Sprint 3 season/Region configuration.
+
+Every tournament configured for the user's selected Region remains visible regardless of the user's competitive division or Study Track, including for Cadet users.
 
 The Tournament Details screen may show:
 - Tournament name.
 - Date/time/countdown presentation.
 - Venue name and address/location text.
 - Map/location presentation.
-- Required material for the Quizzer's division.
-- Study Now.
+- Participating divisions where useful.
+- Required material for the user's selected MaterialSet when the division participates.
+- Informational "not participating/no material scope" state when the user's division does not participate.
+- Study Now when applicable.
 - Get Directions.
 
-Study Now should scope the existing Study/Flashcard experience to the tournament's required Cards rather than duplicating curriculum.
+Study Now should scope the existing Study/Flashcard experience to configured tournament-required Cards rather than duplicating curriculum.
 
 Ignite does not need to collect or persist the Quizzer's precise location to display a tournament venue or hand off directions.
 
@@ -2529,12 +2687,14 @@ Home should NOT calculate:
 - Analytics.
 - Season rules.
 - Tournament requirements.
+- Region/tournament filtering rules independently of the tournament application boundary.
 
-Tournament details should consume season-owned tournament configuration and existing Study/application boundaries rather than becoming a second source of curriculum truth.
+Tournament details should consume season/Region-owned tournament configuration and existing Study/application boundaries rather than becoming a second source of curriculum truth.
 
 Some Home sections may initially display empty states because their underlying systems are implemented in later MVP sprints.
 
 ### Explicitly Do Not Build
+- Regional Finals/Nationals eligibility enforcement.
 - Advanced recommendations.
 - AI recommendations.
 - Full tournament simulation/dashboard.
@@ -2543,7 +2703,7 @@ Some Home sections may initially display empty states because their underlying s
 - Coach dashboard.
 
 ### Outcome
-The application has a stable Home shell, can surface the Quizzer's next configured tournament and required material, and can navigate into Study without duplicating business logic. Home can progressively consume outputs from later learning, Practice, and analytics systems.
+The application has a stable Home shell, can present the user's selected Region and its tournament calendar, can show applicable division/Study Track material requirements without hiding unrelated regional tournaments, and can navigate into Study without duplicating business logic.
 
 
 # 66. Sprint 6 — Study Progress & Activity
@@ -2574,7 +2734,7 @@ Establish the system that records and interprets Quizzer study activity and use 
 - Establish repository boundaries.
 - Establish testing patterns for business rules.
 - Ensure historical events are treated as authoritative learning history.
-- Ensure progress is scoped to Quizzer + Season + Card.
+- Ensure progress is scoped to Quizzer + Season + MaterialSet + Card.
 - Establish server-side authoritative RecallEvent processing, including idempotency validation and authoritative Progress snapshot updates.
 - Ensure Study, Profile, Home, and Tournament surfaces consume progress/activity rather than recalculating it independently.
 
@@ -2637,27 +2797,25 @@ Sprint 6 Study Activity.
 # 68. Sprint 8 — Practice Foundation & Practice Hub
 
 ### Objective
-
-Introduce Practice as the second core learning experience and build the Practice landing page that users enter from the main Practice tab.
+Introduce Practice as the second core learning experience and build the Practice landing page that users enter from the main Practice tab without making MVP delivery depend on an external official question bank or full Rulebook integration.
 
 ### Product Features
 - Practice landing page / Practice hub.
 - Available challenge/game list.
 - Practice navigation.
 - Practice session.
-- Practice question.
-- Practice answer.
+- Practice challenge/question abstraction.
+- Practice attempt/answer.
 - Practice result.
-- Initial practice mode.
 - Practice scoring.
 - Practice history foundation.
-- At least one strong functioning Practice experience based on official/predetermined material.
+- At least one strong functioning Scripture-derived Practice experience using the user's authoritative MaterialSet (for example Next Word, Verse Builder, or Fill in the Missing Word).
 - Appropriate loading/empty/error states.
 
 ### Practice Hub Scope
-The Practice landing page may show multiple planned game/challenge types, but the MVP does not require every product-mockup game to be implemented in this sprint.
+The Practice landing page may show multiple planned game/challenge types, but the MVP does not require every product-mockup game to be implemented.
 
-Sprint 8 should prioritize the reusable Practice architecture and at least one excellent working Practice mode. Additional modes can be introduced later without restructuring the Practice domain.
+Sprint 8 should prioritize the reusable Practice architecture and at least one excellent working Scripture-derived mode. Additional modes and authorized official question sets can be introduced later without restructuring the Practice domain.
 
 Top-of-page Practice summaries should only display real values that can be derived from PracticeSession/PracticeResult data. Richer Practice analytics belong to Sprint 9.
 
@@ -2668,21 +2826,25 @@ Practice
 ↓
 Practice Session
 ↓
-Question
+Question/Challenge
 ↓
-Answer
+Attempt
 ↓
 Result
 
-Practice must not reuse Flashcard business logic simply because both features involve Scripture/cards.
+Practice must not reuse Flashcard business logic simply because both features involve Scripture/Cards.
 
 Flashcard study and Practice represent different user actions and different business rules.
 
 Practice scoring must remain separate from Flashcard correctness.
 
+The initial Scripture-derived mode may read authoritative Card/MaterialSet content through the correct application/repository boundary, but it must not mutate official curriculum or invent authoritative Bible-quizzing questions.
+
 ### Explicitly Do Not Build
 - Every possible Practice mode.
 - Tournament simulation.
+- Official tournament-question dependency unless explicitly provided/authorized later.
+- Full Rulebook/tournament-rule simulation.
 - AI-generated questions.
 - Coach Practice.
 - Advanced multiplayer Practice.
@@ -2751,6 +2913,7 @@ Integrate and polish:
 - Profile.
 - Settings.
 - Tournament Details.
+- Official Resources link from Profile to the WPF Bible Quizzing website.
 - Progress.
 - Mastery.
 - Review.
@@ -2778,11 +2941,13 @@ Integrate and polish:
 ### End-to-End Experience
 Account
 ↓
-Onboarding
+Base Onboarding
 ↓
-Age + Division
+Current Season Setup
 ↓
-Season
+Age / Division or Study Track + Region
+↓
+Resolved MaterialSet
 ↓
 Purchase
 ↓
@@ -2813,7 +2978,10 @@ Prepare the complete core product for real-world MVP release.
 ### Functional Testing
 - Authentication.
 - Onboarding.
-- Division eligibility.
+- Division/Study Track eligibility.
+- Region selection/routing.
+- Five MaterialSet resolution/import integrity.
+- Curriculum Sections + Annotated Scripture List.
 - Profile.
 - Settings/account controls.
 - Season access.
@@ -2987,15 +3155,18 @@ A separate Coach Portal is intentionally not part of MVP.
 ### Phase: Post-MVP
 
 Potential future work:
+- Regional Finals/Nationals eligibility enforcement.
+- Tournament participation history.
 - Tournament simulation.
-- Tournament-specific Practice.
-- Tournament history.
+- Tournament-specific advanced Practice.
+- Official Rulebook-driven timing/scoring/penalty behavior.
+- Authorized official question-set integration.
 - Advanced tournament analytics.
 - Competition features.
 - Buzzer-oriented simulation.
 - Voice quizmaster.
 
-Basic tournament-related progress/goals may exist within MVP where required by the product requirements, but a complete tournament simulation system is not an MVP requirement.
+Basic region-aware tournament information, material requirements, and preparation flows exist within MVP where required by the product requirements, but eligibility enforcement and complete tournament simulation are not MVP requirements.
 
 
 # 78. Future Feature Track — Social / Community
@@ -3037,7 +3208,8 @@ The MVP should be considered complete when the following are functional and reli
 - U.S. child-privacy/guardian-consent routing boundary, with final COPPA treatment privacy/legal reviewed before release
 - Profile foundation
 - Settings/account controls
-- Season purchase
+- Official Resources link to WPF Bible Quizzing website
+- Season/material-set purchase
 
 ### Main Navigation
 - Home
@@ -3047,19 +3219,29 @@ The MVP should be considered complete when the following are functional and reli
 - Settings accessible under Profile
 - Analytics accessible through appropriate Home/Profile entry points
 
-### Season
+### Season / Participation
 - Current season
+- Configurable season/source/availability dates with October 1 as the normal Ignite target
+- Region selection
+- Five official divisions: Cadet, Beginner, Junior, Intermediate, Experienced
 - Season-scoped eligibility age/minimum eligibility information
+- Cadet/Beginner eligible choice for ages 2–4
 - Youth division selection/validation
-- Adult / Full Material study track for users age 19+
-- Season-specific curriculum
-- Locked content
-- Entitlement
+- Age-19+ Study Track selecting one division MaterialSet for the active season
+- One active MaterialSet per user/season in MVP
+- Five independent season MaterialSets
+- Locked authoritative learning content
+- Material-set-aware entitlement
 - Season transition
-- Basic authoritative tournament configuration required for MVP preparation experiences
+- Region-aware authoritative tournament configuration
 
 ### Study / Flashcards
 - Study landing page/material selection
+- Study All Material via Flashcards
+- Curriculum Sections / Explore by Section
+- Annotated Scripture List grouped by section
+- Scripture reference + text + official annotations rendered in the list view
+- Shared Card/annotation source of truth between Flashcards and list view
 - Full Flashcard experience
 - Study
 - Review
@@ -3082,15 +3264,18 @@ The MVP should be considered complete when the following are functional and reli
 
 ### Practice
 - Practice landing page / hub
-- At least one functioning Practice experience based on official/predetermined material
+- At least one functioning Scripture-derived Practice experience based on the user's authoritative MaterialSet
 - Practice session/result foundation
+- No official question-bank or full Rulebook dependency required for MVP
 
-### Home
+### Home / Tournaments
 - Primary Home experience
-- Current season/context
+- Current season/Region/material context
 - Study/progress summary
-- Next-tournament summary when configured
+- Region tournament information
+- Every tournament in the selected Region remains visible regardless of division/Study Track
 - Tournament Details entry point
+- Applicable division/Study Track material scope where configured
 - Navigation to core product areas
 - Appropriate loading, empty, and error states
 
@@ -3101,12 +3286,13 @@ The MVP should be considered complete when the following are functional and reli
 - Optional preset avatar / initials presentation
 - Email/password/account controls as implemented for MVP
 - Sign-out
+- Official WPF resource link
 - Required account-lifecycle controls before release
 
 ### Security
 - Authentication
 - User isolation
-- Season isolation
+- Season/material-set isolation
 - Secure content access
 
 ### Privacy
@@ -3127,6 +3313,10 @@ The MVP does not require:
 - Community
 - AI
 - Tournament simulation
+- Regional Finals/Nationals eligibility enforcement
+- Full Rulebook ingestion/tournament-rule simulation
+- Official tournament/practice question-bank integration
+- Multiple adult Study Tracks per season or mid-season Study Track switching
 - Advanced gamification
 - Undefined/unsupported analytics metrics such as Focus Score unless later explicitly specified
 
@@ -3159,10 +3349,10 @@ Rule 1
 Firebase is infrastructure, not the domain model.
 
 Rule 2
-Season is the authoritative curriculum boundary.
+Season is the authoritative yearly curriculum boundary; MaterialSet is the division-specific curriculum sub-boundary.
 
 Rule 3
-Progress belongs to Quizzer + Season + Card.
+Progress belongs to Quizzer + Season + MaterialSet + Card.
 
 Rule 4
 Mastery does not belong to Decks.
@@ -3174,7 +3364,7 @@ Rule 6
 Historical seasons never participate in current learning calculations.
 
 Rule 7
-Published season content is immutable.
+Published authoritative learning content is immutable through ordinary workflows; official tournament operational data may receive controlled updates.
 
 Rule 8
 When offline functionality is implemented post-MVP, offline events must be safely retryable.
@@ -3211,6 +3401,9 @@ The architecture should make it possible to add:
 
 without changing the fundamental:
 - Season
+- Region
+- MaterialSet
+- CurriculumSection
 - Quizzer
 - Card
 - Progress
@@ -3281,13 +3474,16 @@ If implementation conflicts with the PRD, the implementation should be evaluated
 # 87. Open External Dependencies
 
 The following are intentionally dependent on information outside the current product definition:
-- Final official season material
-- Official quiz rules
-- Official tournament schedules
-- Final tournament material requirements
-- Final season dates
+- Final official season material files for Cadet, Beginner, Junior, Intermediate, and Experienced
+- Official section/category definitions supplied with each season's material
+- Official annotation definitions/source formatting for each MaterialSet
+- Official WPF Region configuration and updates
+- Official tournament schedules and operational changes
+- Final division/material-set-specific tournament requirements
+- Final season/source/availability/end dates
 - Applicable legal/privacy requirements, including the final U.S. under-13 parental-consent implementation
 - App-store compliance requirements
+- Official Rulebook and authorized official question sets for future advanced Practice/tournament/AI features
 - Final AI provider/service contracts
 
 These should be incorporated into the system through configuration/content models rather than hard-coded assumptions whenever possible.
@@ -3297,29 +3493,34 @@ These should be incorporated into the system through configuration/content model
 
 Ignite is now defined as a:
 
-Season-aware, user-owned Bible memorization and Bible-quizzing platform built around a durable Flashcard learning engine and an extensible Practice system.
+Season-aware, Region-aware, user-owned Bible memorization and Bible-quizzing platform built around division-specific authoritative MaterialSets, a durable Flashcard learning engine, an annotated Scripture-reading experience, and an extensible Practice system.
 
 Its MVP architectural foundation is:
 
 ### Season
 ↓
-Season-specific Curriculum
+Region + QuizzerSeasonParticipation
 ↓
-Cards
+Selected Competitive Division or Study Track
 ↓
-Quizzer + Season + Card
+MaterialSet
+↓
+Curriculum Sections
+↓
+Cards + Extensible Annotations
+↓
+Quizzer + Season + MaterialSet + Card
 ↓
 Recall Events
 ↓
 Progress / Mastery
 
-with:
+with the same authoritative Card/annotation data presented through:
 
-Flashcard
-↓
-Study / Review
-
-as the primary learning loop,
+### Study
+├── Study All Material — Flashcards
+├── Explore by Section
+└── View All Material — Annotated Scripture List
 
 and:
 
@@ -3327,7 +3528,7 @@ and:
 ↓
 Game
 ↓
-Question
+Question/Challenge
 ↓
 Attempt
 ↓
@@ -3339,18 +3540,12 @@ Firebase provides the canonical remote persistence infrastructure for the MVP.
 
 Repositories isolate infrastructure.
 
-Recall events provide historical learning truth.
+The MVP remains online-first.
 
-Materialized Progress/Mastery provides efficient current state.
+Offline Flashcard learning is post-MVP.
 
-Season boundaries prevent cross-year contamination.
+AI is optional and advisory.
 
-The MVP is intentionally online-first.
+Official Scripture/material content remains authoritative and immutable through ordinary product workflows once active, while tournament operational information may receive controlled official updates.
 
-Post-MVP SQLite/local persistence and synchronization will extend the repository/persistence architecture without changing the core domain model.
-
-AI remains optional and advisory.
-
-Coach/community functionality remains future scope.
-
-This architecture is intended to allow Ignite to grow substantially without requiring the core Flashcard feature, domain model, or persistence architecture to be replaced.
+The architecture is designed so future Coach, team, tournament, Rulebook-driven Practice, official question sets, offline learning, AI, community, and advanced analytics capabilities can be added without replacing the core product model.
