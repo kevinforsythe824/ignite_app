@@ -4,6 +4,8 @@ export const colors = {
   navy: '#0A2540',
   accentRed: '#E85D4A',
   background: '#F5F5F7',
+  /** Warm off-white for authentication / brand entry surfaces. */
+  brandWarmBackground: '#F7F3EE',
   cardWhite: '#FFFFFF',
   borderLight: '#E5E7EB',
   textSecondary: '#6B7280',

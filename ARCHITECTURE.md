@@ -166,13 +166,16 @@ Prefer **named exports**; default exports are used for some screens/components f
 ## 7. Navigation
 
 - **Library:** React Navigation (not Expo Router).
-- **Root:** native stack (`MainTabs`, `TournamentDetails` placeholder).
+- **Root:** native stack switched on AuthProvider session:
+  - `initializing` → Ignite Entry (branded cover; does not delay auth restoration)
+  - `unauthenticated` → Auth stack (Welcome, Sign In, Forgot Password, nested AccountCreation)
+  - `authenticated` → `MainTabs` + `TournamentDetails` placeholder (later Sprint 2 onboarding groups insert here)
 - **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
-- **Default entry:** Study → Flashcards (current product experience).
+- **Default authenticated entry:** Study → Flashcards (current product experience).
 - Placeholder tabs live in `src/screens/*` until their features exist.
 - Tab screens are `lazy: true`.
 
-Route param lists: `src/app/navigation/types.ts`.
+Route param lists: `src/app/navigation/types.ts`. Auth stack types: `src/features/auth/navigation/types.ts`.
 
 ---
 

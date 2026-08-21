@@ -1,3 +1,8 @@
+jest.mock('expo-splash-screen', () => ({
+  preventAutoHideAsync: jest.fn(() => Promise.resolve()),
+  hideAsync: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock('firebase/app', () => ({
   getApps: jest.fn(() => []),
   getApp: jest.fn(),
@@ -73,6 +78,16 @@ jest.mock('react-native-reanimated', () => {
       bezier: () => (value) => value,
     },
     runOnJS: (fn) => fn,
+  };
+});
+
+jest.mock('react-native/Libraries/Components/Keyboard/KeyboardAvoidingView', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  return {
+    __esModule: true,
+    default: ({ children, ...props }) => React.createElement(View, props, children),
   };
 });
 

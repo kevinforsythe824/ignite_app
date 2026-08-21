@@ -35,7 +35,7 @@ export interface AuthProviderProps {
   repository?: AuthRepository;
 }
 
-/** App-root authentication session owner. Does not gate navigation. */
+/** App-root authentication session owner. RootNavigator gates presentation on session status. */
 export function AuthProvider({
   children,
   repository = firebaseAuthRepository,

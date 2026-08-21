@@ -23,7 +23,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F7F3EE",
+          "image": "./assets/brand/ignite-flame.png",
+          "resizeMode": "contain",
+          "imageWidth": 200
+        }
+      ]
     ]
   }
 }

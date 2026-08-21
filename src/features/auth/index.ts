@@ -5,6 +5,10 @@ export type { AuthenticationErrorCode } from './errors/authenticationError';
 export { translateAuthError } from './errors/translateAuthError';
 export { useAuth } from './hooks/useAuth';
 export type { UseAuthResult } from './hooks/useAuth';
+export { AuthNavigator } from './navigation/AuthNavigator';
+export { startAccountCreation, ACCOUNT_CREATION_ROUTE } from './navigation/startAccountCreation';
+export type { AuthStackParamList, AccountCreationStackParamList } from './navigation/types';
+export { IgniteEntryScreen } from './screens/IgniteEntryScreen';
 export type { AuthRepository, AuthStateUnsubscribe } from './repositories/authRepository';
 export {
   FirebaseAuthRepository,
