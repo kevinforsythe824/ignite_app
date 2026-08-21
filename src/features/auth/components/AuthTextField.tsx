@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import type { ReactNode } from 'react';
 import {
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -24,19 +25,26 @@ export const AuthTextField = forwardRef<TextInput, AuthTextFieldProps>(
     { label, error, editable = true, inputStyle, endAccessory, ...inputProps },
     ref,
   ): React.JSX.Element {
+    const { secureTextEntry, ...restInputProps } = inputProps;
+
     return (
       <View style={styles.field}>
         <Text style={styles.label}>{label}</Text>
         <View style={[styles.inputRow, error ? styles.inputError : null]}>
           <TextInput
             ref={ref}
-            {...inputProps}
+            {...restInputProps}
+            secureTextEntry={secureTextEntry}
             editable={editable}
             accessibilityLabel={label}
             accessibilityHint={error}
             accessibilityState={{ disabled: !editable }}
             placeholderTextColor={colors.textMuted}
-            style={[styles.input, inputStyle]}
+            style={[
+              styles.input,
+              secureTextEntry ? styles.secureEntry : null,
+              inputStyle,
+            ]}
           />
           {endAccessory}
         </View>
@@ -80,6 +88,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     color: colors.navy,
+  },
+  /**
+   * Custom fonts make iOS secure-entry bullets inconsistently sized across fields.
+   * Use the platform UI face while masked so Password / Confirm match.
+   */
+  secureEntry: {
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'sans-serif',
+      default: undefined,
+    }),
+    letterSpacing: 0,
   },
   inputError: {
     borderColor: colors.practicingRed,

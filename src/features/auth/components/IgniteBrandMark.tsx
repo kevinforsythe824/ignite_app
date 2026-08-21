@@ -43,7 +43,11 @@ export function IgniteBrandMark({
         resizeMode="contain"
         style={{ width: flameSize, height: flameSize }}
       />
-      {showWordmark ? <Text style={styles.name}>{authCopy.brand.name}</Text> : null}
+      {showWordmark ? (
+        <Text style={[styles.name, size === 'header' ? styles.nameHeader : null]}>
+          {authCopy.brand.name}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -54,7 +58,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   name: {
-    ...typography.verseReference,
+    ...typography.brandWordmark,
     color: colors.navy,
+  },
+  nameHeader: {
+    ...typography.verseReference,
+    fontFamily: typography.brandWordmark.fontFamily,
   },
 });

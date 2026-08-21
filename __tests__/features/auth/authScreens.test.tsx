@@ -42,12 +42,18 @@ async function renderScreen(
 }
 
 describe('AuthNavigator screens', () => {
-  it('shows Welcome actions and opens Sign In', async () => {
+  it('shows Welcome brand, value items, and opens Sign In', async () => {
     const repository = createAuthRepositoryFake();
     const screen = await renderAuthFlow(repository);
 
     expect(await screen.findByTestId('auth-welcome-create-account')).toBeTruthy();
-    expect(screen.getByText(authCopy.welcome.supporting)).toBeTruthy();
+    expect(screen.getByText(authCopy.brand.name)).toBeTruthy();
+    expect(screen.getByText(authCopy.welcome.tagline)).toBeTruthy();
+    for (const item of authCopy.welcome.valueItems) {
+      expect(
+        screen.getByLabelText(`${item.title}. ${item.description}`),
+      ).toBeTruthy();
+    }
     fireEvent.press(screen.getByTestId('auth-welcome-sign-in'));
 
     expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();

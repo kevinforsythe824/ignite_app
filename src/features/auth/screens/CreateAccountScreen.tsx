@@ -8,6 +8,7 @@ import { AuthPasswordField } from '../components/AuthPasswordField';
 import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextField } from '../components/AuthTextField';
+import { AuthTextLink } from '../components/AuthTextLink';
 import { IgniteBrandMark } from '../components/IgniteBrandMark';
 import { authCopy } from '../copy/authCopy';
 import { useAuth } from '../hooks/useAuth';
@@ -38,6 +39,15 @@ export function CreateAccountScreen(): React.JSX.Element {
       return;
     }
     navigation.getParent()?.goBack();
+  };
+
+  const handleSignIn = () => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.navigate('SignIn');
+      return;
+    }
+    handleBack();
   };
 
   const handleSubmit = () => {
@@ -113,6 +123,13 @@ export function CreateAccountScreen(): React.JSX.Element {
           loading={submitting}
           disabled={submitting}
         />
+        <AuthTextLink
+          testID="auth-create-account-sign-in"
+          prompt={authCopy.createAccount.signInPrompt}
+          label={authCopy.createAccount.signIn}
+          disabled={submitting}
+          onPress={handleSignIn}
+        />
       </View>
     </AuthScreenLayout>
   );
@@ -127,10 +144,7 @@ const styles = StyleSheet.create({
     ...typography.verseReference,
   },
   supporting: {
-    ...typography.hint,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textSecondary,
+    ...typography.brandTagline,
   },
   guidance: {
     ...typography.hint,

@@ -1,3 +1,11 @@
+jest.mock('@expo-google-fonts/nunito-sans', () => ({
+  useFonts: () => [true],
+  NunitoSans_400Regular: 'NunitoSans_400Regular',
+  NunitoSans_500Medium: 'NunitoSans_500Medium',
+  NunitoSans_700Bold: 'NunitoSans_700Bold',
+  NunitoSans_800ExtraBold: 'NunitoSans_800ExtraBold',
+}));
+
 jest.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: jest.fn(() => Promise.resolve()),
   hideAsync: jest.fn(() => Promise.resolve()),

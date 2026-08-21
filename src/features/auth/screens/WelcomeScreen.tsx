@@ -3,11 +3,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '../../../shared/theme';
+import { spacing, typography } from '../../../shared/theme';
 import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextLink } from '../components/AuthTextLink';
 import { IgniteBrandMark } from '../components/IgniteBrandMark';
+import { WelcomeValueRow } from '../components/WelcomeValueRow';
 import { AUTH_ACTIONS_HORIZONTAL_INSET } from '../components/authLayout';
 import { authCopy } from '../copy/authCopy';
 import { startAccountCreation } from '../navigation/startAccountCreation';
@@ -21,8 +22,20 @@ export function WelcomeScreen(): React.JSX.Element {
       <View style={styles.content}>
         <View style={styles.brandBlock}>
           <IgniteBrandMark size="welcome" />
-          <Text style={styles.supporting}>{authCopy.welcome.supporting}</Text>
+          <Text style={styles.tagline}>{authCopy.welcome.tagline}</Text>
         </View>
+
+        <View style={styles.values}>
+          {authCopy.welcome.valueItems.map((item) => (
+            <WelcomeValueRow
+              key={item.id}
+              title={item.title}
+              description={item.description}
+              icon={item.icon}
+            />
+          ))}
+        </View>
+
         <View style={styles.actions}>
           <AuthPrimaryButton
             testID="auth-welcome-create-account"
@@ -45,20 +58,21 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'space-between',
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.xl,
+    gap: spacing.xl,
   },
   brandBlock: {
     alignItems: 'center',
-    gap: spacing.lg,
-    paddingTop: spacing.xl,
+    gap: spacing.md,
+    paddingTop: spacing.lg,
   },
-  supporting: {
-    ...typography.hint,
+  tagline: {
+    ...typography.brandTagline,
     textAlign: 'center',
-    fontSize: 17,
-    lineHeight: 26,
-    color: colors.textSecondary,
-    paddingHorizontal: spacing.md,
+  },
+  values: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
   },
   actions: {
     gap: spacing.sm,

@@ -7,6 +7,7 @@ import { colors, spacing, typography } from '../../../shared/theme';
 import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextField } from '../components/AuthTextField';
+import { AuthTextLink } from '../components/AuthTextLink';
 import { IgniteBrandMark } from '../components/IgniteBrandMark';
 import { authCopy } from '../copy/authCopy';
 import { useAuth } from '../hooks/useAuth';
@@ -85,6 +86,12 @@ export function ForgotPasswordScreen(): React.JSX.Element {
           loading={submitting}
           disabled={submitting}
         />
+        <AuthTextLink
+          testID="auth-forgot-password-back-to-sign-in"
+          label={authCopy.forgotPassword.backToSignIn}
+          disabled={submitting}
+          onPress={() => navigation.navigate('SignIn')}
+        />
       </View>
     </AuthScreenLayout>
   );
@@ -99,10 +106,7 @@ const styles = StyleSheet.create({
     ...typography.verseReference,
   },
   supporting: {
-    ...typography.hint,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textSecondary,
+    ...typography.brandTagline,
   },
   form: {
     gap: spacing.md,

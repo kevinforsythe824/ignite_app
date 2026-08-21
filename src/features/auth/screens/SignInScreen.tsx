@@ -13,6 +13,7 @@ import { IgniteBrandMark } from '../components/IgniteBrandMark';
 import { authCopy } from '../copy/authCopy';
 import { useAuth } from '../hooks/useAuth';
 import { useAuthOperation } from '../hooks/useAuthOperation';
+import { startAccountCreation } from '../navigation/startAccountCreation';
 import type { AuthStackParamList } from '../navigation/types';
 import {
   hasFormErrors,
@@ -81,6 +82,12 @@ export function SignInScreen(): React.JSX.Element {
             {errorMessage}
           </Text>
         ) : null}
+        <AuthTextLink
+          testID="auth-sign-in-forgot-password"
+          label={authCopy.signIn.forgotPassword}
+          disabled={submitting}
+          onPress={() => navigation.navigate('ForgotPassword')}
+        />
         <AuthPrimaryButton
           testID="auth-sign-in-submit"
           label={authCopy.signIn.submit}
@@ -90,10 +97,11 @@ export function SignInScreen(): React.JSX.Element {
           disabled={submitting}
         />
         <AuthTextLink
-          testID="auth-sign-in-forgot-password"
-          label={authCopy.signIn.forgotPassword}
+          testID="auth-sign-in-create-account"
+          prompt={authCopy.signIn.createAccountPrompt}
+          label={authCopy.signIn.createAccount}
           disabled={submitting}
-          onPress={() => navigation.navigate('ForgotPassword')}
+          onPress={() => startAccountCreation(navigation)}
         />
       </View>
     </AuthScreenLayout>
@@ -109,10 +117,7 @@ const styles = StyleSheet.create({
     ...typography.verseReference,
   },
   supporting: {
-    ...typography.hint,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textSecondary,
+    ...typography.brandTagline,
   },
   form: {
     gap: spacing.md,
