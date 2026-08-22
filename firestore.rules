@@ -3,9 +3,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Quizzer profile: private to the authenticated owner.
+    // Path: users/{userId}/profile/main
+    function validQuizzerProfileWrite(data) {
+      return data.keys().hasOnly(['first_name', 'last_name', 'avatar_id'])
+        && data.first_name is string
+        && data.first_name.size() > 0
+        && data.last_name is string
+        && data.last_name.size() > 0
+        && (data.avatar_id == null || data.avatar_id is string);
+    }
+
     // Official season curriculum (read-only from clients).
     // Matches currently deployed DEV behavior for the Flashcard flow.
-    // Sprint 2+ will add authenticated-user rules; do not broaden writes here.
+    // Do not broaden writes here.
     match /seasons/{seasonId} {
       allow read: if true;
       allow write: if false;
@@ -13,6 +32,20 @@ service cloud.firestore {
       match /cards/{cardId} {
         allow read: if true;
         allow write: if false;
+      }
+    }
+
+    match /users/{userId} {
+      match /profile/{profileId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && profileId == 'main'
+          && validQuizzerProfileWrite(request.resource.data);
+
+        // Phase 4: provision is create-if-missing only; Edit Name comes later.
+        allow update: if false;
+        allow delete: if false;
       }
     }
   }

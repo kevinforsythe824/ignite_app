@@ -429,7 +429,7 @@ Entitlement personas require Sprint 4 purchase/access implementation. Use for pl
 | `s4-security-no-entitlement-access-001` | 4 | Entitlement required for protected study paths |
 | `s4-entitlement-restored-001` | 4 | Restore does not grant cross-user access |
 
-Current DEV rules allow **public read** on `seasons` and `cards` (see [`ENVIRONMENTS.md`](../operations/ENVIRONMENTS.md)). Sprint 2/3 Security Rules work should replace that temporary posture with authenticated, entitlement-aware rules. Emulator-based rule tests are a documented follow-up.
+Current DEV rules allow **public read** on `seasons` and `cards` (see [`ENVIRONMENTS.md`](../operations/ENVIRONMENTS.md)). Sprint 2 Phase 4 adds owner-scoped `users/{userId}/profile/{profileId}` rules. Run `npm run test:firestore-rules` (requires Java + Firestore emulator) for ownership/field validation. Broader entitlement-aware curriculum rules remain a later follow-up.
 
 ---
 

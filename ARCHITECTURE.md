@@ -20,10 +20,11 @@ ignite_app/
 │   ├── operations/              # Runbooks (incl. Firebase environments)
 │   └── testing/                 # Test-strategy notes
 ├── .firebaserc                  # Firebase CLI aliases: dev / staging / prod
-├── firebase.json                # Firestore rules/indexes paths (do not deploy casually)
-├── firestore.rules              # Local baseline; reconcile before first deploy
+├── firebase.json                # Firestore rules/indexes + local emulator ports
+├── firestore.rules              # Curriculum + user profile ownership rules
 ├── firestore.indexes.json
 ├── __tests__/                   # Jest business-logic & smoke tests
+│   └── firestore-rules/         # Real rules unit tests (npm run test:firestore-rules)
 ├── scripts/                     # Developer tooling (not shipped in the app)
 │   └── firestore-seed/          # Admin SDK import of the JSON test curriculum
 ├── .cursor/rules/               # AI coding rules (incl. project-philosophy)
@@ -38,6 +39,11 @@ ignite_app/
 │   │   │   ├── hooks/           # useAuth
 │   │   │   ├── repositories/    # AuthRepository; Firebase Auth live adapter
 │   │   │   └── state/           # Session reducer + AuthProvider
+│   │   ├── profile/             # Quizzer profile domain + Firestore repository (Phase 4)
+│   │   │   ├── domain/          # QuizzerProfile (separate from AuthenticatedIdentity)
+│   │   │   ├── data/            # Firestore DTO + faithful mapper
+│   │   │   ├── errors/          # QuizzerProfileError + translation
+│   │   │   └── repositories/    # getProfile + atomic provisionProfile
 │   │   └── flashcards/          # Full Study/Flashcards feature
 │   │       ├── components/      # Presentation UI
 │   │       ├── data/            # JSON + Firestore persistence DTOs → Card mappers

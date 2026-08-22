@@ -94,24 +94,45 @@ Do not run `firebase deploy` against `prod` as a habit. There is no npm script t
 
 ## Firestore Security Rules
 
-After reconciliation with DEV (`wpf-bible-qizzing`), `firestore.rules` in git reflects the **currently deployed DEV curriculum rules**:
+`firestore.rules` in git is the source of truth for rules changes. Current coverage:
 
 - `seasons/{seasonId}` — client read allowed; writes denied
 - `seasons/{seasonId}/cards/{cardId}` — client read allowed; writes denied
-
-These rules support the existing Flashcard curriculum read path. They do **not** implement Sprint 2 authenticated-user access yet.
+- `users/{userId}/profile/{profileId}` — authenticated owner read/create of `main` only; updates/deletes denied (Sprint 2 Phase 4). Cross-user and unauthenticated access denied.
 
 **Workflow**
 
 1. Edit rules in git (`firestore.rules`), not only in the Firebase Console.
-2. Validate syntax and exercise the app against DEV before deploying.
-3. Deploy to **dev** first: `--project dev`
+2. Run automated rules tests: `npm run test:firestore-rules` (Firestore emulator + `@firebase/rules-unit-testing`).
+3. Deploy to **dev** first: `--project dev` (manual operator step after review).
 4. Promote the same git revision to **staging** after DEV verification: `--project staging`
 5. Deploy to **prod** only after staging sign-off, with an explicit `--project prod` command.
 
 Console edits without a matching git change will drift from the repo. Deploying from git overwrites whatever is currently in the console for that project.
 
-Automated Security Rules tests are not yet in the repo. Add emulator-based rule tests during Sprint 2/3 when authentication and ownership rules are introduced.
+### Rules unit tests
+
+```bash
+npm run test:firestore-rules
+```
+
+This starts the local Firestore emulator via `firebase emulators:exec`, then runs `__tests__/firestore-rules/*.rules.test.ts`.
+
+**Prerequisites**
+- A Java Runtime (JRE/JDK) on `PATH` — required by the Firestore emulator. Without Java, `npm run test:firestore-rules` fails before tests run.
+- `@firebase/rules-unit-testing` (devDependency) and the `emulators.firestore` block in `firebase.json`.
+
+Do not confuse these with application repository mocks — they exercise the real `firestore.rules` file. Main `npm test` excludes `__tests__/firestore-rules/` so unit CI does not require the emulator.
+
+**Phase 4 DEV deploy (manual, after review):**
+
+```bash
+npm run firebase:target   # confirm active project is wpf-bible-qizzing (dev)
+npx -y firebase-tools@latest deploy --only firestore:rules --project dev
+npm run firebase:use:dev  # restore CLI default if needed
+```
+
+Do **not** deploy rules to staging or prod as part of ordinary Phase 4 work.
 
 ## How backend config/rules are promoted
 

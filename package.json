@@ -23,6 +23,7 @@
     "react-native-screens": "~4.26.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
@@ -41,6 +42,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:ci": "jest --watchAll=false --ci",
+    "test:firestore-rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project ignite-rules-test \"jest --config jest.firestore-rules.config.js --watchAll=false\"",
     "seed:firestore": "tsx scripts/firestore-seed/seedFirestore.ts",
     "firebase:target": "npx -y firebase-tools@latest use",
     "firebase:use:dev": "npx -y firebase-tools@latest use dev",
@@ -50,6 +52,10 @@
     "preset": "jest-expo",
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/__tests__/firestore-rules/"
     ]
   },
   "private": true

@@ -25,6 +25,9 @@ jest.mock('firebase/firestore', () => ({
   orderBy: jest.fn(() => ({})),
   getDoc: jest.fn(() => Promise.reject(new Error('Firestore is mocked in tests'))),
   getDocs: jest.fn(() => Promise.reject(new Error('Firestore is mocked in tests'))),
+  runTransaction: jest.fn(() =>
+    Promise.reject(new Error('Firestore is mocked in tests')),
+  ),
 }));
 
 jest.mock('@expo/vector-icons', () => {
