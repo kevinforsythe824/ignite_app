@@ -8,11 +8,17 @@ import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextLink } from '../components/AuthTextLink';
 import { IgniteBrandMark } from '../components/IgniteBrandMark';
-import { WelcomeValueRow } from '../components/WelcomeValueRow';
+import { WelcomeValueRow, type WelcomeValueTone } from '../components/WelcomeValueRow';
 import { AUTH_ACTIONS_HORIZONTAL_INSET } from '../components/authLayout';
 import { authCopy } from '../copy/authCopy';
 import { startAccountCreation } from '../navigation/startAccountCreation';
 import type { AuthStackParamList } from '../navigation/types';
+
+const VALUE_TONES: Record<(typeof authCopy.welcome.valueItems)[number]['id'], WelcomeValueTone> = {
+  study: 'coral',
+  confidence: 'blue',
+  ready: 'gold',
+};
 
 export function WelcomeScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList, 'Welcome'>>();
@@ -32,6 +38,7 @@ export function WelcomeScreen(): React.JSX.Element {
               title={item.title}
               description={item.description}
               icon={item.icon}
+              tone={VALUE_TONES[item.id]}
             />
           ))}
         </View>
@@ -71,8 +78,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   values: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    gap: spacing.md,
   },
   actions: {
     gap: spacing.sm,
