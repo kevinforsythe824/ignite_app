@@ -9,14 +9,15 @@ import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextField } from '../components/AuthTextField';
 import { AuthTextLink } from '../components/AuthTextLink';
-import { IgniteBrandMark } from '../components/IgniteBrandMark';
 import { authCopy } from '../copy/authCopy';
 import { useAuth } from '../hooks/useAuth';
 import { useAuthOperation } from '../hooks/useAuthOperation';
-import type { AccountCreationStackParamList } from '../navigation/types';
+import type { AccountCreationStackParamList, AuthStackParamList } from '../navigation/types';
 import {
   hasFormErrors,
   validateCreateAccountForm,
+  validateEmail,
+  validatePasswordConfirmation,
   type CreateAccountFormErrors,
 } from '../validation/authFormValidation';
 
@@ -42,12 +43,62 @@ export function CreateAccountScreen(): React.JSX.Element {
   };
 
   const handleSignIn = () => {
-    const parent = navigation.getParent();
+    const parent = navigation.getParent<NativeStackNavigationProp<AuthStackParamList>>();
     if (parent) {
-      parent.navigate('SignIn');
+      parent.replace('SignIn');
       return;
     }
     handleBack();
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (fieldErrors.email) {
+      setFieldErrors((current) => ({
+        ...current,
+        email: validateEmail(value),
+      }));
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setFieldErrors((current) => ({
+      ...current,
+      email: validateEmail(email),
+    }));
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setFieldErrors((current) => {
+      if (!current.confirmPassword && confirmPassword.length === 0) {
+        return current;
+      }
+      return {
+        ...current,
+        confirmPassword: validatePasswordConfirmation(value, confirmPassword),
+      };
+    });
+  };
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+    setFieldErrors((current) => {
+      if (value.length === 0 && !current.confirmPassword) {
+        return current;
+      }
+      return {
+        ...current,
+        confirmPassword: validatePasswordConfirmation(password, value),
+      };
+    });
+  };
+
+  const handleConfirmPasswordBlur = () => {
+    setFieldErrors((current) => ({
+      ...current,
+      confirmPassword: validatePasswordConfirmation(password, confirmPassword),
+    }));
   };
 
   const handleSubmit = () => {
@@ -63,16 +114,15 @@ export function CreateAccountScreen(): React.JSX.Element {
   return (
     <AuthScreenLayout onBack={handleBack}>
       <View style={styles.header}>
-        <IgniteBrandMark size="header" />
         <Text style={styles.title}>{authCopy.createAccount.title}</Text>
         <Text style={styles.supporting}>{authCopy.createAccount.supporting}</Text>
-        <Text style={styles.guidance}>{authCopy.createAccount.passwordGuidance}</Text>
       </View>
       <View style={styles.form}>
         <AuthTextField
           label={authCopy.fields.email}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={handleEmailChange}
+          onBlur={handleEmailBlur}
           error={fieldErrors.email}
           autoCapitalize="none"
           autoCorrect={false}
@@ -88,7 +138,7 @@ export function CreateAccountScreen(): React.JSX.Element {
           ref={passwordRef}
           label={authCopy.fields.password}
           value={password}
-          onChangeText={setPassword}
+          onChangeText={handlePasswordChange}
           error={fieldErrors.password}
           autoComplete="password-new"
           textContentType="newPassword"
@@ -101,10 +151,11 @@ export function CreateAccountScreen(): React.JSX.Element {
           ref={confirmRef}
           label={authCopy.fields.confirmPassword}
           value={confirmPassword}
-          onChangeText={setConfirmPassword}
+          onChangeText={handleConfirmPasswordChange}
+          onBlur={handleConfirmPasswordBlur}
           error={fieldErrors.confirmPassword}
-          autoComplete="password-new"
-          textContentType="newPassword"
+          autoComplete="password"
+          textContentType="password"
           returnKeyType="done"
           onSubmitEditing={handleSubmit}
           editable={!submitting}
@@ -145,9 +196,6 @@ const styles = StyleSheet.create({
   },
   supporting: {
     ...typography.brandTagline,
-  },
-  guidance: {
-    ...typography.hint,
   },
   form: {
     gap: spacing.md,

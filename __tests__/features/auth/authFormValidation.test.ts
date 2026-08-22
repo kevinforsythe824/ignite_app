@@ -19,11 +19,13 @@ describe('authFormValidation', () => {
     it('rejects an obviously invalid email shape', () => {
       expect(validateEmail('not-an-email')).toBe(authCopy.validation.emailInvalid);
       expect(validateEmail('missing-domain@')).toBe(authCopy.validation.emailInvalid);
+      expect(validateEmail('a@b')).toBe(authCopy.validation.emailInvalid);
     });
 
     it('accepts a typical email', () => {
       expect(validateEmail('quizzer@example.com')).toBeUndefined();
       expect(validateEmail('  quizzer@example.com  ')).toBeUndefined();
+      expect(validateEmail('a@b.c')).toBeUndefined();
     });
   });
 

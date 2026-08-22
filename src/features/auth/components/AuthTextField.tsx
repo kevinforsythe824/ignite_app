@@ -32,6 +32,8 @@ export const AuthTextField = forwardRef<TextInput, AuthTextFieldProps>(
         <Text style={styles.label}>{label}</Text>
         <View style={[styles.inputRow, error ? styles.inputError : null]}>
           <TextInput
+            // Remount when masking toggles so iOS reapplies secureTextEntry after autofill.
+            key={secureTextEntry ? 'secure' : 'plain'}
             ref={ref}
             {...restInputProps}
             secureTextEntry={secureTextEntry}

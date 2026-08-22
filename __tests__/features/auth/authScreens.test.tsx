@@ -57,6 +57,7 @@ describe('AuthNavigator screens', () => {
     fireEvent.press(screen.getByTestId('auth-welcome-sign-in'));
 
     expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();
+    expect(screen.getAllByText(authCopy.signIn.title).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(authCopy.signIn.supporting)).toBeTruthy();
     expect(screen.getByLabelText(authCopy.fields.email)).toBeTruthy();
     expect(screen.getByLabelText(authCopy.fields.password)).toBeTruthy();
@@ -69,7 +70,9 @@ describe('AuthNavigator screens', () => {
     fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
 
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
+    expect(screen.getByText(authCopy.createAccount.title)).toBeTruthy();
     expect(screen.getByText(authCopy.createAccount.supporting)).toBeTruthy();
+    expect(screen.queryByText('Choose a password you can remember.')).toBeNull();
     expect(screen.getByLabelText(authCopy.fields.email)).toBeTruthy();
     expect(screen.getByLabelText(authCopy.fields.password)).toBeTruthy();
     expect(screen.getByLabelText(authCopy.fields.confirmPassword)).toBeTruthy();
@@ -83,6 +86,32 @@ describe('AuthNavigator screens', () => {
 
     expect(await screen.findByText(authCopy.validation.emailRequired)).toBeTruthy();
     expect(screen.getByText(authCopy.validation.passwordRequired)).toBeTruthy();
+    expect(repository.signIn).not.toHaveBeenCalled();
+  });
+
+  it('shows an email format error on Sign In submit', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderScreen('SignIn', SignInScreen, repository);
+
+    await user.type(await screen.findByTestId('auth-sign-in-email'), 'not-an-email');
+    await user.type(screen.getByTestId('auth-sign-in-password'), 'secret');
+    await user.press(screen.getByTestId('auth-sign-in-submit'));
+
+    expect(await screen.findByText(authCopy.validation.emailInvalid)).toBeTruthy();
+    expect(repository.signIn).not.toHaveBeenCalled();
+  });
+
+  it('shows an email format error when Sign In email blurs invalid', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderScreen('SignIn', SignInScreen, repository);
+
+    const emailField = await screen.findByTestId('auth-sign-in-email');
+    await user.type(emailField, 'not-an-email');
+    fireEvent(emailField, 'blur');
+
+    expect(await screen.findByText(authCopy.validation.emailInvalid)).toBeTruthy();
     expect(repository.signIn).not.toHaveBeenCalled();
   });
 
@@ -186,6 +215,45 @@ describe('AuthNavigator screens', () => {
     expect(repository.signUp).not.toHaveBeenCalled();
   });
 
+  it('shows a password mismatch error while confirming on Create Account', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderScreen('CreateAccount', CreateAccountScreen, repository);
+
+    await user.type(await screen.findByTestId('auth-create-account-password'), 'secret');
+    await user.type(screen.getByTestId('auth-create-account-confirm-password'), 'other');
+
+    expect(await screen.findByText(authCopy.validation.passwordMismatch)).toBeTruthy();
+    expect(repository.signUp).not.toHaveBeenCalled();
+  });
+
+  it('shows an email format error on Create Account submit', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderScreen('CreateAccount', CreateAccountScreen, repository);
+
+    await user.type(await screen.findByTestId('auth-create-account-email'), 'not-an-email');
+    await user.type(screen.getByTestId('auth-create-account-password'), 'secret');
+    await user.type(screen.getByTestId('auth-create-account-confirm-password'), 'secret');
+    await user.press(screen.getByTestId('auth-create-account-submit'));
+
+    expect(await screen.findByText(authCopy.validation.emailInvalid)).toBeTruthy();
+    expect(repository.signUp).not.toHaveBeenCalled();
+  });
+
+  it('shows an email format error when Create Account email blurs invalid', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderScreen('CreateAccount', CreateAccountScreen, repository);
+
+    const emailField = await screen.findByTestId('auth-create-account-email');
+    await user.type(emailField, 'not-an-email');
+    fireEvent(emailField, 'blur');
+
+    expect(await screen.findByText(authCopy.validation.emailInvalid)).toBeTruthy();
+    expect(repository.signUp).not.toHaveBeenCalled();
+  });
+
   it('creates an account with email and password only', async () => {
     const user = userEvent.setup();
     const repository = createAuthRepositoryFake();
@@ -249,12 +317,76 @@ describe('AuthNavigator screens', () => {
     const repository = createAuthRepositoryFake();
     const screen = await renderScreen('ForgotPassword', ForgotPasswordScreen, repository);
 
+    expect(await screen.findByText(authCopy.forgotPassword.title)).toBeTruthy();
     await user.type(await screen.findByTestId('auth-forgot-password-email'), 'quizzer@example.com');
     await user.press(screen.getByTestId('auth-forgot-password-submit'));
 
     expect(await screen.findByText(authCopy.forgotPassword.success)).toBeTruthy();
     expect(repository.sendPasswordResetEmail).toHaveBeenCalledWith('quizzer@example.com');
     expect(repository.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an email format error on Forgot Password submit', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderScreen('ForgotPassword', ForgotPasswordScreen, repository);
+
+    await user.type(await screen.findByTestId('auth-forgot-password-email'), 'not-an-email');
+    await user.press(screen.getByTestId('auth-forgot-password-submit'));
+
+    expect(await screen.findByText(authCopy.validation.emailInvalid)).toBeTruthy();
+    expect(repository.sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it('shows an email format error when Forgot Password email blurs invalid', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderScreen('ForgotPassword', ForgotPasswordScreen, repository);
+
+    const emailField = await screen.findByTestId('auth-forgot-password-email');
+    await user.type(emailField, 'not-an-email');
+    fireEvent(emailField, 'blur');
+
+    expect(await screen.findByText(authCopy.validation.emailInvalid)).toBeTruthy();
+    expect(repository.sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it('returns to the previous Sign In screen from Back to Sign In', async () => {
+    const repository = createAuthRepositoryFake();
+    const screen = await renderAuthFlow(repository);
+
+    fireEvent.press(await screen.findByTestId('auth-welcome-sign-in'));
+    expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();
+
+    fireEvent.press(screen.getByText(authCopy.signIn.forgotPassword));
+    expect(await screen.findByTestId('auth-forgot-password-back-to-sign-in')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('auth-forgot-password-back-to-sign-in'));
+
+    expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();
+    expect(screen.queryByTestId('auth-forgot-password-submit')).toBeNull();
+  });
+
+  it('does not stack Sign In and Create Account when switching between them', async () => {
+    const repository = createAuthRepositoryFake();
+    const screen = await renderAuthFlow(repository);
+
+    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    expect(await screen.findByTestId('auth-create-account-sign-in')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('auth-create-account-sign-in'));
+    expect(await screen.findByTestId('auth-sign-in-create-account')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('auth-sign-in-create-account'));
+    expect(await screen.findByTestId('auth-create-account-sign-in')).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId('auth-create-account-sign-in'));
+    expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('auth-welcome-create-account')).toBeTruthy();
+    expect(screen.queryByTestId('auth-sign-in-submit')).toBeNull();
+    expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
   });
 
   it('announces a submitting label on Forgot Password', async () => {

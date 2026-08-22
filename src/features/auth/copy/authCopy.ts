@@ -44,7 +44,6 @@ export const authCopy = {
     supporting: 'Start studying with Ignite.',
     submit: 'Create Account',
     submitting: 'Creating account',
-    passwordGuidance: 'Choose a password you can remember.',
     signInPrompt: 'Already have an account?',
     signIn: 'Sign In',
   },

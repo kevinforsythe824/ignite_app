@@ -8,13 +8,13 @@ import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextField } from '../components/AuthTextField';
 import { AuthTextLink } from '../components/AuthTextLink';
-import { IgniteBrandMark } from '../components/IgniteBrandMark';
 import { authCopy } from '../copy/authCopy';
 import { useAuth } from '../hooks/useAuth';
 import { useAuthOperation } from '../hooks/useAuthOperation';
 import type { AuthStackParamList } from '../navigation/types';
 import {
   hasFormErrors,
+  validateEmail,
   validateForgotPasswordForm,
   type ForgotPasswordFormErrors,
 } from '../validation/authFormValidation';
@@ -28,6 +28,24 @@ export function ForgotPasswordScreen(): React.JSX.Element {
   const [email, setEmail] = useState('');
   const [fieldErrors, setFieldErrors] = useState<ForgotPasswordFormErrors>({});
   const [succeeded, setSucceeded] = useState(false);
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setSucceeded(false);
+    if (fieldErrors.email) {
+      setFieldErrors((current) => ({
+        ...current,
+        email: validateEmail(value),
+      }));
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setFieldErrors((current) => ({
+      ...current,
+      email: validateEmail(email),
+    }));
+  };
 
   const handleSubmit = () => {
     const errors = validateForgotPasswordForm({ email });
@@ -45,7 +63,6 @@ export function ForgotPasswordScreen(): React.JSX.Element {
   return (
     <AuthScreenLayout onBack={() => navigation.goBack()}>
       <View style={styles.header}>
-        <IgniteBrandMark size="header" />
         <Text style={styles.title}>{authCopy.forgotPassword.title}</Text>
         <Text style={styles.supporting}>{authCopy.forgotPassword.supporting}</Text>
       </View>
@@ -53,10 +70,8 @@ export function ForgotPasswordScreen(): React.JSX.Element {
         <AuthTextField
           label={authCopy.fields.email}
           value={email}
-          onChangeText={(value) => {
-            setEmail(value);
-            setSucceeded(false);
-          }}
+          onChangeText={handleEmailChange}
+          onBlur={handleEmailBlur}
           error={fieldErrors.email}
           autoCapitalize="none"
           autoCorrect={false}
@@ -90,7 +105,7 @@ export function ForgotPasswordScreen(): React.JSX.Element {
           testID="auth-forgot-password-back-to-sign-in"
           label={authCopy.forgotPassword.backToSignIn}
           disabled={submitting}
-          onPress={() => navigation.navigate('SignIn')}
+          onPress={() => navigation.goBack()}
         />
       </View>
     </AuthScreenLayout>

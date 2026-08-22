@@ -9,7 +9,6 @@ import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextField } from '../components/AuthTextField';
 import { AuthTextLink } from '../components/AuthTextLink';
-import { IgniteBrandMark } from '../components/IgniteBrandMark';
 import { authCopy } from '../copy/authCopy';
 import { useAuth } from '../hooks/useAuth';
 import { useAuthOperation } from '../hooks/useAuthOperation';
@@ -17,6 +16,7 @@ import { startAccountCreation } from '../navigation/startAccountCreation';
 import type { AuthStackParamList } from '../navigation/types';
 import {
   hasFormErrors,
+  validateEmail,
   validateSignInForm,
   type SignInFormErrors,
 } from '../validation/authFormValidation';
@@ -31,6 +31,23 @@ export function SignInScreen(): React.JSX.Element {
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<SignInFormErrors>({});
 
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (fieldErrors.email) {
+      setFieldErrors((current) => ({
+        ...current,
+        email: validateEmail(value),
+      }));
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setFieldErrors((current) => ({
+      ...current,
+      email: validateEmail(email),
+    }));
+  };
+
   const handleSubmit = () => {
     const errors = validateSignInForm({ email, password });
     setFieldErrors(errors);
@@ -44,7 +61,6 @@ export function SignInScreen(): React.JSX.Element {
   return (
     <AuthScreenLayout onBack={() => navigation.goBack()}>
       <View style={styles.header}>
-        <IgniteBrandMark size="header" />
         <Text style={styles.title}>{authCopy.signIn.title}</Text>
         <Text style={styles.supporting}>{authCopy.signIn.supporting}</Text>
       </View>
@@ -52,7 +68,8 @@ export function SignInScreen(): React.JSX.Element {
         <AuthTextField
           label={authCopy.fields.email}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={handleEmailChange}
+          onBlur={handleEmailBlur}
           error={fieldErrors.email}
           autoCapitalize="none"
           autoCorrect={false}
@@ -101,7 +118,7 @@ export function SignInScreen(): React.JSX.Element {
           prompt={authCopy.signIn.createAccountPrompt}
           label={authCopy.signIn.createAccount}
           disabled={submitting}
-          onPress={() => startAccountCreation(navigation)}
+          onPress={() => startAccountCreation(navigation, { replace: true })}
         />
       </View>
     </AuthScreenLayout>
