@@ -1,9 +1,9 @@
 /**
  * Auth presentation routes.
  *
- * AccountCreation is a nested stack so a future approved privacy/age screen
- * can become its initial route without changing Welcome or rewriting the auth feature.
- * Do not navigate from Welcome directly to CreateAccount.
+ * AccountCreation is a nested stack whose initial route is PrivacyAge
+ * (then CreateAccount, or UnderThirteenBlocked). Do not navigate from
+ * Welcome directly to CreateAccount.
  */
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -13,5 +13,7 @@ export type AuthStackParamList = {
 };
 
 export type AccountCreationStackParamList = {
+  PrivacyAge: undefined;
+  UnderThirteenBlocked: undefined;
   CreateAccount: undefined;
 };

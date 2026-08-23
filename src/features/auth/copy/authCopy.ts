@@ -65,6 +65,22 @@ export const authCopy = {
   },
   actions: {
     back: 'Back',
+    signOut: 'Sign Out',
+    tryAgain: 'Try Again',
+    continue: 'Continue',
+  },
+  privacyAge: {
+    title: 'Before we continue',
+    supporting: 'Ignite needs to know which account path is right for you.',
+    question: 'Are you 13 or older?',
+    thirteenOrOlder: 'I am 13 or older',
+    underThirteen: 'I am under 13',
+  },
+  underThirteenBlocked: {
+    title: 'Account creation isn’t available on this path yet',
+    body:
+      'If you’re under 13, Ignite can’t finish creating an account in this version of the app. A parent- or guardian-approved path will be added later. You can go back to Welcome.',
+    backToWelcome: 'Back to Welcome',
   },
   validation: {
     emailRequired: 'Enter your email address.',

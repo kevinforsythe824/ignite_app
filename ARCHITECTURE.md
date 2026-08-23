@@ -172,12 +172,17 @@ Prefer **named exports**; default exports are used for some screens/components f
 ## 7. Navigation
 
 - **Library:** React Navigation (not Expo Router).
-- **Root:** native stack switched on AuthProvider session:
+- **Root:** native stack switched on AuthProvider session and Quizzer profile presence:
   - `initializing` → Ignite Entry (branded cover; does not delay auth restoration)
   - `unauthenticated` → Auth stack (Welcome, Sign In, Forgot Password, nested AccountCreation)
-  - `authenticated` → `MainTabs` + `TournamentDetails` placeholder (later Sprint 2 onboarding groups insert here)
+  - Create Account path → PrivacyAge boundary → CreateAccount (13+) or UnderThirteenBlocked (terminal hold; VPC not invented here)
+  - `authenticated` → resolve Quizzer profile before MainTabs:
+    - `loading` / `idle` → profile loading cover
+    - `missing` → Quizzer name onboarding
+    - `error` → Retry / Sign Out recovery
+    - `ready` → `MainTabs` (+ TournamentDetails placeholder)
 - **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
-- **Default authenticated entry:** Study → Flashcards (current product experience).
+- **Default authenticated entry (profile ready):** Study → Flashcards (current product experience).
 - Placeholder tabs live in `src/screens/*` until their features exist.
 - Tab screens are `lazy: true`.
 

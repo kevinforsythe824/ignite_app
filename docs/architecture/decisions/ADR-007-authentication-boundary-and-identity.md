@@ -26,8 +26,8 @@ Mirrors ADR-001 repository isolation for a non-Firestore concern. Keeps future o
 - Legacy `AuthService` / `AuthUser` stubs in `src/services/firebase/` are removed; authentication consumers import from `src/features/auth/`.
 - Forgot Password / reset email is part of the authentication contract (`sendPasswordResetEmail`). A missing account (`user-not-found`) is treated as success so reset does not enumerate emails; other reset failures still become `AuthenticationError`. Reauthentication and email-change operations wait for the Settings phase.
 - Sign-up creates a Firebase Auth account only. It does not provision a Quizzer profile. Authenticated identity with a missing profile is a valid later onboarding/recovery state.
-- Root navigation gates presentation on AuthProvider session: initializing shows Ignite Entry, unauthenticated shows the auth stack, authenticated shows the existing MainTabs shell until later onboarding routing is added.
-- Welcome starts account creation through the nested `AccountCreation` stack (`startAccountCreation`) rather than opening the credential form directly. A future approved privacy/age screen can become that stack’s initial route without rewriting the authentication feature.
+- Root navigation gates presentation on AuthProvider session and Quizzer profile presence: initializing shows Ignite Entry; unauthenticated shows the auth stack; authenticated resolves Quizzer profile (`loading` / `missing` / `error` / `ready`) before MainTabs. Missing profile shows name onboarding; load failure shows Retry / Sign Out; ready shows MainTabs.
+- Welcome starts account creation through the nested `AccountCreation` stack (`startAccountCreation`) rather than opening the credential form directly. That stack’s initial route is the privacy-age boundary; under-13 users reach a terminal hold pending an approved verifiable parental-consent mechanism (not invented in ordinary onboarding UI).
 
 ## Alternatives considered
 

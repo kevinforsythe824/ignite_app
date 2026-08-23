@@ -46,6 +46,24 @@ jest.mock('../src/features/auth', () => {
   };
 });
 
+jest.mock('../src/features/profile/repositories', () => {
+  const profile = {
+    quizzerId: 'app-test-user',
+    firstName: 'App',
+    lastName: 'Tester',
+    avatarId: null,
+  };
+
+  return {
+    firestoreQuizzerProfileRepository: {
+      getProfile: jest.fn(async () => profile),
+      provisionProfile: jest.fn(async () => profile),
+    },
+    FirestoreQuizzerProfileRepository: jest.fn(),
+    createFirebaseQuizzerProfileSource: jest.fn(),
+  };
+});
+
 describe('App', () => {
   it('renders the Luke 2 deck title and first verse reference when authenticated', async () => {
     const { findByText } = await render(<App />);

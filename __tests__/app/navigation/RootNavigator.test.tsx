@@ -6,7 +6,10 @@ import { RootNavigator } from '../../../src/app/navigation/RootNavigator';
 import { AuthProvider } from '../../../src/features/auth';
 import { authCopy } from '../../../src/features/auth/copy/authCopy';
 import { IgniteEntryScreen } from '../../../src/features/auth/screens/IgniteEntryScreen';
+import { QuizzerProfileError } from '../../../src/features/profile';
+import { QuizzerProfileProvider } from '../../../src/features/profile/state/QuizzerProfileProvider';
 import { createAuthRepositoryFake } from '../../../test-utils/authRepositoryFake';
+import { createQuizzerProfileRepositoryFake } from '../../../test-utils/quizzerProfileRepositoryFake';
 
 jest.mock('../../../src/features/flashcards/repositories/firebaseCurriculumSource', () => {
   const { jsonCurriculumRepository } = jest.requireActual(
@@ -19,10 +22,15 @@ jest.mock('../../../src/features/flashcards/repositories/firebaseCurriculumSourc
   };
 });
 
-async function renderRoot(repository: ReturnType<typeof createAuthRepositoryFake>) {
+async function renderRoot(
+  repository: ReturnType<typeof createAuthRepositoryFake>,
+  profileRepository: ReturnType<typeof createQuizzerProfileRepositoryFake> = createQuizzerProfileRepositoryFake(),
+) {
   return render(
     <AuthProvider repository={repository}>
-      <RootNavigator />
+      <QuizzerProfileProvider repository={profileRepository}>
+        <RootNavigator />
+      </QuizzerProfileProvider>
     </AuthProvider>,
   );
 }
@@ -59,10 +67,82 @@ describe('RootNavigator auth session switch', () => {
         emailVerified: false,
       },
     });
-    const screen = await renderRoot(repository);
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const screen = await renderRoot(repository, profileRepository);
 
     expect(await screen.findByText('Luke 2:1')).toBeTruthy();
     expect(screen.queryByTestId('auth-welcome-create-account')).toBeNull();
+  });
+
+  it('does not flash MainTabs while profile presence is loading', async () => {
+    let release: (value: null) => void = () => undefined;
+    const pending = new Promise<null>((resolve) => {
+      release = resolve;
+    });
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    (profileRepository.getProfile as jest.Mock).mockImplementation(async () => pending);
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    expect(await screen.findByTestId('quizzer-profile-loading')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+
+    await act(async () => {
+      release(null);
+    });
+
+    expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+  });
+
+  it('routes missing profile to Quizzer name onboarding', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const screen = await renderRoot(repository);
+
+    expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+  });
+
+  it('routes profile load failure to recovery UI, not name onboarding', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake({
+      getError: new QuizzerProfileError(
+        'unavailable',
+        'Profile is temporarily unavailable.',
+      ),
+    });
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    expect(await screen.findByTestId('quizzer-profile-load-error-title')).toBeTruthy();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
   });
 });
 

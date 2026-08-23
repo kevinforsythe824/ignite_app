@@ -9,7 +9,10 @@ import { AuthNavigator } from '../../../src/features/auth/navigation/AuthNavigat
 import { CreateAccountScreen } from '../../../src/features/auth/screens/CreateAccountScreen';
 import { ForgotPasswordScreen } from '../../../src/features/auth/screens/ForgotPasswordScreen';
 import { SignInScreen } from '../../../src/features/auth/screens/SignInScreen';
+import { quizzerProfileCopy } from '../../../src/features/profile/copy/quizzerProfileCopy';
+import { QuizzerProfileProvider } from '../../../src/features/profile/state/QuizzerProfileProvider';
 import { createAuthRepositoryFake } from '../../../test-utils/authRepositoryFake';
+import { createQuizzerProfileRepositoryFake } from '../../../test-utils/quizzerProfileRepositoryFake';
 
 const Stack = createNativeStackNavigator();
 
@@ -63,11 +66,16 @@ describe('AuthNavigator screens', () => {
     expect(screen.getByLabelText(authCopy.fields.password)).toBeTruthy();
   });
 
-  it('opens Create Account through the AccountCreation stack', async () => {
+  it('opens Create Account through PrivacyAge then the credential form', async () => {
     const repository = createAuthRepositoryFake();
     const screen = await renderAuthFlow(repository);
 
     fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+
+    expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
+    expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('auth-privacy-age-thirteen-or-older'));
 
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
     expect(screen.getByText(authCopy.createAccount.title)).toBeTruthy();
@@ -76,6 +84,88 @@ describe('AuthNavigator screens', () => {
     expect(screen.getByLabelText(authCopy.fields.email)).toBeTruthy();
     expect(screen.getByLabelText(authCopy.fields.password)).toBeTruthy();
     expect(screen.getByLabelText(authCopy.fields.confirmPassword)).toBeTruthy();
+  });
+
+  it('blocks the under-13 path from reaching Create Account', async () => {
+    const repository = createAuthRepositoryFake();
+    const screen = await renderAuthFlow(repository);
+
+    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    fireEvent.press(await screen.findByTestId('auth-privacy-age-under-thirteen'));
+
+    expect(await screen.findByTestId('auth-under-thirteen-title')).toBeTruthy();
+    expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+    expect(repository.signUp).not.toHaveBeenCalled();
+  });
+
+  it('does not expose email or name fields on the PrivacyAge screen', async () => {
+    const repository = createAuthRepositoryFake();
+    const screen = await renderAuthFlow(repository);
+
+    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
+
+    expect(screen.queryByLabelText(authCopy.fields.email)).toBeNull();
+    expect(screen.queryByTestId('auth-create-account-email')).toBeNull();
+    expect(screen.queryByLabelText(quizzerProfileCopy.name.firstName)).toBeNull();
+    expect(screen.queryByLabelText(quizzerProfileCopy.name.lastName)).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-first')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-last')).toBeNull();
+  });
+
+  it('does not persist the privacy-age choice through auth or profile writes', async () => {
+    const authRepository = createAuthRepositoryFake();
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    const asyncStorage = require('@react-native-async-storage/async-storage') as {
+      createAsyncStorage: jest.Mock;
+    };
+    const setItem = jest.fn(async () => undefined);
+    asyncStorage.createAsyncStorage.mockReturnValue({
+      getItem: jest.fn(async () => null),
+      setItem,
+      removeItem: jest.fn(async () => undefined),
+    });
+
+    const screen = await render(
+      <AuthProvider repository={authRepository}>
+        <QuizzerProfileProvider repository={profileRepository}>
+          <NavigationContainer>
+            <AuthNavigator />
+          </NavigationContainer>
+        </QuizzerProfileProvider>
+      </AuthProvider>,
+    );
+
+    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
+
+    jest.clearAllMocks();
+    setItem.mockClear();
+
+    fireEvent.press(screen.getByTestId('auth-privacy-age-under-thirteen'));
+    expect(await screen.findByTestId('auth-under-thirteen-title')).toBeTruthy();
+
+    expect(authRepository.signUp).not.toHaveBeenCalled();
+    expect(authRepository.signIn).not.toHaveBeenCalled();
+    expect(profileRepository.getProfile).not.toHaveBeenCalled();
+    expect(profileRepository.provisionProfile).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByTestId('auth-under-thirteen-back-welcome'));
+    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
+
+    jest.clearAllMocks();
+    setItem.mockClear();
+
+    fireEvent.press(screen.getByTestId('auth-privacy-age-thirteen-or-older'));
+    expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
+
+    expect(authRepository.signUp).not.toHaveBeenCalled();
+    expect(authRepository.signIn).not.toHaveBeenCalled();
+    expect(profileRepository.getProfile).not.toHaveBeenCalled();
+    expect(profileRepository.provisionProfile).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
   });
 
   it('blocks invalid sign-in locally without calling the repository', async () => {
@@ -372,12 +462,14 @@ describe('AuthNavigator screens', () => {
     const screen = await renderAuthFlow(repository);
 
     fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    fireEvent.press(await screen.findByTestId('auth-privacy-age-thirteen-or-older'));
     expect(await screen.findByTestId('auth-create-account-sign-in')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('auth-create-account-sign-in'));
     expect(await screen.findByTestId('auth-sign-in-create-account')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('auth-sign-in-create-account'));
+    fireEvent.press(await screen.findByTestId('auth-privacy-age-thirteen-or-older'));
     expect(await screen.findByTestId('auth-create-account-sign-in')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('auth-create-account-sign-in'));

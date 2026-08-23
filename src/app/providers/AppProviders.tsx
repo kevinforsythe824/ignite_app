@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '../../features/auth';
+import { QuizzerProfileProvider } from '../../features/profile/state/QuizzerProfileProvider';
 import { colors, useIgniteFonts } from '../../shared/theme';
 
 export interface AppProvidersProps {
@@ -24,7 +25,9 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <QuizzerProfileProvider>{children}</QuizzerProfileProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

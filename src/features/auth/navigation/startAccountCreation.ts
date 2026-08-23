@@ -1,6 +1,6 @@
 import type { AuthStackParamList } from './types';
 
-/** Nested account-creation stack. Future privacy/age gate inserts here as the initial route. */
+/** Nested account-creation stack. PrivacyAge is the initial route inside this stack. */
 export const ACCOUNT_CREATION_ROUTE = 'AccountCreation' satisfies keyof AuthStackParamList;
 
 export type StartAccountCreationNavigation = {
