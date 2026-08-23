@@ -35,7 +35,7 @@ export const AuthPasswordField = forwardRef<TextInput, AuthPasswordFieldProps>(
             style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}
           >
             <Ionicons
-              name={visible ? 'eye-off-outline' : 'eye-outline'}
+              name={visible ? 'eye-outline' : 'eye-off-outline'}
               size={22}
               color={colors.navy}
             />
