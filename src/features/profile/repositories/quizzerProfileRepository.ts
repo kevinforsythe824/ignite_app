@@ -1,7 +1,8 @@
 import type { ProvisionQuizzerProfileInput } from '../domain/provisionQuizzerProfileInput';
+import type { UpdateQuizzerNameInput } from '../domain/updateQuizzerNameInput';
 import type { QuizzerProfile } from '../domain/quizzerProfile';
 
-/** Application-facing Quizzer profile persistence contract (Phase 4). */
+/** Application-facing Quizzer profile persistence contract. */
 export interface QuizzerProfileRepository {
   /**
    * Returns the durable profile for the Quizzer, or null when not yet provisioned.
@@ -14,4 +15,10 @@ export interface QuizzerProfileRepository {
    * Concurrent/retried calls must not overwrite an established profile.
    */
   provisionProfile(input: ProvisionQuizzerProfileInput): Promise<QuizzerProfile>;
+
+  /**
+   * Updates first/last name for an existing profile.
+   * Persistence writes only those two fields; avatar_id is never modified.
+   */
+  updateName(input: UpdateQuizzerNameInput): Promise<QuizzerProfile>;
 }

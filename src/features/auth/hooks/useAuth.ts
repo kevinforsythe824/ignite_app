@@ -1,5 +1,9 @@
 import { useContext } from 'react';
 
+import type {
+  ChangeEmailInput,
+  ChangePasswordInput,
+} from '../domain/accountCredentialChange';
 import type { AuthenticatedIdentity } from '../domain/authenticatedIdentity';
 import type { EmailPasswordCredentials } from '../domain/emailPasswordCredentials';
 import { AuthActionsContext, AuthSessionContext } from '../state/AuthProvider';
@@ -12,6 +16,9 @@ export interface UseAuthResult {
   signUp(credentials: EmailPasswordCredentials): Promise<void>;
   signOut(): Promise<void>;
   sendPasswordResetEmail(email: string): Promise<void>;
+  changeEmail(input: ChangeEmailInput): Promise<void>;
+  changePassword(input: ChangePasswordInput): Promise<void>;
+  refreshIdentity(): Promise<void>;
 }
 
 export function useAuth(): UseAuthResult {
@@ -29,5 +36,8 @@ export function useAuth(): UseAuthResult {
     signUp: actions.signUp,
     signOut: actions.signOut,
     sendPasswordResetEmail: actions.sendPasswordResetEmail,
+    changeEmail: actions.changeEmail,
+    changePassword: actions.changePassword,
+    refreshIdentity: actions.refreshIdentity,
   };
 }

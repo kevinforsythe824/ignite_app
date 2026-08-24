@@ -1,8 +1,8 @@
 import { act, fireEvent, render, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
-import { AuthProvider } from '../../../src/features/auth';
+import { AuthProvider, useAuth } from '../../../src/features/auth';
 import { QuizzerProfileError } from '../../../src/features/profile';
 import { quizzerProfileCopy } from '../../../src/features/profile/copy/quizzerProfileCopy';
 import { QuizzerNameScreen } from '../../../src/features/profile/screens/QuizzerNameScreen';
@@ -240,6 +240,103 @@ describe('QuizzerProfileProvider auth lifecycle', () => {
     expect(screen.getByTestId('profile-status').props.children).toBe('ready');
     expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-b');
   });
+
+  it('same uid with refreshed email does not reload profile', async () => {
+    const auth = createAuthRepositoryFake({
+      initialIdentity: { uid: 'user-a', email: 'old@example.com', emailVerified: false },
+    });
+    const profiles = createQuizzerProfileRepositoryFake();
+    profiles.seed({
+      quizzerId: 'user-a',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderWithProviders(<ProfileStatusProbe />, { auth, profiles });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    });
+    expect(profiles.getProfile).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      auth.emit({ uid: 'user-a', email: 'new@example.com', emailVerified: false });
+    });
+
+    expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    expect(screen.getByTestId('profile-first-name').props.children).toBe('Taylor');
+    expect(profiles.getProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('same uid with refreshed emailVerified does not reload profile', async () => {
+    const auth = createAuthRepositoryFake({
+      initialIdentity: { uid: 'user-a', email: 'a@example.com', emailVerified: false },
+    });
+    const profiles = createQuizzerProfileRepositoryFake();
+    profiles.seed({
+      quizzerId: 'user-a',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderWithProviders(<ProfileStatusProbe />, { auth, profiles });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    });
+    expect(profiles.getProfile).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      auth.emit({ uid: 'user-a', email: 'a@example.com', emailVerified: true });
+    });
+
+    expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    expect(profiles.getProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshIdentity for same uid does not transition to loading', async () => {
+    const user = userEvent.setup();
+    const auth = createAuthRepositoryFake({
+      initialIdentity: { uid: 'user-a', email: 'a@example.com', emailVerified: false },
+    });
+    const profiles = createQuizzerProfileRepositoryFake();
+    profiles.seed({
+      quizzerId: 'user-a',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    function RefreshProbe(): React.JSX.Element {
+      const { refreshIdentity } = useAuth();
+      const { session } = useQuizzerProfile();
+      return (
+        <>
+          <Text testID="profile-status">{session.status}</Text>
+          <Pressable
+            testID="refresh-identity"
+            onPress={() => {
+              void refreshIdentity();
+            }}
+          />
+        </>
+      );
+    }
+
+    const screen = await renderWithProviders(<RefreshProbe />, { auth, profiles });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    });
+    const callsBefore = (profiles.getProfile as jest.Mock).mock.calls.length;
+
+    await user.press(screen.getByTestId('refresh-identity'));
+
+    expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    expect(profiles.getProfile).toHaveBeenCalledTimes(callsBefore);
+  });
 });
 
 describe('QuizzerNameScreen provisioning', () => {
@@ -360,6 +457,60 @@ describe('QuizzerNameScreen provisioning', () => {
     expect(profiles.provisionProfile).not.toHaveBeenCalledWith(
       expect.objectContaining({ quizzerId: 'attacker-uid' }),
     );
+  });
+
+  it('updateName uses auth uid and refreshes ready profile without optimism', async () => {
+    const user = userEvent.setup();
+    const auth = createAuthRepositoryFake({
+      initialIdentity: { uid: 'auth-uid', email: 'a@example.com', emailVerified: false },
+    });
+    const profiles = createQuizzerProfileRepositoryFake();
+    profiles.seed({
+      quizzerId: 'auth-uid',
+      firstName: 'Old',
+      lastName: 'Name',
+      avatarId: 'preset-a',
+    });
+
+    function UpdateNameProbe(): React.JSX.Element {
+      const { session, updateName } = useQuizzerProfile();
+      return (
+        <>
+          <Text testID="profile-status">{session.status}</Text>
+          <Text testID="profile-first">
+            {session.status === 'ready' ? session.profile.firstName : ''}
+          </Text>
+          <Text testID="profile-avatar">
+            {session.status === 'ready' ? String(session.profile.avatarId) : ''}
+          </Text>
+          <Pressable
+            testID="update-name-trigger"
+            onPress={() => {
+              void updateName({ firstName: 'New', lastName: 'Name' });
+            }}
+          />
+        </>
+      );
+    }
+
+    const screen = await renderWithProviders(<UpdateNameProbe />, { auth, profiles });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    });
+    expect(screen.getByTestId('profile-first').props.children).toBe('Old');
+
+    await user.press(screen.getByTestId('update-name-trigger'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-first').props.children).toBe('New');
+    });
+    expect(screen.getByTestId('profile-avatar').props.children).toBe('preset-a');
+    expect(profiles.updateName).toHaveBeenCalledWith({
+      quizzerId: 'auth-uid',
+      firstName: 'New',
+      lastName: 'Name',
+    });
   });
 });
 

@@ -3,9 +3,12 @@ import {
   mapFirestoreQuizzerProfileToDomain,
   mapQuizzerProfileToFirestoreDocument,
 } from '../data/mapFirestoreToQuizzerProfile';
+import { normalizeNameFields } from '../domain/normalizeNameFields';
 import { normalizeProvisionInput } from '../domain/normalizeProvisionInput';
 import type { ProvisionQuizzerProfileInput } from '../domain/provisionQuizzerProfileInput';
+import type { UpdateQuizzerNameInput } from '../domain/updateQuizzerNameInput';
 import type { QuizzerProfile } from '../domain/quizzerProfile';
+import { QuizzerProfileError } from '../errors/quizzerProfileError';
 import { translateQuizzerProfileError } from '../errors/translateQuizzerProfileError';
 import type { QuizzerProfileRepository } from './quizzerProfileRepository';
 
@@ -14,8 +17,14 @@ export interface QuizzerProfileDocumentSnapshot {
   data: unknown;
 }
 
+export interface QuizzerProfileNameFields {
+  first_name: string;
+  last_name: string;
+}
+
 /**
- * Smallest Firestore port for Quizzer profile reads and atomic create-if-missing.
+ * Smallest Firestore port for Quizzer profile reads, atomic create-if-missing,
+ * and narrow name-field updates.
  * Injected in tests so unit tests do not require a live Firestore.
  */
 export interface QuizzerProfileFirestoreSource {
@@ -27,6 +36,14 @@ export interface QuizzerProfileFirestoreSource {
   createProfileIfMissing(
     quizzerId: string,
     document: FirestoreQuizzerProfileDocument,
+  ): Promise<QuizzerProfileDocumentSnapshot>;
+  /**
+   * Updates only first_name and last_name on an existing profile document.
+   * Must not write avatar_id or replace the whole document.
+   */
+  updateNameFields(
+    quizzerId: string,
+    fields: QuizzerProfileNameFields,
   ): Promise<QuizzerProfileDocumentSnapshot>;
 }
 
@@ -64,6 +81,43 @@ export class FirestoreQuizzerProfileRepository implements QuizzerProfileReposito
       return mapFirestoreQuizzerProfileToDomain(snapshot.data, normalized.quizzerId);
     } catch (error) {
       translateQuizzerProfileError(error, normalized.quizzerId);
+    }
+  }
+
+  async updateName(input: UpdateQuizzerNameInput): Promise<QuizzerProfile> {
+    const quizzerId = typeof input.quizzerId === 'string' ? input.quizzerId.trim() : '';
+    if (quizzerId.length === 0) {
+      throw new QuizzerProfileError(
+        'invalid-profile-data',
+        'Quizzer id is required to update a profile.',
+      );
+    }
+
+    let names;
+    try {
+      names = normalizeNameFields({
+        firstName: input.firstName,
+        lastName: input.lastName,
+      });
+    } catch (error) {
+      translateQuizzerProfileError(error, quizzerId);
+    }
+
+    try {
+      const snapshot = await this.source.updateNameFields(quizzerId, {
+        first_name: names.firstName,
+        last_name: names.lastName,
+      });
+      if (!snapshot.exists) {
+        throw new QuizzerProfileError(
+          'unexpected',
+          'Unable to load or save profile.',
+          quizzerId,
+        );
+      }
+      return mapFirestoreQuizzerProfileToDomain(snapshot.data, quizzerId);
+    } catch (error) {
+      translateQuizzerProfileError(error, quizzerId);
     }
   }
 }

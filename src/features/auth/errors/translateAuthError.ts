@@ -6,6 +6,8 @@ const EMAIL_IN_USE_MESSAGE = 'An account with this email already exists.';
 const WEAK_PASSWORD_MESSAGE = 'Choose a stronger password.';
 const USER_DISABLED_MESSAGE = 'This account has been disabled.';
 const TOO_MANY_REQUESTS_MESSAGE = 'Too many attempts. Try again later.';
+const REQUIRES_RECENT_LOGIN_MESSAGE =
+  'For security, enter your current password and try again.';
 const NETWORK_MESSAGE = 'Unable to reach the authentication service. Check your connection.';
 const UNEXPECTED_MESSAGE = 'Unable to complete authentication.';
 
@@ -33,6 +35,7 @@ const CODE_MAP: Record<string, AuthenticationErrorCode> = {
   'weak-password': 'weak-password',
   'user-disabled': 'user-disabled',
   'too-many-requests': 'too-many-requests',
+  'requires-recent-login': 'requires-recent-login',
   'network-request-failed': 'network-unavailable',
 };
 
@@ -43,6 +46,7 @@ const MESSAGE_BY_CODE: Record<AuthenticationErrorCode, string> = {
   'weak-password': WEAK_PASSWORD_MESSAGE,
   'user-disabled': USER_DISABLED_MESSAGE,
   'too-many-requests': TOO_MANY_REQUESTS_MESSAGE,
+  'requires-recent-login': REQUIRES_RECENT_LOGIN_MESSAGE,
   'network-unavailable': NETWORK_MESSAGE,
   unexpected: UNEXPECTED_MESSAGE,
 };

@@ -1,4 +1,5 @@
 import { QuizzerProfileError } from '../errors/quizzerProfileError';
+import { normalizeNameFields } from './normalizeNameFields';
 import type {
   NormalizedProvisionQuizzerProfileInput,
   ProvisionQuizzerProfileInput,
@@ -19,34 +20,10 @@ export function normalizeProvisionInput(
     );
   }
 
-  if (typeof input.firstName !== 'string') {
-    throw new QuizzerProfileError(
-      'invalid-profile-data',
-      'First name must be a string.',
-    );
-  }
-  if (typeof input.lastName !== 'string') {
-    throw new QuizzerProfileError(
-      'invalid-profile-data',
-      'Last name must be a string.',
-    );
-  }
-
-  const firstName = input.firstName.trim();
-  const lastName = input.lastName.trim();
-
-  if (firstName.length === 0) {
-    throw new QuizzerProfileError(
-      'invalid-profile-data',
-      'First name is required.',
-    );
-  }
-  if (lastName.length === 0) {
-    throw new QuizzerProfileError(
-      'invalid-profile-data',
-      'Last name is required.',
-    );
-  }
+  const { firstName, lastName } = normalizeNameFields({
+    firstName: input.firstName,
+    lastName: input.lastName,
+  });
 
   let avatarId: string | null = null;
   if (input.avatarId !== undefined && input.avatarId !== null) {

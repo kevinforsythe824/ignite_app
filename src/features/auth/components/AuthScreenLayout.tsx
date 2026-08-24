@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { colors, spacing, typography } from '../../../shared/theme';
 import { authCopy } from '../copy/authCopy';
@@ -20,12 +20,18 @@ export interface AuthScreenLayoutProps {
   children: ReactNode;
   onBack?: () => void;
   keyboardAvoiding?: boolean;
+  /**
+   * Safe-area edges. Auth stack screens use top+bottom.
+   * Nested Profile Settings forms omit top when the stack header already owns it.
+   */
+  edges?: readonly Edge[];
 }
 
 export function AuthScreenLayout({
   children,
   onBack,
   keyboardAvoiding = true,
+  edges = ['top', 'bottom'],
 }: AuthScreenLayoutProps): React.JSX.Element {
   const content = (
     <ScrollView
@@ -50,7 +56,7 @@ export function AuthScreenLayout({
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={edges}>
       {keyboardAvoiding ? (
         <KeyboardAvoidingView
           style={styles.flex}

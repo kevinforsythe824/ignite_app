@@ -1,5 +1,9 @@
 export type { AuthenticatedIdentity } from './domain/authenticatedIdentity';
 export type { EmailPasswordCredentials } from './domain/emailPasswordCredentials';
+export type {
+  ChangeEmailInput,
+  ChangePasswordInput,
+} from './domain/accountCredentialChange';
 export { AuthenticationError } from './errors/authenticationError';
 export type { AuthenticationErrorCode } from './errors/authenticationError';
 export { translateAuthError } from './errors/translateAuthError';

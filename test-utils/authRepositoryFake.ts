@@ -15,6 +15,8 @@ export function createAuthRepositoryFake(options?: {
   signInError?: AuthenticationError;
   signUpError?: AuthenticationError;
   resetError?: AuthenticationError;
+  changeEmailError?: AuthenticationError;
+  changePasswordError?: AuthenticationError;
   signInDelay?: () => Promise<void>;
   signUpDelay?: () => Promise<void>;
   resetDelay?: () => Promise<void>;
@@ -71,6 +73,25 @@ export function createAuthRepositoryFake(options?: {
       if (options?.resetError) {
         throw options.resetError;
       }
+    }),
+    changeEmail: jest.fn(async () => {
+      if (options?.changeEmailError) {
+        throw options.changeEmailError;
+      }
+    }),
+    changePassword: jest.fn(async () => {
+      if (options?.changePasswordError) {
+        throw options.changePasswordError;
+      }
+    }),
+    refreshIdentity: jest.fn(async () => {
+      // Return a new object with the same uid so consumers cannot rely on reference equality.
+      if (current === null) {
+        return null;
+      }
+      const refreshed = { ...current };
+      current = refreshed;
+      return refreshed;
     }),
     onAuthStateChanged: jest.fn((listener) => {
       listeners.add(listener);

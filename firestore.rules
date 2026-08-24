@@ -43,8 +43,17 @@ service cloud.firestore {
           && profileId == 'main'
           && validQuizzerProfileWrite(request.resource.data);
 
-        // Phase 4: provision is create-if-missing only; Edit Name comes later.
-        allow update: if false;
+        // Phase 6: owner may update only first_name and last_name (Edit Name).
+        // avatar_id and document identity remain unchanged.
+        allow update: if isOwner(userId)
+          && profileId == 'main'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['first_name', 'last_name'])
+          && request.resource.data.first_name is string
+          && request.resource.data.first_name.size() > 0
+          && request.resource.data.last_name is string
+          && request.resource.data.last_name.size() > 0;
+
         allow delete: if false;
       }
     }

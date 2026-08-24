@@ -5,6 +5,7 @@ export type AuthenticationErrorCode =
   | 'weak-password'
   | 'user-disabled'
   | 'too-many-requests'
+  | 'requires-recent-login'
   | 'network-unavailable'
   | 'unexpected';
 

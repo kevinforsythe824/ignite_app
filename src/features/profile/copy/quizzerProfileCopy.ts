@@ -1,4 +1,4 @@
-/** User-facing Quizzer profile / name-onboarding copy. */
+/** User-facing Profile + Settings copy. */
 export const quizzerProfileCopy = {
   name: {
     title: 'Enter your name',
@@ -17,6 +17,56 @@ export const quizzerProfileCopy = {
   },
   loading: {
     accessibilityLabel: 'Loading your profile',
+  },
+  profile: {
+    title: 'Profile',
+    settings: 'Settings',
+    avatarAccessibilityLabel: (fullName: string) => `Profile photo for ${fullName}`,
+  },
+  settings: {
+    title: 'Settings',
+    emailLabel: 'Email',
+    editName: 'Edit Name',
+    changeEmail: 'Change Email',
+    changePassword: 'Change Password',
+    about: 'About',
+    signOut: 'Sign Out',
+    signingOut: 'Signing out',
+  },
+  editName: {
+    title: 'Edit Name',
+    supporting: 'Update how your name appears in Ignite.',
+    save: 'Save',
+    saving: 'Saving',
+  },
+  changeEmail: {
+    title: 'Change Email',
+    supporting: 'We’ll send a confirmation link to your new email address.',
+    newEmail: 'New email',
+    currentPassword: 'Current password',
+    submit: 'Send confirmation',
+    submitting: 'Sending',
+    successTitle: 'Check your new email',
+    successBody:
+      'Confirm the link we sent to finish changing your email. Your sign-in email updates after you confirm.',
+    done: 'Done',
+  },
+  changePassword: {
+    title: 'Change Password',
+    supporting: 'Enter your current password, then choose a new one.',
+    currentPassword: 'Current password',
+    newPassword: 'New password',
+    confirmPassword: 'Confirm new password',
+    submit: 'Update password',
+    submitting: 'Updating',
+    successTitle: 'Password updated',
+    successBody: 'You can use your new password the next time you sign in.',
+    done: 'Done',
+  },
+  about: {
+    title: 'About',
+    appName: 'Ignite',
+    versionLabel: 'Version',
   },
   actions: {
     signOut: 'Sign Out',

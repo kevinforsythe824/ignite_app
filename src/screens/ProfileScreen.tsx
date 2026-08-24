@@ -1,13 +1,8 @@
 import React from 'react';
 
-import PlaceholderScreen from './PlaceholderScreen';
+import { ProfileStackNavigator } from '../features/profile/navigation/ProfileStackNavigator';
 
-/** Module F — Profile & settings (placeholder). */
-export const ProfileScreen: React.FC = () => (
-  <PlaceholderScreen
-    title="Profile"
-    description="Account, streak, and settings will live here."
-  />
-);
+/** Profile tab entry — nested Profile + Settings stack. */
+export const ProfileScreen: React.FC = () => <ProfileStackNavigator />;
 
 export default ProfileScreen;

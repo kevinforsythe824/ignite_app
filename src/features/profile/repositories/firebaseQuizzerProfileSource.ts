@@ -7,8 +7,12 @@ import {
   PROFILE_DOCUMENT_ID,
   USERS_COLLECTION,
 } from '../data/firestoreQuizzerProfileDocument';
+import { QuizzerProfileError } from '../errors/quizzerProfileError';
 import { FirestoreQuizzerProfileRepository } from './firestoreQuizzerProfileRepository';
-import type { QuizzerProfileFirestoreSource } from './firestoreQuizzerProfileRepository';
+import type {
+  QuizzerProfileNameFields,
+  QuizzerProfileFirestoreSource,
+} from './firestoreQuizzerProfileRepository';
 
 function profileDocRef(
   getDb: () => ReturnType<typeof getFirebaseFirestore>,
@@ -55,6 +59,37 @@ export function createFirebaseQuizzerProfileSource(
         return {
           exists: true,
           data: document,
+        };
+      });
+    },
+
+    async updateNameFields(quizzerId, fields: QuizzerProfileNameFields) {
+      const ref = profileDocRef(getDb, quizzerId);
+
+      return runTransaction(getDb(), async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists()) {
+          throw new QuizzerProfileError(
+            'unexpected',
+            'Unable to load or save profile.',
+            quizzerId,
+          );
+        }
+
+        // Narrow mutation: only first_name and last_name. avatar_id untouched.
+        transaction.update(ref, {
+          first_name: fields.first_name,
+          last_name: fields.last_name,
+        });
+
+        const existing = snapshot.data() as FirestoreQuizzerProfileDocument;
+        return {
+          exists: true,
+          data: {
+            ...existing,
+            first_name: fields.first_name,
+            last_name: fields.last_name,
+          },
         };
       });
     },

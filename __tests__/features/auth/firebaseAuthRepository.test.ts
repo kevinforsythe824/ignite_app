@@ -11,6 +11,9 @@ function createSource(overrides: Partial<AuthFirebaseSource> = {}): AuthFirebase
     createUserWithEmailAndPassword: jest.fn(),
     signOut: jest.fn(async () => undefined),
     sendPasswordResetEmail: jest.fn(async () => undefined),
+    changeEmail: jest.fn(async () => undefined),
+    changePassword: jest.fn(async () => undefined),
+    reloadCurrentUser: jest.fn(async () => null),
     onAuthStateChanged: jest.fn(() => jest.fn()),
     ...overrides,
   };
@@ -252,6 +255,71 @@ describe('FirebaseAuthRepository', () => {
       wrongPasswordShaped.sendPasswordResetEmail('quizzer@example.com'),
     ).rejects.toMatchObject({
       code: 'invalid-credentials',
+    });
+  });
+
+  it('changeEmail delegates to source and translates failures', async () => {
+    const source = createSource({
+      changeEmail: jest.fn(async () => undefined),
+    });
+    const repository = new FirebaseAuthRepository(source);
+
+    await repository.changeEmail({
+      newEmail: 'new@example.com',
+      currentPassword: 'secret',
+    });
+    expect(source.changeEmail).toHaveBeenCalledWith('new@example.com', 'secret');
+
+    const failing = new FirebaseAuthRepository(
+      createSource({
+        changeEmail: jest.fn(async () => {
+          throw { code: 'auth/requires-recent-login' };
+        }),
+      }),
+    );
+    await expect(
+      failing.changeEmail({ newEmail: 'new@example.com', currentPassword: 'secret' }),
+    ).rejects.toMatchObject({ code: 'requires-recent-login' });
+  });
+
+  it('changePassword delegates to source and translates weak-password', async () => {
+    const source = createSource({
+      changePassword: jest.fn(async () => undefined),
+    });
+    const repository = new FirebaseAuthRepository(source);
+
+    await repository.changePassword({
+      currentPassword: 'old-secret',
+      newPassword: 'new-secret',
+    });
+    expect(source.changePassword).toHaveBeenCalledWith('old-secret', 'new-secret');
+
+    const failing = new FirebaseAuthRepository(
+      createSource({
+        changePassword: jest.fn(async () => {
+          throw { code: 'auth/weak-password' };
+        }),
+      }),
+    );
+    await expect(
+      failing.changePassword({ currentPassword: 'old', newPassword: '1' }),
+    ).rejects.toMatchObject({ code: 'weak-password' });
+  });
+
+  it('refreshIdentity maps reloaded snapshot', async () => {
+    const source = createSource({
+      reloadCurrentUser: jest.fn(async () => ({
+        ...sampleIdentity,
+        email: 'updated@example.com',
+        emailVerified: true,
+      })),
+    });
+    const repository = new FirebaseAuthRepository(source);
+
+    await expect(repository.refreshIdentity()).resolves.toEqual({
+      uid: 'user-1',
+      email: 'updated@example.com',
+      emailVerified: true,
     });
   });
 });

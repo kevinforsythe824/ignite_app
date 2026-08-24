@@ -1,13 +1,18 @@
 import {
+  EmailAuthProvider,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
+  verifyBeforeUpdateEmail,
   type User,
 } from 'firebase/auth';
 
 import { getFirebaseAuth } from '../../../services/firebase/firebaseAuth';
+import { AuthenticationError } from '../errors/authenticationError';
 import type { AuthFirebaseSource } from './firebaseAuthRepository';
 
 function toSnapshot(user: User) {
@@ -16,6 +21,32 @@ function toSnapshot(user: User) {
     email: user.email,
     emailVerified: user.emailVerified,
   };
+}
+
+function requireCurrentUser(getAuthInstance: typeof getFirebaseAuth): User {
+  const user = getAuthInstance().currentUser;
+  if (!user) {
+    throw new AuthenticationError(
+      'unexpected',
+      'Unable to complete authentication.',
+    );
+  }
+  return user;
+}
+
+/**
+ * Reauthenticates the current email/password user.
+ * Internal to the auth source — not part of AuthRepository.
+ */
+async function reauthenticateWithPassword(user: User, currentPassword: string): Promise<void> {
+  if (!user.email) {
+    throw new AuthenticationError(
+      'unexpected',
+      'Unable to complete authentication.',
+    );
+  }
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
 }
 
 /**
@@ -55,6 +86,28 @@ export function createFirebaseAuthSource(
 
     async sendPasswordResetEmail(email) {
       await sendPasswordResetEmail(getAuthInstance(), email);
+    },
+
+    async changeEmail(newEmail, currentPassword) {
+      const user = requireCurrentUser(getAuthInstance);
+      await reauthenticateWithPassword(user, currentPassword);
+      await verifyBeforeUpdateEmail(user, newEmail);
+    },
+
+    async changePassword(currentPassword, newPassword) {
+      const user = requireCurrentUser(getAuthInstance);
+      await reauthenticateWithPassword(user, currentPassword);
+      await updatePassword(user, newPassword);
+    },
+
+    async reloadCurrentUser() {
+      const user = getAuthInstance().currentUser;
+      if (!user) {
+        return null;
+      }
+      await user.reload();
+      const refreshed = getAuthInstance().currentUser;
+      return refreshed ? toSnapshot(refreshed) : null;
     },
 
     onAuthStateChanged(listener) {

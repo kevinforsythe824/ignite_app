@@ -12,6 +12,7 @@ function createSource(
   return {
     getProfile: jest.fn(),
     createProfileIfMissing: jest.fn(),
+    updateNameFields: jest.fn(),
     ...overrides,
   };
 }
@@ -184,5 +185,52 @@ describe('FirestoreQuizzerProfileRepository', () => {
       name: 'QuizzerProfileError',
       code: 'invalid-profile-data',
     });
+  });
+
+  it('updates names via updateNameFields only', async () => {
+    const source = createSource({
+      updateNameFields: jest.fn().mockResolvedValue({
+        exists: true,
+        data: {
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+          avatar_id: 'preset-a',
+        },
+      }),
+    });
+    const repository = new FirestoreQuizzerProfileRepository(source);
+
+    const profile = await repository.updateName({
+      quizzerId: 'uid-1',
+      firstName: '  Ada  ',
+      lastName: '  Lovelace  ',
+    });
+
+    expect(profile).toEqual({
+      quizzerId: 'uid-1',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      avatarId: 'preset-a',
+    });
+    expect(source.updateNameFields).toHaveBeenCalledWith('uid-1', {
+      first_name: 'Ada',
+      last_name: 'Lovelace',
+    });
+  });
+
+  it('rejects invalid updateName input before writing', async () => {
+    const source = createSource();
+    const repository = new FirestoreQuizzerProfileRepository(source);
+
+    await expect(
+      repository.updateName({
+        quizzerId: 'uid-1',
+        firstName: '   ',
+        lastName: 'Quizzer',
+      }),
+    ).rejects.toMatchObject({
+      code: 'invalid-profile-data',
+    });
+    expect(source.updateNameFields).not.toHaveBeenCalled();
   });
 });

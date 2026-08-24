@@ -37,6 +37,12 @@ describe('translateAuthError', () => {
     expect(translateAuthError({ code: 'auth/weak-password' }).code).toBe('weak-password');
   });
 
+  it('maps requires-recent-login without exposing Firebase codes', () => {
+    const translated = translateAuthError({ code: 'auth/requires-recent-login' });
+    expect(translated.code).toBe('requires-recent-login');
+    expect(translated.message).not.toContain('auth/');
+  });
+
   it('never exposes raw Firebase code strings in the message', () => {
     const translated = translateAuthError({ code: 'auth/email-already-in-use' });
     expect(translated.message).not.toContain('auth/');

@@ -39,11 +39,15 @@ ignite_app/
 │   │   │   ├── hooks/           # useAuth
 │   │   │   ├── repositories/    # AuthRepository; Firebase Auth live adapter
 │   │   │   └── state/           # Session reducer + AuthProvider
-│   │   ├── profile/             # Quizzer profile domain + Firestore repository (Phase 4)
+│   │   ├── profile/             # Quizzer profile domain + Firestore repository + Profile/Settings UI
 │   │   │   ├── domain/          # QuizzerProfile (separate from AuthenticatedIdentity)
 │   │   │   ├── data/            # Firestore DTO + faithful mapper
 │   │   │   ├── errors/          # QuizzerProfileError + translation
-│   │   │   └── repositories/    # getProfile + atomic provisionProfile
+│   │   │   ├── repositories/    # getProfile + provisionProfile + updateName (name fields only)
+│   │   │   ├── screens/         # Onboarding + Profile/Settings screens
+│   │   │   ├── navigation/      # Profile stack (home → Settings subflows)
+│   │   │   ├── components/      # QuizzerAvatar, SettingsRow
+│   │   │   └── utils/           # Presentation helpers (deriveInitials, getAppVersion)
 │   │   └── flashcards/          # Full Study/Flashcards feature
 │   │       ├── components/      # Presentation UI
 │   │       ├── data/            # JSON + Firestore persistence DTOs → Card mappers
@@ -182,11 +186,12 @@ Prefer **named exports**; default exports are used for some screens/components f
     - `error` → Retry / Sign Out recovery
     - `ready` → `MainTabs` (+ TournamentDetails placeholder)
 - **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
+- **Profile tab:** nested `ProfileStackNavigator` (Profile home → Settings → Edit Name / Change Email / Change Password / About).
 - **Default authenticated entry (profile ready):** Study → Flashcards (current product experience).
-- Placeholder tabs live in `src/screens/*` until their features exist.
+- Placeholder tabs live in `src/screens/*` until their features exist (Home/Practice remain placeholders; Profile is feature-backed).
 - Tab screens are `lazy: true`.
 
-Route param lists: `src/app/navigation/types.ts`. Auth stack types: `src/features/auth/navigation/types.ts`.
+Route param lists: `src/app/navigation/types.ts`. Auth stack types: `src/features/auth/navigation/types.ts`. Profile stack types: `src/features/profile/navigation/types.ts`.
 
 ---
 

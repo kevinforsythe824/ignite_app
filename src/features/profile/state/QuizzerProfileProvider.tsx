@@ -26,6 +26,11 @@ export interface QuizzerProfileContextValue {
    * quizzerId is always taken from AuthenticatedIdentity.uid — never from callers.
    */
   provisionProfile(input: { firstName: string; lastName: string }): Promise<QuizzerProfile>;
+  /**
+   * Update first/last name for the current authenticated Quizzer.
+   * quizzerId is always taken from AuthenticatedIdentity.uid — never from callers.
+   */
+  updateName(input: { firstName: string; lastName: string }): Promise<QuizzerProfile>;
 }
 
 const QuizzerProfileContext = createContext<QuizzerProfileContextValue | undefined>(
@@ -38,16 +43,23 @@ export interface QuizzerProfileProviderProps {
 }
 
 /**
- * Resolves Quizzer profile presence for the authenticated identity.
+ * Resolves Quizzer profile presence for the authenticated UID.
+ * Lifecycle is keyed to the stable uid string — not AuthenticatedIdentity object identity.
+ * Same-uid auth metadata refreshes (email / emailVerified) must not reset or re-fetch profile.
  * Owns idle/loading/missing/ready/error and ignores stale in-flight responses.
  */
 export function QuizzerProfileProvider({
   children,
   repository = firestoreQuizzerProfileRepository,
 }: QuizzerProfileProviderProps): React.JSX.Element {
-  const { identity } = useAuth();
+  const { session: authSession } = useAuth();
+  const authenticatedUid =
+    authSession.status === 'authenticated' ? authSession.identity.uid : null;
+
   const repositoryRef = useRef(repository);
   repositoryRef.current = repository;
+  const authenticatedUidRef = useRef(authenticatedUid);
+  authenticatedUidRef.current = authenticatedUid;
 
   const [session, setSession] = useState<QuizzerProfileSessionState>({ status: 'idle' });
   const requestGenerationRef = useRef(0);
@@ -82,38 +94,38 @@ export function QuizzerProfileProvider({
   }, []);
 
   useEffect(() => {
-    if (identity === null) {
+    if (authenticatedUid === null) {
       requestGenerationRef.current += 1;
       setSession({ status: 'idle' });
       return;
     }
 
-    const quizzerId = identity.uid;
     const generation = requestGenerationRef.current + 1;
     requestGenerationRef.current = generation;
-    void resolveProfile(quizzerId, generation);
-  }, [identity, resolveProfile]);
+    void resolveProfile(authenticatedUid, generation);
+  }, [authenticatedUid, resolveProfile]);
 
   const retry = useCallback(async () => {
-    if (identity === null) {
+    const quizzerId = authenticatedUidRef.current;
+    if (quizzerId === null) {
       setSession({ status: 'idle' });
       return;
     }
     const generation = requestGenerationRef.current + 1;
     requestGenerationRef.current = generation;
-    await resolveProfile(identity.uid, generation);
-  }, [identity, resolveProfile]);
+    await resolveProfile(quizzerId, generation);
+  }, [resolveProfile]);
 
   const provisionProfile = useCallback(
     async (input: { firstName: string; lastName: string }): Promise<QuizzerProfile> => {
-      if (identity === null) {
+      const quizzerId = authenticatedUidRef.current;
+      if (quizzerId === null) {
         throw new QuizzerProfileError(
           'unexpected',
           'Unable to load or save profile.',
         );
       }
 
-      const quizzerId = identity.uid;
       try {
         const profile = await repositoryRef.current.provisionProfile({
           quizzerId,
@@ -128,7 +140,32 @@ export function QuizzerProfileProvider({
         translateQuizzerProfileError(error, quizzerId);
       }
     },
-    [identity],
+    [],
+  );
+
+  const updateName = useCallback(
+    async (input: { firstName: string; lastName: string }): Promise<QuizzerProfile> => {
+      const quizzerId = authenticatedUidRef.current;
+      if (quizzerId === null) {
+        throw new QuizzerProfileError(
+          'unexpected',
+          'Unable to load or save profile.',
+        );
+      }
+
+      try {
+        const profile = await repositoryRef.current.updateName({
+          quizzerId,
+          firstName: input.firstName,
+          lastName: input.lastName,
+        });
+        setSession({ status: 'ready', quizzerId, profile });
+        return profile;
+      } catch (error) {
+        translateQuizzerProfileError(error, quizzerId);
+      }
+    },
+    [],
   );
 
   const value = useMemo<QuizzerProfileContextValue>(
@@ -136,8 +173,9 @@ export function QuizzerProfileProvider({
       session,
       retry,
       provisionProfile,
+      updateName,
     }),
-    [session, retry, provisionProfile],
+    [session, retry, provisionProfile, updateName],
   );
 
   return (

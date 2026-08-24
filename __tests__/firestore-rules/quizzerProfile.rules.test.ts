@@ -5,7 +5,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'fs';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { resolve } from 'path';
 
 const PROJECT_ID = 'ignite-rules-test';
@@ -135,17 +135,80 @@ describe('Firestore rules: Quizzer profile ownership', () => {
     );
   });
 
-  it('denies update of an existing profile in Phase 4', async () => {
+  it('allows authenticated owner to update first_name and last_name only', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), profilePath(USER_A)), {
+        ...VALID_PROFILE,
+        avatar_id: 'preset-a',
+      });
+    });
+
+    const db = testEnv.authenticatedContext(USER_A).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, profilePath(USER_A)), {
+        first_name: 'Changed',
+        last_name: 'Name',
+      }),
+    );
+  });
+
+  it('denies owner update that changes avatar_id', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), profilePath(USER_A)), {
+        ...VALID_PROFILE,
+        avatar_id: 'preset-a',
+      });
+    });
+
+    const db = testEnv.authenticatedContext(USER_A).firestore();
+    await assertFails(
+      updateDoc(doc(db, profilePath(USER_A)), {
+        first_name: 'Changed',
+        last_name: 'Quizzer',
+        avatar_id: 'preset-b',
+      }),
+    );
+  });
+
+  it('denies owner update that adds unexpected fields', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), profilePath(USER_A)), VALID_PROFILE);
     });
 
     const db = testEnv.authenticatedContext(USER_A).firestore();
     await assertFails(
-      setDoc(doc(db, profilePath(USER_A)), {
+      updateDoc(doc(db, profilePath(USER_A)), {
         first_name: 'Changed',
         last_name: 'Quizzer',
-        avatar_id: null,
+        email: 'leak@example.test',
+      }),
+    );
+  });
+
+  it('denies user B updating user A profile names', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), profilePath(USER_A)), VALID_PROFILE);
+    });
+
+    const db = testEnv.authenticatedContext(USER_B).firestore();
+    await assertFails(
+      updateDoc(doc(db, profilePath(USER_A)), {
+        first_name: 'Hacked',
+        last_name: 'Quizzer',
+      }),
+    );
+  });
+
+  it('denies unauthenticated profile name update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), profilePath(USER_A)), VALID_PROFILE);
+    });
+
+    const db = testEnv.unauthenticatedContext().firestore();
+    await assertFails(
+      updateDoc(doc(db, profilePath(USER_A)), {
+        first_name: 'Changed',
+        last_name: 'Quizzer',
       }),
     );
   });

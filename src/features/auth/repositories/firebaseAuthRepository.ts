@@ -1,3 +1,7 @@
+import type {
+  ChangeEmailInput,
+  ChangePasswordInput,
+} from '../domain/accountCredentialChange';
 import type { AuthenticatedIdentity } from '../domain/authenticatedIdentity';
 import type { EmailPasswordCredentials } from '../domain/emailPasswordCredentials';
 import { isMissingAccountAuthError, translateAuthError } from '../errors/translateAuthError';
@@ -22,6 +26,17 @@ export interface AuthFirebaseSource {
   ): Promise<AuthFirebaseUserSnapshot>;
   signOut(): Promise<void>;
   sendPasswordResetEmail(email: string): Promise<void>;
+  /**
+   * Reauthenticates with the current password, then sends verify-before-update email.
+   * Reauth is an implementation detail — not exposed on AuthRepository.
+   */
+  changeEmail(newEmail: string, currentPassword: string): Promise<void>;
+  /**
+   * Reauthenticates with the current password, then updates the password.
+   * Reauth is an implementation detail — not exposed on AuthRepository.
+   */
+  changePassword(currentPassword: string, newPassword: string): Promise<void>;
+  reloadCurrentUser(): Promise<AuthFirebaseUserSnapshot | null>;
   onAuthStateChanged(
     listener: (user: AuthFirebaseUserSnapshot | null) => void,
   ): AuthStateUnsubscribe;
@@ -83,6 +98,31 @@ export class FirebaseAuthRepository implements AuthRepository {
       if (isMissingAccountAuthError(error)) {
         return;
       }
+      throw translateAuthError(error);
+    }
+  }
+
+  async changeEmail(input: ChangeEmailInput): Promise<void> {
+    try {
+      await this.source.changeEmail(input.newEmail, input.currentPassword);
+    } catch (error: unknown) {
+      throw translateAuthError(error);
+    }
+  }
+
+  async changePassword(input: ChangePasswordInput): Promise<void> {
+    try {
+      await this.source.changePassword(input.currentPassword, input.newPassword);
+    } catch (error: unknown) {
+      throw translateAuthError(error);
+    }
+  }
+
+  async refreshIdentity(): Promise<AuthenticatedIdentity | null> {
+    try {
+      const user = await this.source.reloadCurrentUser();
+      return user ? toIdentity(user) : null;
+    } catch (error: unknown) {
       throw translateAuthError(error);
     }
   }

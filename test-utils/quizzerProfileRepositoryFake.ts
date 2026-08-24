@@ -16,6 +16,7 @@ export interface QuizzerProfileRepositoryFake extends QuizzerProfileRepository {
 export function createQuizzerProfileRepositoryFake(options?: {
   getError?: QuizzerProfileError;
   provisionError?: QuizzerProfileError;
+  updateNameError?: QuizzerProfileError;
 }): QuizzerProfileRepositoryFake {
   const store = new Map<string, QuizzerProfile>();
 
@@ -56,6 +57,34 @@ export function createQuizzerProfileRepositoryFake(options?: {
       };
       store.set(normalized.quizzerId, created);
       return { ...created };
+    }),
+
+    updateName: jest.fn(async (input) => {
+      if (options?.updateNameError) {
+        throw options.updateNameError;
+      }
+      const existing = store.get(input.quizzerId);
+      if (!existing) {
+        throw new QuizzerProfileError(
+          'unexpected',
+          'Unable to load or save profile.',
+          input.quizzerId,
+        );
+      }
+      const normalized = normalizeProvisionInput({
+        quizzerId: input.quizzerId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        avatarId: existing.avatarId,
+      });
+      const updated: QuizzerProfile = {
+        quizzerId: existing.quizzerId,
+        firstName: normalized.firstName,
+        lastName: normalized.lastName,
+        avatarId: existing.avatarId,
+      };
+      store.set(updated.quizzerId, updated);
+      return { ...updated };
     }),
   };
 }

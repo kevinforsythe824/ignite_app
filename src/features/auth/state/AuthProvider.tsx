@@ -8,6 +8,10 @@ import React, {
 } from 'react';
 import type { ReactNode } from 'react';
 
+import type {
+  ChangeEmailInput,
+  ChangePasswordInput,
+} from '../domain/accountCredentialChange';
 import type { EmailPasswordCredentials } from '../domain/emailPasswordCredentials';
 import type { AuthRepository } from '../repositories/authRepository';
 import { firebaseAuthRepository } from '../repositories';
@@ -26,6 +30,9 @@ export interface AuthActions {
   signUp(credentials: EmailPasswordCredentials): Promise<void>;
   signOut(): Promise<void>;
   sendPasswordResetEmail(email: string): Promise<void>;
+  changeEmail(input: ChangeEmailInput): Promise<void>;
+  changePassword(input: ChangePasswordInput): Promise<void>;
+  refreshIdentity(): Promise<void>;
 }
 
 export const AuthActionsContext = createContext<AuthActions | undefined>(undefined);
@@ -69,9 +76,38 @@ export function AuthProvider({
     await repositoryRef.current.sendPasswordResetEmail(email);
   }, []);
 
+  const changeEmail = useCallback(async (input: ChangeEmailInput) => {
+    await repositoryRef.current.changeEmail(input);
+  }, []);
+
+  const changePassword = useCallback(async (input: ChangePasswordInput) => {
+    await repositoryRef.current.changePassword(input);
+  }, []);
+
+  const refreshIdentity = useCallback(async () => {
+    const identity = await repositoryRef.current.refreshIdentity();
+    dispatch({ type: 'auth_state_resolved', identity });
+  }, []);
+
   const actions = useMemo<AuthActions>(
-    () => ({ signIn, signUp, signOut, sendPasswordResetEmail }),
-    [signIn, signUp, signOut, sendPasswordResetEmail],
+    () => ({
+      signIn,
+      signUp,
+      signOut,
+      sendPasswordResetEmail,
+      changeEmail,
+      changePassword,
+      refreshIdentity,
+    }),
+    [
+      signIn,
+      signUp,
+      signOut,
+      sendPasswordResetEmail,
+      changeEmail,
+      changePassword,
+      refreshIdentity,
+    ],
   );
 
   return (

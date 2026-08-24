@@ -1,4 +1,4 @@
-import { act, render, waitFor } from '@testing-library/react-native';
+import { act, render, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 
@@ -143,6 +143,45 @@ describe('RootNavigator auth session switch', () => {
     expect(await screen.findByTestId('quizzer-profile-load-error-title')).toBeTruthy();
     expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
     expect(screen.queryByText('Luke 2:1')).toBeNull();
+  });
+
+  it('keeps MainTabs and Settings mounted after same-uid identity refresh', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    const getProfileCallsBefore = (profileRepository.getProfile as jest.Mock).mock.calls.length;
+
+    await user.press(screen.getByText('Profile'));
+    expect(await screen.findByTestId('profile-home-full-name')).toBeTruthy();
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    expect(await screen.findByTestId('settings-email')).toBeTruthy();
+    expect(screen.getByText('quizzer@example.com')).toBeTruthy();
+
+    await waitFor(() => {
+      expect(repository.refreshIdentity).toHaveBeenCalled();
+    });
+
+    expect(screen.getByTestId('settings-email')).toBeTruthy();
+    expect(screen.queryByTestId('quizzer-profile-loading')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(profileRepository.getProfile).toHaveBeenCalledTimes(getProfileCallsBefore);
   });
 });
 

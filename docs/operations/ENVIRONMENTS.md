@@ -98,7 +98,7 @@ Do not run `firebase deploy` against `prod` as a habit. There is no npm script t
 
 - `seasons/{seasonId}` — client read allowed; writes denied
 - `seasons/{seasonId}/cards/{cardId}` — client read allowed; writes denied
-- `users/{userId}/profile/{profileId}` — authenticated owner read/create of `main` only; updates/deletes denied (Sprint 2 Phase 4). Cross-user and unauthenticated access denied.
+- `users/{userId}/profile/{profileId}` — authenticated owner read/create of `main`; owner may update only `first_name` and `last_name` (Sprint 2 Phase 6 Edit Name). Deletes denied. Cross-user and unauthenticated access denied.
 
 **Workflow**
 

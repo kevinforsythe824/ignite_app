@@ -61,6 +61,9 @@ function createAuthRepositoryFake(options?: {
         throw options.resetError;
       }
     }),
+    changeEmail: jest.fn(async () => undefined),
+    changePassword: jest.fn(async () => undefined),
+    refreshIdentity: jest.fn(async () => current),
     onAuthStateChanged: jest.fn((listener) => {
       listeners.add(listener);
       if (emitOnSubscribe) {

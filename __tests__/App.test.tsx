@@ -31,6 +31,9 @@ jest.mock('../src/features/auth', () => {
       signUp: async () => identity,
       signOut: async () => undefined,
       sendPasswordResetEmail: async () => undefined,
+      changeEmail: async () => undefined,
+      changePassword: async () => undefined,
+      refreshIdentity: async () => identity,
       onAuthStateChanged: (listener: (next: typeof identity | null) => void) => {
         listener(identity);
         return () => undefined;
@@ -58,6 +61,7 @@ jest.mock('../src/features/profile/repositories', () => {
     firestoreQuizzerProfileRepository: {
       getProfile: jest.fn(async () => profile),
       provisionProfile: jest.fn(async () => profile),
+      updateName: jest.fn(async () => profile),
     },
     FirestoreQuizzerProfileRepository: jest.fn(),
     createFirebaseQuizzerProfileSource: jest.fn(),
