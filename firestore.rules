@@ -57,5 +57,14 @@ service cloud.firestore {
         allow delete: if false;
       }
     }
+
+    // Phase 6.5A: parental consent is Functions/Admin only (ADR-008).
+    match /parentalConsentRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /parentalConsentRateLimits/{bucketId} {
+      allow read, write: if false;
+    }
   }
 }

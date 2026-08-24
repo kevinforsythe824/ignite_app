@@ -42,7 +42,10 @@
     "web": "expo start --web",
     "test": "jest",
     "test:ci": "jest --watchAll=false --ci",
-    "test:firestore-rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project ignite-rules-test \"jest --config jest.firestore-rules.config.js --watchAll=false\"",
+    "test:firestore-rules": "PATH=\"/usr/local/opt/openjdk@21/bin:${PATH}\" JAVA_HOME=\"/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home\" npx -y firebase-tools@14.26.0 emulators:exec --only firestore --project ignite-rules-test \"jest --config jest.firestore-rules.config.js --watchAll=false\"",
+    "test:functions": "npm --prefix functions run test",
+    "test:functions:integration": "PATH=\"/usr/local/opt/openjdk@21/bin:${PATH}\" JAVA_HOME=\"/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home\" PARENT_EMAIL_HMAC_SECRET=integration-test-hmac-secret IGNITE_ENV=dev RUN_CALLABLE_CLAIM_INTEGRATION=1 npm --prefix functions run build && PATH=\"/usr/local/opt/openjdk@21/bin:${PATH}\" JAVA_HOME=\"/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home\" PARENT_EMAIL_HMAC_SECRET=integration-test-hmac-secret IGNITE_ENV=dev RUN_CALLABLE_CLAIM_INTEGRATION=1 npx -y firebase-tools@14.26.0 emulators:exec --only auth,firestore,functions --project wpf-bible-qizzing \"npm --prefix functions run test:integration\"",
+    "functions:build": "npm --prefix functions run build",
     "seed:firestore": "tsx scripts/firestore-seed/seedFirestore.ts",
     "firebase:target": "npx -y firebase-tools@latest use",
     "firebase:use:dev": "npx -y firebase-tools@latest use dev",
@@ -55,7 +58,8 @@
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/__tests__/firestore-rules/"
+      "/__tests__/firestore-rules/",
+      "/functions/"
     ]
   },
   "private": true

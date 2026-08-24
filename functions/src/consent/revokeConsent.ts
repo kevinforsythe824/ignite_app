@@ -1,0 +1,1 @@
+export { revokeConsent } from './processInitialConsent';

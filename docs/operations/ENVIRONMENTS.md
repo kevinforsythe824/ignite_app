@@ -99,6 +99,8 @@ Do not run `firebase deploy` against `prod` as a habit. There is no npm script t
 - `seasons/{seasonId}` — client read allowed; writes denied
 - `seasons/{seasonId}/cards/{cardId}` — client read allowed; writes denied
 - `users/{userId}/profile/{profileId}` — authenticated owner read/create of `main`; owner may update only `first_name` and `last_name` (Sprint 2 Phase 6 Edit Name). Deletes denied. Cross-user and unauthenticated access denied.
+- `parentalConsentRequests/{requestId}` — **deny all** client read/write (Phase 6.5A). Cloud Functions Admin SDK only.
+- `parentalConsentRateLimits/{bucketId}` — **deny all** client read/write (Phase 6.5A abuse counters). Cloud Functions Admin SDK only.
 
 **Workflow**
 
@@ -120,9 +122,27 @@ This starts the local Firestore emulator via `firebase emulators:exec`, then run
 
 **Prerequisites**
 - A Java Runtime (JRE/JDK) on `PATH` — required by the Firestore emulator. Without Java, `npm run test:firestore-rules` fails before tests run.
+- On this machine, Homebrew OpenJDK 21 is the expected runtime:
+  - `PATH` should include `/usr/local/opt/openjdk@21/bin`
+  - `JAVA_HOME` should be `/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`
+  - Interactive zsh already exports these in `~/.zshrc`. Cursor agent shells may not; the `test:firestore-rules` npm script sets them explicitly so verification does not require installing another JDK.
 - `@firebase/rules-unit-testing` (devDependency) and the `emulators.firestore` block in `firebase.json`.
 
 Do not confuse these with application repository mocks — they exercise the real `firestore.rules` file. Main `npm test` excludes `__tests__/firestore-rules/` so unit CI does not require the emulator.
+
+### Parental consent Cloud Functions (Phase 6.5A)
+
+Server-authoritative consent lives in `functions/` (see [ADR-008](../architecture/decisions/ADR-008-parental-consent-email-plus.md)).
+
+- Local/emulator HMAC secret: copy `functions/.env.example` → `functions/.env` and set `PARENT_EMAIL_HMAC_SECRET` (gitignored). Never commit real secrets.
+- Deployed DEV: use Firebase Functions secrets / Secret Manager for `PARENT_EMAIL_HMAC_SECRET`.
+- 6.5A uses a **console/test email sender only** — no Resend/SendGrid/Postmark.
+- Emulators: Auth + Functions + Firestore are configured in `firebase.json` (no Hosting in 6.5A).
+- Unit tests: `npm run test:functions`
+- Auth+Firestore+Functions claim callable integration: `npm run test:functions:integration`
+- Build: `npm run functions:build`
+
+Mobile under-13 UX remains the Phase 5 terminal hold until a later phase integrates this backend.
 
 **Phase 4 DEV deploy (manual, after review):**
 

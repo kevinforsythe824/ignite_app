@@ -1,0 +1,117 @@
+/**
+ * Auth Emulator integration: proves claim uses a real Auth uid.
+ *
+ * Run via:
+ *   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+ *   FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+ *   PARENT_EMAIL_HMAC_SECRET=integration-test-secret \
+ *   GCLOUD_PROJECT=ignite-rules-test \
+ *   npx jest --config jest.integration.config.js
+ *
+ * Prefer launching through:
+ *   npm run test:functions:integration
+ */
+
+import { initializeApp, getApps, deleteApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+
+import { setParentEmailHmacSecretForTests } from '../../config/secrets';
+import { claimParentalConsent } from '../claimConsent';
+import { createParentalConsentRequest } from '../createRequest';
+import type { ConsentServiceDeps } from '../createRequest';
+import {
+  processConfirmation,
+  processInitialConsent,
+} from '../processInitialConsent';
+import { FirestoreRateLimiter } from '../rateLimiter';
+import { ConsentRepository } from '../repository';
+import { TestEmailCapture } from '../../email/testEmailCapture';
+import { ConsoleEmailSender } from '../../email/consoleEmailSender';
+import { CompositeEmailSender } from '../../email/testEmailCapture';
+
+const PROJECT_ID = process.env.GCLOUD_PROJECT ?? 'ignite-rules-test';
+
+const shouldRun =
+  Boolean(process.env.FIRESTORE_EMULATOR_HOST) &&
+  Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST);
+
+(shouldRun ? describe : describe.skip)(
+  'claimParentalConsent Auth+Firestore emulator',
+  () => {
+    let app: ReturnType<typeof initializeApp>;
+
+    beforeAll(() => {
+      setParentEmailHmacSecretForTests('integration-test-hmac-secret');
+      process.env.PARENT_EMAIL_HMAC_SECRET = 'integration-test-hmac-secret';
+      process.env.IGNITE_ENV = 'dev';
+      if (getApps().length > 0) {
+        app = getApps()[0]!;
+      } else {
+        app = initializeApp({ projectId: PROJECT_ID });
+      }
+    });
+
+    afterAll(async () => {
+      setParentEmailHmacSecretForTests(undefined);
+      if (app) {
+        await deleteApp(app);
+      }
+    });
+
+    it('binds claimedByUid from Auth Emulator user uid (not client-supplied)', async () => {
+      const db = getFirestore();
+      const auth = getAuth();
+      const capture = new TestEmailCapture();
+      const deps: ConsentServiceDeps = {
+        repository: new ConsentRepository(db),
+        rateLimiter: new FirestoreRateLimiter(db),
+        emailSender: new CompositeEmailSender(
+          new ConsoleEmailSender(() => undefined),
+          capture,
+        ),
+        environment: 'dev',
+        hmacSecret: 'integration-test-hmac-secret',
+        db,
+      };
+
+      const user = await auth.createUser({
+        email: `claim-${Date.now()}@example.com`,
+        password: 'test-password-123',
+      });
+
+      const created = await createParentalConsentRequest(deps, {
+        parentEmail: `parent-${Date.now()}@example.com`,
+        clientIp: '127.0.0.1',
+      });
+      const notice = capture.latestNotice();
+      expect(notice?.approvalToken).toBeTruthy();
+
+      await processInitialConsent(deps, notice!.approvalToken!);
+      const confirmation = capture.latestConfirmation();
+      expect(confirmation?.confirmationToken).toBeTruthy();
+      await processConfirmation(deps, confirmation!.confirmationToken!);
+
+      // Simulate callable extracting uid solely from Auth context.
+      const authenticatedUid = user.uid;
+      const claimed = await claimParentalConsent(deps, {
+        requestId: created.requestId,
+        clientSessionToken: created.clientSessionToken,
+        authenticatedUid,
+      });
+
+      expect(claimed.claimedByUid).toBe(user.uid);
+      expect(claimed.status).toBe('approved');
+
+      const snap = await db
+        .collection('parentalConsentRequests')
+        .doc(created.requestId)
+        .get();
+      expect(snap.data()?.claimedByUid).toBe(user.uid);
+      expect(snap.data()?.status).toBe('approved');
+      expect(snap.data()).not.toHaveProperty('parentEmailNormalized');
+
+      await auth.deleteUser(user.uid);
+    });
+  },
+);

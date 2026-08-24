@@ -30,11 +30,21 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# IDE
+.idea/
+
+# Firebase emulator / local debug logs
+firestore-debug.log
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
 # local env files (keep committed *.example files)
 .env
 .env.*
 !.env.example
 !.env.*.example
+functions/.env
 
 # Firebase Admin / GCP credentials (never commit)
 *firebase-adminsdk*.json

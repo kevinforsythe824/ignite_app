@@ -179,7 +179,7 @@ Prefer **named exports**; default exports are used for some screens/components f
 - **Root:** native stack switched on AuthProvider session and Quizzer profile presence:
   - `initializing` → Ignite Entry (branded cover; does not delay auth restoration)
   - `unauthenticated` → Auth stack (Welcome, Sign In, Forgot Password, nested AccountCreation)
-  - Create Account path → PrivacyAge boundary → CreateAccount (13+) or UnderThirteenBlocked (terminal hold; VPC not invented here)
+  - Create Account path → PrivacyAge boundary → CreateAccount (13+) or UnderThirteenBlocked (terminal hold; Phase 6.5A server consent foundation exists — mobile integration is a later phase)
   - `authenticated` → resolve Quizzer profile before MainTabs:
     - `loading` / `idle` → profile loading cover
     - `missing` → Quizzer name onboarding
