@@ -33,7 +33,7 @@ export class MemoryConsentRepository implements ParentalConsentRepositoryPort {
       maskedParentEmail: input.maskedParentEmail,
       clientSessionTokenHash: input.tokens.clientSessionTokenHash,
       approvalTokenHash: input.tokens.approvalTokenHash,
-      confirmationTokenHash: input.tokens.confirmationTokenHash,
+      confirmationTokenHash: input.tokens.confirmationTokenHash ?? null,
       revokeTokenHash: input.tokens.revokeTokenHash,
       requestedAt: Timestamp.fromDate(input.requestedAt),
       expiresAt: Timestamp.fromDate(input.expiresAt),
@@ -46,6 +46,16 @@ export class MemoryConsentRepository implements ParentalConsentRepositoryPort {
       claimedByUid: null,
       claimedAt: null,
       environment: input.environment,
+      noticeDeliveryVersion: input.noticeDeliveryVersion ?? 1,
+      noticeDeliveryStatus: input.noticeDeliveryStatus ?? 'pending',
+      noticeSentAt: null,
+      noticeLastErrorCode: null,
+      confirmationDeliveryVersion: null,
+      confirmationScheduledAt: null,
+      confirmationDeliveryStatus: null,
+      confirmationLastErrorCode: null,
+      confirmationTokenSealed: null,
+      revokeTokenSealed: null,
     });
   }
 

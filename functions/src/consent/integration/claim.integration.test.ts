@@ -17,7 +17,9 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 import { setParentEmailHmacSecretForTests } from '../../config/secrets';
+import { setConsentSealSecretForTests } from '../../config/secrets';
 import { claimParentalConsent } from '../claimConsent';
+import { ImmediateConfirmationScheduler, RecordingConfirmationScheduler, sendScheduledConfirmationEmail } from '../confirmationTask';
 import { createParentalConsentRequest } from '../createRequest';
 import type { ConsentServiceDeps } from '../createRequest';
 import {
@@ -43,7 +45,9 @@ const shouldRun =
 
     beforeAll(() => {
       setParentEmailHmacSecretForTests('integration-test-hmac-secret');
+      setConsentSealSecretForTests('integration-test-seal-secret');
       process.env.PARENT_EMAIL_HMAC_SECRET = 'integration-test-hmac-secret';
+      process.env.CONSENT_TOKEN_SEAL_SECRET = 'integration-test-seal-secret';
       process.env.IGNITE_ENV = 'dev';
       if (getApps().length > 0) {
         app = getApps()[0]!;
@@ -54,6 +58,7 @@ const shouldRun =
 
     afterAll(async () => {
       setParentEmailHmacSecretForTests(undefined);
+      setConsentSealSecretForTests(undefined);
       if (app) {
         await deleteApp(app);
       }
@@ -63,17 +68,28 @@ const shouldRun =
       const db = getFirestore();
       const auth = getAuth();
       const capture = new TestEmailCapture();
+      const consoleSender = new ConsoleEmailSender(() => undefined);
+      const emailSender = new CompositeEmailSender(consoleSender, capture);
+      const recording = new RecordingConfirmationScheduler();
+
       const deps: ConsentServiceDeps = {
         repository: new ConsentRepository(db),
         rateLimiter: new FirestoreRateLimiter(db),
-        emailSender: new CompositeEmailSender(
-          new ConsoleEmailSender(() => undefined),
-          capture,
-        ),
+        emailSender,
         environment: 'dev',
         hmacSecret: 'integration-test-hmac-secret',
+        sealSecret: 'integration-test-seal-secret',
+        confirmationScheduler: recording,
         db,
       };
+      deps.confirmationScheduler = new ImmediateConfirmationScheduler(
+        async (p) => {
+          await sendScheduledConfirmationEmail(
+            { ...deps, confirmationScheduler: recording },
+            p,
+          );
+        },
+      );
 
       const user = await auth.createUser({
         email: `claim-${Date.now()}@example.com`,

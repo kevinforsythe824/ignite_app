@@ -9,6 +9,10 @@ import type {
   ParentalConsentStatus,
 } from '../domain/parentalConsent';
 import { ParentalConsentError } from '../domain/parentalConsent';
+import type {
+  ConfirmationDeliveryStatus,
+  NoticeDeliveryStatus,
+} from '../email/emailSender';
 
 /** Firestore DTO — not the domain model. */
 export interface ParentalConsentFirestoreDocument {
@@ -20,7 +24,8 @@ export interface ParentalConsentFirestoreDocument {
   maskedParentEmail: string;
   clientSessionTokenHash: string;
   approvalTokenHash: string;
-  confirmationTokenHash: string;
+  /** Set when initial consent is recorded; unset until then. */
+  confirmationTokenHash?: string | null;
   revokeTokenHash: string;
   requestedAt: Timestamp;
   expiresAt: Timestamp;
@@ -33,12 +38,24 @@ export interface ParentalConsentFirestoreDocument {
   claimedByUid?: string | null;
   claimedAt?: Timestamp | null;
   environment: string;
+  noticeDeliveryVersion: number;
+  noticeDeliveryStatus: NoticeDeliveryStatus;
+  noticeSentAt?: Timestamp | null;
+  noticeLastErrorCode?: string | null;
+  confirmationDeliveryVersion?: number | null;
+  confirmationScheduledAt?: Timestamp | null;
+  confirmationDeliveryStatus?: ConfirmationDeliveryStatus | null;
+  confirmationLastErrorCode?: string | null;
+  /** AES-GCM sealed raw confirmation token until send succeeds; then cleared. */
+  confirmationTokenSealed?: string | null;
+  /** Sealed revoke capability for email URL reconstruction without rotating. */
+  revokeTokenSealed?: string | null;
 }
 
 export interface ConsentTokensHashes {
   clientSessionTokenHash: string;
   approvalTokenHash: string;
-  confirmationTokenHash: string;
+  confirmationTokenHash?: string | null;
   revokeTokenHash: string;
 }
 
@@ -52,6 +69,8 @@ export interface CreateConsentDocumentInput {
   requestedAt: Date;
   expiresAt: Date;
   tokens: ConsentTokensHashes;
+  noticeDeliveryVersion?: number;
+  noticeDeliveryStatus?: NoticeDeliveryStatus;
 }
 
 /** Repository port used by consent use cases (Firestore or memory test double). */
@@ -106,7 +125,7 @@ export class ConsentRepository implements ParentalConsentRepositoryPort {
       maskedParentEmail: input.maskedParentEmail,
       clientSessionTokenHash: input.tokens.clientSessionTokenHash,
       approvalTokenHash: input.tokens.approvalTokenHash,
-      confirmationTokenHash: input.tokens.confirmationTokenHash,
+      confirmationTokenHash: input.tokens.confirmationTokenHash ?? null,
       revokeTokenHash: input.tokens.revokeTokenHash,
       requestedAt: Timestamp.fromDate(input.requestedAt),
       expiresAt: Timestamp.fromDate(input.expiresAt),
@@ -119,6 +138,16 @@ export class ConsentRepository implements ParentalConsentRepositoryPort {
       claimedByUid: null,
       claimedAt: null,
       environment: input.environment,
+      noticeDeliveryVersion: input.noticeDeliveryVersion ?? 1,
+      noticeDeliveryStatus: input.noticeDeliveryStatus ?? 'pending',
+      noticeSentAt: null,
+      noticeLastErrorCode: null,
+      confirmationDeliveryVersion: null,
+      confirmationScheduledAt: null,
+      confirmationDeliveryStatus: null,
+      confirmationLastErrorCode: null,
+      confirmationTokenSealed: null,
+      revokeTokenSealed: null,
     };
     await this.docRef(input.requestId).create(doc);
   }

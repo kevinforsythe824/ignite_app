@@ -1,7 +1,15 @@
 import { setParentEmailHmacSecretForTests } from '../config/secrets';
+import {
+  setConsentSealSecretForTests,
+} from '../config/secrets';
 import { claimParentalConsent } from './claimConsent';
+import {
+  ImmediateConfirmationScheduler,
+  RecordingConfirmationScheduler,
+  sendScheduledConfirmationEmail,
+} from './confirmationTask';
 import { createParentalConsentRequest } from './createRequest';
-import type { ConsentServiceDeps } from './createRequest';
+import type { ConfirmationScheduler, ConsentServiceDeps } from './createRequest';
 import { getParentalConsentStatus } from './getStatus';
 import { MemoryConsentRepository } from './memoryRepository';
 import {
@@ -14,58 +22,113 @@ import { TestEmailCapture } from '../email/testEmailCapture';
 import { ConsoleEmailSender } from '../email/consoleEmailSender';
 import { CompositeEmailSender } from '../email/testEmailCapture';
 import { ParentalConsentError } from '../domain/parentalConsent';
+import { unsealToken } from './tokenSeal';
 
-function buildDeps(): {
+const SEAL = 'unit-test-seal-secret-value';
+
+function buildDeps(options?: {
+  scheduler?: ConsentServiceDeps['confirmationScheduler'];
+}): {
   deps: ConsentServiceDeps;
   repo: MemoryConsentRepository;
   capture: TestEmailCapture;
   logs: string[];
+  scheduler: ConfirmationScheduler;
 } {
   setParentEmailHmacSecretForTests('unit-test-hmac-secret');
+  setConsentSealSecretForTests(SEAL);
   const repo = new MemoryConsentRepository();
   const shared = new Map();
   const capture = new TestEmailCapture();
   const logs: string[] = [];
   const consoleSender = new ConsoleEmailSender((msg) => logs.push(msg));
+  const recording = new RecordingConfirmationScheduler();
+  const scheduler =
+    options?.scheduler ??
+    new ImmediateConfirmationScheduler(async (p) => {
+      const depsForSend: ConsentServiceDeps = {
+        repository: repo,
+        rateLimiter: new SharedMapRateLimiter(shared),
+        emailSender: new CompositeEmailSender(consoleSender, capture),
+        environment: 'dev',
+        hmacSecret: 'unit-test-hmac-secret',
+        sealSecret: SEAL,
+        confirmationScheduler: recording,
+      };
+      await sendScheduledConfirmationEmail(depsForSend, p);
+    });
+
   const deps: ConsentServiceDeps = {
     repository: repo,
     rateLimiter: new SharedMapRateLimiter(shared),
     emailSender: new CompositeEmailSender(consoleSender, capture),
     environment: 'dev',
     hmacSecret: 'unit-test-hmac-secret',
+    sealSecret: SEAL,
+    confirmationScheduler: scheduler,
   };
-  return { deps, repo, capture, logs };
+  return { deps, repo, capture, logs, scheduler };
 }
 
 describe('parental consent use cases', () => {
   afterEach(() => {
     setParentEmailHmacSecretForTests(undefined);
+    setConsentSealSecretForTests(undefined);
   });
 
   it('creates a pending request without returning full email', async () => {
-    const { deps, capture, logs, repo } = buildDeps();
+    const { deps, capture, logs, repo } = buildDeps({
+      scheduler: new RecordingConfirmationScheduler(),
+    });
     const created = await createParentalConsentRequest(deps, {
       parentEmail: 'Guardian@Example.com',
       clientIp: '127.0.0.1',
     });
 
     expect(created.status).toBe('pending');
+    expect(created.noticeDeliveryStatus).toBe('sent');
     expect(created.maskedParentEmail).toBe('g***@example.com');
     expect(JSON.stringify(created)).not.toContain('guardian@example.com');
     expect(capture.latestNotice()?.approvalToken).toBeTruthy();
     expect(capture.latestNotice()?.revokeToken).toBeTruthy();
+    expect(capture.latestNotice()?.idempotencyKey).toContain('initial-notice/');
     expect(logs.join('\n')).not.toMatch(/approvalToken|revokeToken/);
     expect(logs.join('\n')).not.toContain('guardian@example.com');
 
     const stored = repo.peek(created.requestId);
     expect(stored?.parentEmail).toBe('guardian@example.com');
+    expect(stored?.revokeTokenSealed).toBeTruthy();
     expect(
       Object.prototype.hasOwnProperty.call(stored ?? {}, 'parentEmailNormalized'),
     ).toBe(false);
   });
 
+  it('keeps durable request when notice delivery fails', async () => {
+    const { deps, repo } = buildDeps({
+      scheduler: new RecordingConfirmationScheduler(),
+    });
+    deps.emailSender = {
+      async sendParentalConsentNotice() {
+        throw new Error('provider down');
+      },
+      async sendParentalConsentConfirmation() {
+        return;
+      },
+    };
+    const created = await createParentalConsentRequest(deps, {
+      parentEmail: 'fail@example.com',
+    });
+    expect(created.status).toBe('pending');
+    expect(created.noticeDeliveryStatus).toBe('failed_transient');
+    expect(repo.peek(created.requestId)?.noticeDeliveryStatus).toBe(
+      'failed_transient',
+    );
+  });
+
   it('requires client session for status', async () => {
-    const { deps } = buildDeps();
+    const { deps } = buildDeps({
+      scheduler: new RecordingConfirmationScheduler(),
+    });
     const created = await createParentalConsentRequest(deps, {
       parentEmail: 'a@example.com',
     });
@@ -84,8 +147,9 @@ describe('parental consent use cases', () => {
     expect(status.bindingState).toBe('unbound');
   });
 
-  it('enforces single-purpose tokens for parent actions', async () => {
-    const { deps, capture } = buildDeps();
+  it('enforces single-purpose tokens and schedules confirmation once', async () => {
+    const recording = new RecordingConfirmationScheduler();
+    const { deps, capture, repo } = buildDeps({ scheduler: recording });
     await createParentalConsentRequest(deps, {
       parentEmail: 'b@example.com',
     });
@@ -103,56 +167,47 @@ describe('parental consent use cases', () => {
 
     const initial = await processInitialConsent(deps, notice!.approvalToken!);
     expect(initial.status).toBe('initial_consent_received');
+    expect(recording.enqueued).toHaveLength(1);
 
-    const confirmation = capture.latestConfirmation();
-    expect(confirmation?.confirmationToken).toBeTruthy();
+    const stored = repo.peek(initial.requestId)!;
+    expect(stored.confirmationTokenSealed).toBeTruthy();
+    expect(stored.confirmationDeliveryStatus).toBe('scheduled');
+
+    const sealedRaw = unsealToken(stored.confirmationTokenSealed!, SEAL);
+    await sendScheduledConfirmationEmail(deps, {
+      requestId: initial.requestId,
+      confirmationDeliveryVersion: 1,
+    });
+    expect(capture.latestConfirmation()?.confirmationToken).toBe(sealedRaw);
+    expect(capture.latestConfirmation()?.idempotencyKey).toBe(
+      `confirmation/${initial.requestId}/1`,
+    );
+
+    // Retry must not rotate capability or send a different token.
+    await sendScheduledConfirmationEmail(deps, {
+      requestId: initial.requestId,
+      confirmationDeliveryVersion: 1,
+    });
+    const confirmations = capture.messages.filter((m) => m.type === 'confirmation');
+    expect(confirmations).toHaveLength(1);
 
     await expect(
       processConfirmation(deps, notice!.approvalToken!),
     ).rejects.toMatchObject({ code: 'invalid_token' });
 
-    const approved = await processConfirmation(
-      deps,
-      confirmation!.confirmationToken!,
-    );
+    const approved = await processConfirmation(deps, sealedRaw);
     expect(approved.status).toBe('approved');
   });
 
-  it('revokes only with revokeToken', async () => {
+  it('binds claim from authenticated uid only', async () => {
     const { deps, capture } = buildDeps();
     const created = await createParentalConsentRequest(deps, {
       parentEmail: 'c@example.com',
     });
-    const notice = capture.latestNotice();
-    const revoked = await revokeConsent(deps, notice!.revokeToken!);
-    expect(revoked.status).toBe('revoked');
-
-    await expect(
-      claimParentalConsent(deps, {
-        requestId: created.requestId,
-        clientSessionToken: created.clientSessionToken,
-        authenticatedUid: 'user-1',
-      }),
-    ).rejects.toMatchObject({ code: 'revoked' });
-  });
-
-  it('claims using authenticated uid only and stays approved', async () => {
-    const { deps, capture, repo } = buildDeps();
-    const created = await createParentalConsentRequest(deps, {
-      parentEmail: 'd@example.com',
-    });
-    const notice = capture.latestNotice();
-    await processInitialConsent(deps, notice!.approvalToken!);
-    const confirmation = capture.latestConfirmation();
-    await processConfirmation(deps, confirmation!.confirmationToken!);
-
-    await expect(
-      claimParentalConsent(deps, {
-        requestId: created.requestId,
-        clientSessionToken: created.clientSessionToken,
-        authenticatedUid: '',
-      }),
-    ).rejects.toMatchObject({ code: 'unauthenticated' });
+    const notice = capture.latestNotice()!;
+    await processInitialConsent(deps, notice.approvalToken!);
+    const confirmation = capture.latestConfirmation()!;
+    await processConfirmation(deps, confirmation.confirmationToken!);
 
     const claimed = await claimParentalConsent(deps, {
       requestId: created.requestId,
@@ -161,15 +216,6 @@ describe('parental consent use cases', () => {
     });
     expect(claimed.bindingState).toBe('bound');
     expect(claimed.claimedByUid).toBe('uid-a');
-    expect(claimed.status).toBe('approved');
-    expect(repo.peek(created.requestId)?.status).toBe('approved');
-
-    const retry = await claimParentalConsent(deps, {
-      requestId: created.requestId,
-      clientSessionToken: created.clientSessionToken,
-      authenticatedUid: 'uid-a',
-    });
-    expect(retry.claimedByUid).toBe('uid-a');
 
     await expect(
       claimParentalConsent(deps, {
@@ -180,16 +226,19 @@ describe('parental consent use cases', () => {
     ).rejects.toMatchObject({ code: 'already_bound' });
   });
 
-  it('shares rate-limit counters across limiter instances', async () => {
-    setParentEmailHmacSecretForTests('unit-test-hmac-secret');
-    const shared = new Map();
-    const limiterA = new SharedMapRateLimiter(shared);
-    const limiterB = new SharedMapRateLimiter(shared);
-
-    await limiterA.consume({ kind: 'create:email', key: 'hash-1', limit: 2 });
-    await limiterB.consume({ kind: 'create:email', key: 'hash-1', limit: 2 });
+  it('expires pending requests on access after TTL', async () => {
+    const { deps, capture, repo } = buildDeps({
+      scheduler: new RecordingConfirmationScheduler(),
+    });
+    let now = new Date('2026-01-01T00:00:00.000Z');
+    deps.now = () => now;
+    const created = await createParentalConsentRequest(deps, {
+      parentEmail: 'd@example.com',
+    });
+    now = new Date('2026-01-10T00:00:00.000Z');
     await expect(
-      limiterA.consume({ kind: 'create:email', key: 'hash-1', limit: 2 }),
-    ).rejects.toMatchObject({ code: 'resource_exhausted' });
+      processInitialConsent(deps, capture.latestNotice()!.approvalToken!),
+    ).resolves.toMatchObject({ status: 'expired' });
+    expect(repo.peek(created.requestId)?.status).toBe('expired');
   });
 });

@@ -8,9 +8,12 @@ export interface CapturedConsentEmail {
   type: 'notice' | 'confirmation';
   requestId: string;
   maskedParentEmail: string;
+  idempotencyKey: string;
+  toEmail?: string;
   approvalToken?: string;
   confirmationToken?: string;
   revokeToken?: string;
+  actionUrls?: ParentalConsentNoticeParams['actionUrls'];
 }
 
 /**
@@ -27,8 +30,11 @@ export class TestEmailCapture implements EmailSender {
       type: 'notice',
       requestId: params.requestId,
       maskedParentEmail: params.maskedParentEmail,
+      idempotencyKey: params.idempotencyKey,
+      toEmail: params.toEmail,
       approvalToken: params.approvalToken,
       revokeToken: params.revokeToken,
+      actionUrls: params.actionUrls,
     });
   }
 
@@ -39,8 +45,11 @@ export class TestEmailCapture implements EmailSender {
       type: 'confirmation',
       requestId: params.requestId,
       maskedParentEmail: params.maskedParentEmail,
+      idempotencyKey: params.idempotencyKey,
+      toEmail: params.toEmail,
       confirmationToken: params.confirmationToken,
       revokeToken: params.revokeToken,
+      actionUrls: params.actionUrls,
     });
   }
 

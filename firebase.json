@@ -18,6 +18,56 @@
       ]
     }
   ],
+  "hosting": {
+    "public": "hosting/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "/parent-consent/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-store" },
+          { "key": "Referrer-Policy", "value": "no-referrer" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'self'; frame-ancestors 'none'"
+          }
+        ]
+      },
+      {
+        "source": "/parent-consent",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-store" },
+          { "key": "Referrer-Policy", "value": "no-referrer" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/parent-consent/**",
+        "function": {
+          "functionId": "parentalConsentHosting",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/parent-consent",
+        "function": {
+          "functionId": "parentalConsentHosting",
+          "region": "us-central1"
+        }
+      }
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false
+  },
   "emulators": {
     "auth": {
       "port": 9099,
@@ -29,6 +79,10 @@
     },
     "firestore": {
       "port": 8080,
+      "host": "127.0.0.1"
+    },
+    "hosting": {
+      "port": 5002,
       "host": "127.0.0.1"
     },
     "ui": {

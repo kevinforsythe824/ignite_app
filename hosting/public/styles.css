@@ -1,0 +1,71 @@
+:root {
+  --ink: #1a2332;
+  --paper: #f7f4ef;
+  --accent: #c45c26;
+  --focus: #0b57d0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Nunito Sans", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, #ffe8d6 0%, transparent 45%),
+    linear-gradient(180deg, #fffaf4 0%, var(--paper) 100%);
+  min-height: 100vh;
+}
+
+.consent-main {
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+.brand {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin: 0 0 1rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  margin: 0 0 1rem;
+}
+
+p {
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+
+.disclaimer {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+button {
+  appearance: none;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.85rem 1.25rem;
+  cursor: pointer;
+}
+
+button:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+a:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}

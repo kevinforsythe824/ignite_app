@@ -130,17 +130,29 @@ This starts the local Firestore emulator via `firebase emulators:exec`, then run
 
 Do not confuse these with application repository mocks — they exercise the real `firestore.rules` file. Main `npm test` excludes `__tests__/firestore-rules/` so unit CI does not require the emulator.
 
-### Parental consent Cloud Functions (Phase 6.5A)
+### Parental consent Cloud Functions & Hosting (Phase 6.5A / 6.5B)
 
-Server-authoritative consent lives in `functions/` (see [ADR-008](../architecture/decisions/ADR-008-parental-consent-email-plus.md)).
+Server-authoritative consent lives in `functions/` (see [ADR-008](../architecture/decisions/ADR-008-parental-consent-email-plus.md), [ADR-009](../architecture/decisions/ADR-009-parental-consent-hosting-and-email.md)).
 
-- Local/emulator HMAC secret: copy `functions/.env.example` → `functions/.env` and set `PARENT_EMAIL_HMAC_SECRET` (gitignored). Never commit real secrets.
-- Deployed DEV: use Firebase Functions secrets / Secret Manager for `PARENT_EMAIL_HMAC_SECRET`.
-- 6.5A uses a **console/test email sender only** — no Resend/SendGrid/Postmark.
-- Emulators: Auth + Functions + Firestore are configured in `firebase.json` (no Hosting in 6.5A).
+- Local/emulator secrets: copy `functions/.env.example` → `functions/.env` (gitignored). Never commit real secrets.
+- Deployed DEV: Firebase Functions secrets / Secret Manager for `PARENT_EMAIL_HMAC_SECRET`, `RESEND_API_KEY`, `CONSENT_BROWSER_SESSION_SECRET` / token-seal secret as configured.
+- **6.5B DEV email:** Resend adapter behind `EmailSender`. Emulator/CI still use console/test capture (no live Resend in unit CI).
+- **6.5B Hosting:** parent consent pages at `https://wpf-bible-qizzing.web.app` (rewrites to Gen 2 Functions). GET never mutates; POST requires sealed browser session + CSRF. No public raw-token mutation endpoints in deployed DEV.
+- **Confirmation delay:** Firebase Task Queue Functions (Cloud Tasks). DEV project must be on **Blaze**. First deploy may create a Tasks queue; verify Cloud Tasks API/IAM if enqueue fails. Possible Cloud Tasks charges (DEV only).
+- Emulators: Auth + Functions + Firestore + Hosting (see `firebase.json`).
 - Unit tests: `npm run test:functions`
 - Auth+Firestore+Functions claim callable integration: `npm run test:functions:integration`
 - Build: `npm run functions:build`
+
+**DEV-only deploy (manual, after review — never staging/prod in 6.5B):**
+
+```bash
+npm run firebase:target   # must show wpf-bible-qizzing
+npx -y firebase-tools@latest deploy --only functions,hosting --project wpf-bible-qizzing
+npm run firebase:use:dev
+```
+
+Resend DEV testing: `onboarding@resend.dev` may send to the Resend account owner address; other recipients need a verified sender domain.
 
 Mobile under-13 UX remains the Phase 5 terminal hold until a later phase integrates this backend.
 

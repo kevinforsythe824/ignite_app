@@ -3,11 +3,18 @@ import { Timestamp } from 'firebase-admin/firestore';
 import {
   MAX_RESENDS_PER_EMAIL_HASH,
   MAX_RESENDS_PER_REQUEST,
+  NOTICE_VERSION,
   RESEND_COOLDOWN_MS,
 } from '../config/consentPolicy';
+import {
+  buildConsentActionUrls,
+  getConsentHostingBaseUrl,
+  noticeIdempotencyKey,
+} from '../config/emailConfig';
 import { ParentalConsentError } from '../domain/parentalConsent';
 import type { ConsentServiceDeps } from './createRequest';
 import { applyExpiryIfNeeded } from './stateMachine';
+import { unsealToken } from './tokenSeal';
 import { assertTokenMatches, generateOpaqueToken } from './tokens';
 
 export interface ResendParentalConsentNoticeInput {
@@ -19,7 +26,7 @@ export interface ResendParentalConsentNoticeInput {
 export async function resendParentalConsentNotice(
   deps: ConsentServiceDeps,
   input: ResendParentalConsentNoticeInput,
-): Promise<void> {
+): Promise<{ noticeDeliveryStatus: string }> {
   const raw = await deps.repository.requireRaw(input.requestId);
   assertTokenMatches(
     input.clientSessionToken,
@@ -68,17 +75,57 @@ export async function resendParentalConsentNotice(
   });
 
   const approval = generateOpaqueToken('approval');
+  const noticeDeliveryVersion = (raw.noticeDeliveryVersion ?? 1) + 1;
+
+  // Revoke capability is not rotated on resend; reconstruct URL from sealed token.
+  if (!raw.revokeTokenSealed) {
+    throw new ParentalConsentError(
+      'internal',
+      'Revoke capability seal missing for resend.',
+    );
+  }
+  const revokeToken = unsealToken(raw.revokeTokenSealed, deps.sealSecret);
 
   await deps.repository.updateFields(input.requestId, {
     approvalTokenHash: approval.tokenHash,
     resendCount: raw.resendCount + 1,
     lastResendAt: Timestamp.fromDate(now),
+    noticeDeliveryVersion,
+    noticeDeliveryStatus: 'pending',
+    noticeLastErrorCode: null,
   });
 
-  await deps.emailSender.sendParentalConsentNotice({
-    requestId: input.requestId,
-    maskedParentEmail: raw.maskedParentEmail,
+  const actionUrls = buildConsentActionUrls({
+    hostingBaseUrl: getConsentHostingBaseUrl(process.env, deps.environment),
     approvalToken: approval.rawToken,
-    // Revoke token is not rotated on resend; parent still uses original revoke capability.
+    revokeToken,
   });
+
+  try {
+    await deps.emailSender.sendParentalConsentNotice({
+      requestId: input.requestId,
+      toEmail: raw.parentEmail,
+      maskedParentEmail: raw.maskedParentEmail,
+      idempotencyKey: noticeIdempotencyKey(input.requestId, noticeDeliveryVersion),
+      actionUrls,
+      noticeVersion: NOTICE_VERSION,
+      expiresAt: raw.expiresAt.toDate(),
+      approvalToken: approval.rawToken,
+      revokeToken,
+    });
+    await deps.repository.updateFields(input.requestId, {
+      noticeDeliveryStatus: 'sent',
+      noticeSentAt: Timestamp.fromDate(now),
+      noticeLastErrorCode: null,
+    });
+    return { noticeDeliveryStatus: 'sent' };
+  } catch (error) {
+    const code =
+      error instanceof ParentalConsentError ? error.code : 'provider_error';
+    await deps.repository.updateFields(input.requestId, {
+      noticeDeliveryStatus: 'failed_transient',
+      noticeLastErrorCode: String(code).slice(0, 64),
+    });
+    return { noticeDeliveryStatus: 'failed_transient' };
+  }
 }

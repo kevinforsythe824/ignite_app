@@ -4,19 +4,37 @@
  * Do not claim COPPA compliance here.
  */
 
+import type { IgniteEnvironmentName } from './environment';
+import { readIgniteEnvironment } from './environment';
+
 export const CONSENT_METHOD = 'email_plus' as const;
 
 /** Notice copy version recorded on each request. */
-export const NOTICE_VERSION = '2026-08-1';
+export const NOTICE_VERSION = '2026-08-2';
 
 /** Whether email-plus confirmation is required before status becomes approved. */
 export const REQUIRE_CONFIRMATION_FOR_APPROVAL = true;
 
 /**
- * Delay before confirmation email would be sent (6.5B delivery).
- * 6.5A records policy only; console sender may invoke confirmation immediately in tests.
+ * Default confirmation email delay (non-DEV).
+ * DEV uses an explicit shorter value via getConfirmationEmailDelayMs().
  */
 export const CONFIRMATION_EMAIL_DELAY_MS = 15 * 60 * 1000;
+
+/** Explicit DEV confirmation delay for faster manual testing. */
+export const DEV_CONFIRMATION_EMAIL_DELAY_MS = 60 * 1000;
+
+export function getConfirmationEmailDelayMs(
+  environment: IgniteEnvironmentName = readIgniteEnvironment(),
+): number {
+  if (environment === 'dev') {
+    return DEV_CONFIRMATION_EMAIL_DELAY_MS;
+  }
+  return CONFIRMATION_EMAIL_DELAY_MS;
+}
+
+/** Browser session / sealed cookie TTL for parent Hosting flow. */
+export const BROWSER_SESSION_TTL_MS = 20 * 60 * 1000;
 
 /** How long a consent request remains usable before check-on-access expiry. */
 export const REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;

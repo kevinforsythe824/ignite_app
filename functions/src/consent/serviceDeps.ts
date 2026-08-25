@@ -1,18 +1,36 @@
 import { getApps, initializeApp } from 'firebase-admin/app';
+import { getFunctions } from 'firebase-admin/functions';
 import { getFirestore } from 'firebase-admin/firestore';
 
-import { readIgniteEnvironment } from '../config/environment';
-import { getParentEmailHmacSecret } from '../config/secrets';
+import {
+  isEmulatorOrConsentTestContext,
+  readIgniteEnvironment,
+} from '../config/environment';
+import {
+  getConsentSealSecret,
+  getParentEmailHmacSecret,
+  getResendApiKey,
+} from '../config/secrets';
 import { ConsoleEmailSender } from '../email/consoleEmailSender';
 import type { EmailSender } from '../email/emailSender';
+import { ResendEmailSender } from '../email/resendEmailSender';
 import type { TestEmailCapture } from '../email/testEmailCapture';
 import { CompositeEmailSender } from '../email/testEmailCapture';
-import type { ConsentServiceDeps } from './createRequest';
+import {
+  ImmediateConfirmationScheduler,
+  RecordingConfirmationScheduler,
+  sendScheduledConfirmationEmail,
+} from './confirmationTask';
+import type {
+  ConfirmationScheduler,
+  ConsentServiceDeps,
+} from './createRequest';
 import { FirestoreRateLimiter } from './rateLimiter';
 import { ConsentRepository } from './repository';
 
 let testEmailCapture: TestEmailCapture | undefined;
 let testDepsOverride: ConsentServiceDeps | undefined;
+let testScheduler: ConfirmationScheduler | undefined;
 
 export function setTestEmailCapture(capture: TestEmailCapture | undefined): void {
   testEmailCapture = capture;
@@ -22,6 +40,12 @@ export function setConsentServiceDepsForTests(
   deps: ConsentServiceDeps | undefined,
 ): void {
   testDepsOverride = deps;
+}
+
+export function setConfirmationSchedulerForTests(
+  scheduler: ConfirmationScheduler | undefined,
+): void {
+  testScheduler = scheduler;
 }
 
 export function getTestEmailCapture(): TestEmailCapture | undefined {
@@ -34,31 +58,101 @@ function ensureAdminApp(): void {
   }
 }
 
+function buildEmailSender(options?: { emailSender?: EmailSender }): EmailSender {
+  if (options?.emailSender) {
+    return options.emailSender;
+  }
+  if (testEmailCapture) {
+    return new CompositeEmailSender(new ConsoleEmailSender(), testEmailCapture);
+  }
+
+  const emulator = isEmulatorOrConsentTestContext();
+  const resendKey = getResendApiKey();
+  if (!emulator && resendKey) {
+    return new ResendEmailSender(resendKey);
+  }
+  return new ConsoleEmailSender();
+}
+
+export function buildCloudTasksConfirmationScheduler(): ConfirmationScheduler {
+  return {
+    async enqueueConfirmationEmail(params) {
+      const queue = getFunctions().taskQueue(
+        'sendParentalConsentConfirmationTask',
+      );
+      await queue.enqueue(
+        {
+          requestId: params.requestId,
+          confirmationDeliveryVersion: params.confirmationDeliveryVersion,
+        },
+        {
+          scheduleDelaySeconds: Math.max(0, Math.ceil(params.delayMs / 1000)),
+          dispatchDeadlineSeconds: 60 * 5,
+        },
+      );
+    },
+  };
+}
+
+function buildCoreDeps(params: {
+  emailSender: EmailSender;
+  confirmationScheduler: ConfirmationScheduler;
+  hmacSecret: string;
+  sealSecret: string;
+}): ConsentServiceDeps {
+  ensureAdminApp();
+  const db = getFirestore();
+  return {
+    repository: new ConsentRepository(db),
+    rateLimiter: new FirestoreRateLimiter(db),
+    emailSender: params.emailSender,
+    environment: readIgniteEnvironment(),
+    hmacSecret: params.hmacSecret,
+    sealSecret: params.sealSecret,
+    confirmationScheduler: params.confirmationScheduler,
+    db,
+  };
+}
+
 export function buildConsentServiceDeps(
   options?: {
     emailSender?: EmailSender;
     hmacSecret?: string;
+    sealSecret?: string;
+    confirmationScheduler?: ConfirmationScheduler;
   },
 ): ConsentServiceDeps {
   if (testDepsOverride) {
     return testDepsOverride;
   }
 
-  ensureAdminApp();
-  const db = getFirestore();
-  const consoleSender = new ConsoleEmailSender();
-  const emailSender =
-    options?.emailSender ??
-    (testEmailCapture
-      ? new CompositeEmailSender(consoleSender, testEmailCapture)
-      : consoleSender);
+  const emailSender = buildEmailSender(options);
+  const hmacSecret = options?.hmacSecret ?? getParentEmailHmacSecret();
+  const sealSecret = options?.sealSecret ?? getConsentSealSecret();
 
-  return {
-    repository: new ConsentRepository(db),
-    rateLimiter: new FirestoreRateLimiter(db),
+  let confirmationScheduler =
+    options?.confirmationScheduler ?? testScheduler ?? undefined;
+
+  if (!confirmationScheduler) {
+    if (isEmulatorOrConsentTestContext()) {
+      confirmationScheduler = new ImmediateConfirmationScheduler(async (p) => {
+        const deps = buildCoreDeps({
+          emailSender,
+          confirmationScheduler: new RecordingConfirmationScheduler(),
+          hmacSecret,
+          sealSecret,
+        });
+        await sendScheduledConfirmationEmail(deps, p);
+      });
+    } else {
+      confirmationScheduler = buildCloudTasksConfirmationScheduler();
+    }
+  }
+
+  return buildCoreDeps({
     emailSender,
-    environment: readIgniteEnvironment(),
-    hmacSecret: options?.hmacSecret ?? getParentEmailHmacSecret(),
-    db,
-  };
+    confirmationScheduler,
+    hmacSecret,
+    sealSecret,
+  });
 }

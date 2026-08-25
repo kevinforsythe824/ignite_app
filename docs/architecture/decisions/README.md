@@ -87,6 +87,7 @@ Folder layout remains in [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 | [ADR-006](ADR-006-privacy-by-design.md) | Privacy-by-design and minimum personal data | Accepted |
 | [ADR-007](ADR-007-authentication-boundary-and-identity.md) | Authentication boundary and identity separation | Accepted |
 | [ADR-008](ADR-008-parental-consent-email-plus.md) | Parental consent email-plus foundation (server-authoritative) | Accepted |
+| [ADR-009](ADR-009-parental-consent-hosting-and-email.md) | Parental consent Hosting surface and transactional email (DEV) | Accepted |
 
 ## Open Decisions
 

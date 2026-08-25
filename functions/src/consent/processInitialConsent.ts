@@ -1,10 +1,12 @@
 import { Timestamp } from 'firebase-admin/firestore';
 
 import { MAX_TOKEN_FAILURES_PER_IP } from '../config/consentPolicy';
+import { getConfirmationEmailDelayMs } from '../config/consentPolicy';
 import { ParentalConsentError } from '../domain/parentalConsent';
 import type { ConsentServiceDeps } from './createRequest';
 import type { ParentalConsentFirestoreDocument } from './repository';
 import { applyExpiryIfNeeded, transitionConsent } from './stateMachine';
+import { sealToken } from './tokenSeal';
 import { assertTokenMatches, generateOpaqueToken, hashToken } from './tokens';
 
 type TokenHashField =
@@ -31,22 +33,27 @@ export async function processInitialConsent(
     return applyTransitionUpdate(deps, raw, 'processInitialConsent', now);
   });
 
-  if (result.status === 'initial_consent_received') {
-    // Issue (or rotate) confirmation capability only after initial consent.
+  if (result.status === 'initial_consent_received' && result.changed) {
     const confirmation = generateOpaqueToken('confirmation');
+    const confirmationDeliveryVersion = 1;
+    const sealed = sealToken(confirmation.rawToken, deps.sealSecret);
     await deps.repository.updateFields(found.requestId, {
       confirmationTokenHash: confirmation.tokenHash,
-      confirmationSentAt: Timestamp.fromDate(now),
+      confirmationTokenSealed: sealed,
+      confirmationDeliveryVersion,
+      confirmationScheduledAt: Timestamp.fromDate(now),
+      confirmationDeliveryStatus: 'scheduled',
+      confirmationLastErrorCode: null,
+      confirmationSentAt: null,
     });
-    await deps.emailSender.sendParentalConsentConfirmation({
+    await deps.confirmationScheduler.enqueueConfirmationEmail({
       requestId: found.requestId,
-      maskedParentEmail: found.maskedParentEmail,
-      confirmationToken: confirmation.rawToken,
-      revokeToken: undefined,
+      confirmationDeliveryVersion,
+      delayMs: getConfirmationEmailDelayMs(deps.environment),
     });
   }
 
-  return result;
+  return { requestId: result.requestId, status: result.status };
 }
 
 export async function processConfirmation(
@@ -64,7 +71,11 @@ export async function processConfirmation(
 
   const now = deps.now?.() ?? new Date();
   return deps.repository.runTransaction(found.requestId, (raw) => {
-    assertTokenMatches(confirmationToken, raw.confirmationTokenHash, 'confirmation');
+    assertTokenMatches(
+      confirmationToken,
+      raw.confirmationTokenHash ?? '',
+      'confirmation',
+    );
     return applyTransitionUpdate(deps, raw, 'processConfirmation', now);
   });
 }
@@ -84,7 +95,6 @@ export async function revokeConsent(
 
   const now = deps.now?.() ?? new Date();
   return deps.repository.runTransaction(found.requestId, (raw) => {
-    // Single-purpose: only revokeTokenHash authorizes revoke.
     assertTokenMatches(revokeToken, raw.revokeTokenHash, 'revoke');
     return applyTransitionUpdate(deps, raw, 'revoke', now);
   });
@@ -123,14 +133,14 @@ function applyTransitionUpdate(
   now: Date,
 ): {
   update: Partial<ParentalConsentFirestoreDocument>;
-  result: { requestId: string; status: string };
+  result: { requestId: string; status: string; changed: boolean };
 } {
   const domain = deps.repository.toDomain(raw);
   const expiry = applyExpiryIfNeeded(domain, now);
   if (expiry.changed) {
     return {
       update: { status: 'expired' },
-      result: { requestId: raw.requestId, status: 'expired' },
+      result: { requestId: raw.requestId, status: 'expired', changed: true },
     };
   }
 
@@ -154,6 +164,7 @@ function applyTransitionUpdate(
     result: {
       requestId: raw.requestId,
       status: transition.status,
+      changed: transition.changed,
     },
   };
 }
