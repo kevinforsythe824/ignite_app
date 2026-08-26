@@ -1,8 +1,10 @@
 import type { IgniteEnvironmentName } from '../../config/environment';
 import {
+  emailActionBlock,
   escapeHtml,
   formatExpiry,
   legalDisclaimer,
+  noticeCollectionSummary,
   subjectFor,
 } from './shared';
 
@@ -39,8 +41,7 @@ export function renderInitialNotice(
     '',
     'What this is about:',
     '- Ignite is a Bible quizzing learning app.',
-    '- If approved, the account may collect account and learning information needed to operate Ignite (such as name, email, and study progress).',
-    '- This email does not include a child’s full personal profile.',
+    `- ${noticeCollectionSummary()}`,
     '',
     `Privacy policy: ${input.privacyPolicyUrl}`,
     `This request expires at: ${expiry}`,
@@ -60,19 +61,19 @@ export function renderInitialNotice(
 <html lang="en">
 <head><meta charset="utf-8"><title>Ignite parental consent</title></head>
 <body>
-  <main>
+  <div>
     <h1>Ignite parental consent notice</h1>
     <p>Hello (<strong>${escapeHtml(input.maskedParentEmail)}</strong>),</p>
     <p>Someone requested an Ignite account that requires a parent or guardian to review and approve before the account can continue.</p>
     <h2>What information may be collected</h2>
-    <p>If approved, the account may collect account and learning information needed to operate Ignite (such as name, email, and study progress). This email does not include a child’s full personal profile.</p>
+    <p>${escapeHtml(noticeCollectionSummary())}</p>
     <p><a href="${escapeHtml(input.privacyPolicyUrl)}">Privacy policy</a></p>
-    <p>This request expires at <time>${escapeHtml(expiry)}</time>. Notice version: ${escapeHtml(input.noticeVersion)}.</p>
-    <p><a href="${escapeHtml(input.approveUrl)}">Review and approve</a></p>
-    <p><a href="${escapeHtml(input.revokeUrl)}">Decline or revoke</a></p>
+    <p>This request expires at ${escapeHtml(expiry)}. Notice version: ${escapeHtml(input.noticeVersion)}.</p>
+    ${emailActionBlock('Review and approve', input.approveUrl)}
+    ${emailActionBlock('Decline or revoke', input.revokeUrl)}
     <p>Opening a link alone does not approve. You must confirm with an explicit action on the page.</p>
     <p><small>${escapeHtml(legalDisclaimer())}</small></p>
-  </main>
+  </div>
 </body>
 </html>`;
 

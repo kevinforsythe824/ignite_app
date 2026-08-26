@@ -7,35 +7,43 @@ import {
   readIgniteEnvironment,
   resolveActiveProjectId,
 } from './config/environment';
-import { claimParentalConsent } from './consent/claimConsent';
+import {
+  consentFunctionSecrets,
+  igniteEnvParam,
+} from './config/functionParams';
+import { claimParentalConsent as claimParentalConsentUseCase } from './consent/claimConsent';
 import { sendScheduledConfirmationEmail } from './consent/confirmationTask';
-import { createParentalConsentRequest } from './consent/createRequest';
-import { getParentalConsentStatus } from './consent/getStatus';
-import { resendParentalConsentNotice } from './consent/resendNotice';
+import { createParentalConsentRequest as createParentalConsentRequestUseCase } from './consent/createRequest';
+import { getParentalConsentStatus as getParentalConsentStatusUseCase } from './consent/getStatus';
+import { resendParentalConsentNotice as resendParentalConsentNoticeUseCase } from './consent/resendNotice';
 import { buildConsentServiceDeps } from './consent/serviceDeps';
-import { updateParentalConsentEmail } from './consent/updateEmail';
+import { updateParentalConsentEmail as updateParentalConsentEmailUseCase } from './consent/updateEmail';
 import { parentConsentRouter } from './http/parentConsentHttp';
 import { clientIpFromRawRequest, toHttpsError } from './http/errors';
 import { layoutPage, outcomeHtml } from './http/parentConsentPages';
 import { applySecurityHeaders } from './http/securityHeaders';
 
 function guardEnvironment(): void {
+  if (!process.env.IGNITE_ENV?.trim()) {
+    process.env.IGNITE_ENV = igniteEnvParam.value();
+  }
   const env = readIgniteEnvironment();
   assertProjectMatchesEnvironment(env, resolveActiveProjectId());
 }
 
 const callableOpts = {
   ...appCheckCallableOptions(),
+  secrets: consentFunctionSecrets,
 };
 
-export const createParentalConsentRequestFn = onCall(
+export const createParentalConsentRequest = onCall(
   callableOpts,
   async (request) => {
     try {
       guardEnvironment();
       const parentEmail = String(request.data?.parentEmail ?? '');
       const deps = buildConsentServiceDeps();
-      return await createParentalConsentRequest(deps, {
+      return await createParentalConsentRequestUseCase(deps, {
         parentEmail,
         clientIp: clientIpFromRawRequest(request.rawRequest),
       });
@@ -45,13 +53,13 @@ export const createParentalConsentRequestFn = onCall(
   },
 );
 
-export const getParentalConsentStatusFn = onCall(
+export const getParentalConsentStatus = onCall(
   callableOpts,
   async (request) => {
     try {
       guardEnvironment();
       const deps = buildConsentServiceDeps();
-      return await getParentalConsentStatus(deps, {
+      return await getParentalConsentStatusUseCase(deps, {
         requestId: String(request.data?.requestId ?? ''),
         clientSessionToken: String(request.data?.clientSessionToken ?? ''),
       });
@@ -61,13 +69,13 @@ export const getParentalConsentStatusFn = onCall(
   },
 );
 
-export const resendParentalConsentNoticeFn = onCall(
+export const resendParentalConsentNotice = onCall(
   callableOpts,
   async (request) => {
     try {
       guardEnvironment();
       const deps = buildConsentServiceDeps();
-      return await resendParentalConsentNotice(deps, {
+      return await resendParentalConsentNoticeUseCase(deps, {
         requestId: String(request.data?.requestId ?? ''),
         clientSessionToken: String(request.data?.clientSessionToken ?? ''),
         clientIp: clientIpFromRawRequest(request.rawRequest),
@@ -78,13 +86,13 @@ export const resendParentalConsentNoticeFn = onCall(
   },
 );
 
-export const updateParentalConsentEmailFn = onCall(
+export const updateParentalConsentEmail = onCall(
   callableOpts,
   async (request) => {
     try {
       guardEnvironment();
       const deps = buildConsentServiceDeps();
-      return await updateParentalConsentEmail(deps, {
+      return await updateParentalConsentEmailUseCase(deps, {
         requestId: String(request.data?.requestId ?? ''),
         clientSessionToken: String(request.data?.clientSessionToken ?? ''),
         parentEmail: String(request.data?.parentEmail ?? ''),
@@ -96,7 +104,7 @@ export const updateParentalConsentEmailFn = onCall(
   },
 );
 
-export const claimParentalConsentFn = onCall(callableOpts, async (request) => {
+export const claimParentalConsent = onCall(callableOpts, async (request) => {
   try {
     guardEnvironment();
     if (!request.auth?.uid) {
@@ -106,7 +114,7 @@ export const claimParentalConsentFn = onCall(callableOpts, async (request) => {
       );
     }
     const deps = buildConsentServiceDeps();
-    return await claimParentalConsent(deps, {
+    return await claimParentalConsentUseCase(deps, {
       requestId: String(request.data?.requestId ?? ''),
       clientSessionToken: String(request.data?.clientSessionToken ?? ''),
       authenticatedUid: request.auth.uid,
@@ -121,7 +129,12 @@ export const claimParentalConsentFn = onCall(callableOpts, async (request) => {
  * GET never mutates consent; POST requires sealed session + CSRF.
  */
 export const parentalConsentHosting = onRequest(
-  { cors: false },
+  {
+    cors: false,
+    secrets: consentFunctionSecrets,
+    // Hosting rewrites are unauthenticated; mutations still require sealed session + CSRF.
+    invoker: 'public',
+  },
   async (req, res) => {
     try {
       guardEnvironment();
@@ -153,6 +166,7 @@ export const sendParentalConsentConfirmationTask = onTaskDispatched(
     rateLimits: {
       maxConcurrentDispatches: 6,
     },
+    secrets: consentFunctionSecrets,
   },
   async (req) => {
     guardEnvironment();
@@ -171,14 +185,7 @@ export const sendParentalConsentConfirmationTask = onTaskDispatched(
   },
 );
 
-// Public callable names matching the Phase 6.5A plan.
-export {
-  createParentalConsentRequestFn as createParentalConsentRequest,
-  getParentalConsentStatusFn as getParentalConsentStatus,
-  resendParentalConsentNoticeFn as resendParentalConsentNotice,
-  updateParentalConsentEmailFn as updateParentalConsentEmail,
-  claimParentalConsentFn as claimParentalConsent,
-};
-
 // Intentionally NOT exported: processInitialConsentHttp / processConfirmationHttp /
 // revokeConsentHttp — raw-token mutation bypasses removed in Phase 6.5B (ADR-009).
+// Callable names match the Phase 6.5A plan; do not also export *Fn aliases
+// (that would deploy duplicate Cloud Run services).

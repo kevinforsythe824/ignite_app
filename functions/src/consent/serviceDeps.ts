@@ -11,6 +11,7 @@ import {
   getParentEmailHmacSecret,
   getResendApiKey,
 } from '../config/secrets';
+import { ParentalConsentError } from '../domain/parentalConsent';
 import { ConsoleEmailSender } from '../email/consoleEmailSender';
 import type { EmailSender } from '../email/emailSender';
 import { ResendEmailSender } from '../email/resendEmailSender';
@@ -58,20 +59,37 @@ function ensureAdminApp(): void {
   }
 }
 
-function buildEmailSender(options?: { emailSender?: EmailSender }): EmailSender {
-  if (options?.emailSender) {
-    return options.emailSender;
+export function resolveConsentEmailSender(params: {
+  emulator: boolean;
+  resendApiKey: string | undefined;
+  emailSender?: EmailSender;
+  testCapture?: TestEmailCapture;
+}): EmailSender {
+  if (params.emailSender) {
+    return params.emailSender;
   }
-  if (testEmailCapture) {
-    return new CompositeEmailSender(new ConsoleEmailSender(), testEmailCapture);
+  if (params.testCapture) {
+    return new CompositeEmailSender(new ConsoleEmailSender(), params.testCapture);
   }
-
-  const emulator = isEmulatorOrConsentTestContext();
-  const resendKey = getResendApiKey();
-  if (!emulator && resendKey) {
-    return new ResendEmailSender(resendKey);
+  if (!params.emulator) {
+    if (!params.resendApiKey) {
+      throw new ParentalConsentError(
+        'internal',
+        'RESEND_API_KEY is not configured for deployed Functions.',
+      );
+    }
+    return new ResendEmailSender(params.resendApiKey);
   }
   return new ConsoleEmailSender();
+}
+
+function buildEmailSender(options?: { emailSender?: EmailSender }): EmailSender {
+  return resolveConsentEmailSender({
+    emulator: isEmulatorOrConsentTestContext(),
+    resendApiKey: getResendApiKey(),
+    emailSender: options?.emailSender,
+    testCapture: testEmailCapture,
+  });
 }
 
 export function buildCloudTasksConfirmationScheduler(): ConfirmationScheduler {

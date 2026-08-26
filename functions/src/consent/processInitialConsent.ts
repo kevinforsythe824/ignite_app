@@ -1,7 +1,6 @@
 import { Timestamp } from 'firebase-admin/firestore';
 
-import { MAX_TOKEN_FAILURES_PER_IP } from '../config/consentPolicy';
-import { getConfirmationEmailDelayMs } from '../config/consentPolicy';
+import { MAX_TOKEN_FAILURES_PER_IP, REQUIRE_CONFIRMATION_FOR_APPROVAL, getConfirmationEmailDelayMs } from '../config/consentPolicy';
 import { ParentalConsentError } from '../domain/parentalConsent';
 import type { ConsentServiceDeps } from './createRequest';
 import type { ParentalConsentFirestoreDocument } from './repository';
@@ -33,19 +32,24 @@ export async function processInitialConsent(
     return applyTransitionUpdate(deps, raw, 'processInitialConsent', now);
   });
 
-  if (result.status === 'initial_consent_received' && result.changed) {
-    const confirmation = generateOpaqueToken('confirmation');
+  if (result.changed && shouldScheduleConfirmationNotice(result.status)) {
     const confirmationDeliveryVersion = 1;
-    const sealed = sealToken(confirmation.rawToken, deps.sealSecret);
-    await deps.repository.updateFields(found.requestId, {
-      confirmationTokenHash: confirmation.tokenHash,
-      confirmationTokenSealed: sealed,
+    const fields: Partial<ParentalConsentFirestoreDocument> = {
       confirmationDeliveryVersion,
       confirmationScheduledAt: Timestamp.fromDate(now),
       confirmationDeliveryStatus: 'scheduled',
       confirmationLastErrorCode: null,
       confirmationSentAt: null,
-    });
+    };
+    if (REQUIRE_CONFIRMATION_FOR_APPROVAL) {
+      const confirmation = generateOpaqueToken('confirmation');
+      fields.confirmationTokenHash = confirmation.tokenHash;
+      fields.confirmationTokenSealed = sealToken(
+        confirmation.rawToken,
+        deps.sealSecret,
+      );
+    }
+    await deps.repository.updateFields(found.requestId, fields);
     await deps.confirmationScheduler.enqueueConfirmationEmail({
       requestId: found.requestId,
       confirmationDeliveryVersion,
@@ -54,6 +58,12 @@ export async function processInitialConsent(
   }
 
   return { requestId: result.requestId, status: result.status };
+}
+
+function shouldScheduleConfirmationNotice(status: string): boolean {
+  return (
+    status === 'approved' || status === 'initial_consent_received'
+  );
 }
 
 export async function processConfirmation(

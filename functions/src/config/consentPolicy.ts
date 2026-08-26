@@ -12,8 +12,14 @@ export const CONSENT_METHOD = 'email_plus' as const;
 /** Notice copy version recorded on each request. */
 export const NOTICE_VERSION = '2026-08-2';
 
-/** Whether email-plus confirmation is required before status becomes approved. */
-export const REQUIRE_CONFIRMATION_FOR_APPROVAL = true;
+/**
+ * When true, the first parent POST records `initial_consent_received` and a
+ * later parent confirmation POST is required before `approved`.
+ * When false (current default), the first explicit parent POST is `approved`
+ * and the delayed email is a confirmatory notice with a revoke link only.
+ * Flip after privacy/legal review without changing the mobile app.
+ */
+export const REQUIRE_CONFIRMATION_FOR_APPROVAL = false;
 
 /**
  * Default confirmation email delay (non-DEV).

@@ -46,7 +46,7 @@ export class ConsoleEmailSender implements EmailSender {
     renderConfirmationNotice({
       environment: this.environment,
       maskedParentEmail: params.maskedParentEmail,
-      confirmUrl: params.actionUrls.confirm ?? '',
+      confirmUrl: params.actionUrls.confirm,
       revokeUrl: params.actionUrls.revoke ?? '',
       privacyPolicyUrl: getPrivacyPolicyUrl(),
       expiresAt: params.expiresAt,

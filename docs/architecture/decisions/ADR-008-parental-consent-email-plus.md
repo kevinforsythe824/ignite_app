@@ -16,6 +16,7 @@ Ignite must not invent ordinary UI logic as “compliance,” must not claim COP
 ### Consent lifecycle vs account binding
 
 - Consent **status** is a lifecycle enum only: `pending` | `initial_consent_received` | `approved` | `expired` | `revoked`.
+- Default 6.5B parent UX: `pending` → one explicit parent POST → `approved`. `initial_consent_received` is retained for audit history, in-flight two-step rows, and a server policy revert after legal review.
 - Account **binding** is orthogonal: `claimedByUid` / `claimedAt` (unbound vs bound). Binding is **not** a status value such as `claimed`.
 - A request may be `approved` and bound; later `revoked` may still retain historical binding fields.
 
@@ -33,8 +34,8 @@ Four capabilities, hash-at-rest only:
 | Token | Purpose |
 |-------|---------|
 | `clientSessionToken` | Pre-auth status / resend / update-email / claim capability |
-| `approvalToken` | `processInitialConsent` only |
-| `confirmationToken` | `processConfirmation` only |
+| `approvalToken` | `processInitialConsent` only (the parent consent action) |
+| `confirmationToken` | `processConfirmation` only — generated only when `REQUIRE_CONFIRMATION_FOR_APPROVAL` is true |
 | `revokeToken` | `revokeConsent` only |
 
 Approval and confirmation tokens must **never** authorize revocation.
@@ -55,7 +56,8 @@ Approval and confirmation tokens must **never** authorize revocation.
 
 ### Email-plus policy seam
 
-- Confirmation requirement, delays, TTL, and resend limits live in server `consentPolicy` configuration.
+- Confirmation **requirement**, delays, TTL, and resend limits live in server `consentPolicy` configuration (`REQUIRE_CONFIRMATION_FOR_APPROVAL`, confirmation delay).
+- Default: the delayed email is a confirmatory **notice** (consent already approved; revoke link only; no second parent action). Setting `REQUIRE_CONFIRMATION_FOR_APPROVAL` to true restores a second parent POST before `approved` without changing the mobile app.
 - Exact production VPC / legal interpretation remains subject to release-time privacy/legal review. Code and docs must not claim COPPA compliance.
 
 ### Abuse protection

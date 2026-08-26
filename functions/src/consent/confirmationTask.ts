@@ -1,6 +1,9 @@
 import { Timestamp } from 'firebase-admin/firestore';
 
-import { NOTICE_VERSION } from '../config/consentPolicy';
+import {
+  NOTICE_VERSION,
+  REQUIRE_CONFIRMATION_FOR_APPROVAL,
+} from '../config/consentPolicy';
 import {
   buildConsentActionUrls,
   confirmationIdempotencyKey,
@@ -8,12 +11,13 @@ import {
 } from '../config/emailConfig';
 import { ParentalConsentError } from '../domain/parentalConsent';
 import type { ConsentServiceDeps } from './createRequest';
-import { applyExpiryIfNeeded } from './stateMachine';
+import { applyExpiryIfNeeded, transitionConsent } from './stateMachine';
 import { unsealToken } from './tokenSeal';
 
 /**
- * Task Queue / scheduler handler body: send the sealed confirmation capability.
- * Retry-safe: same sealed token + same idempotency key; no-op after confirmationSentAt.
+ * Task Queue handler: send the delayed confirmatory notice (revoke link).
+ * When two-step policy is on, also includes the confirmation capability.
+ * Retry-safe: same idempotency key; no-op after confirmationSentAt.
  */
 export async function sendScheduledConfirmationEmail(
   deps: ConsentServiceDeps,
@@ -31,15 +35,7 @@ export async function sendScheduledConfirmationEmail(
     return { sent: false };
   }
 
-  if (domain.status === 'revoked' || domain.status === 'approved') {
-    return { sent: false };
-  }
-
-  if (domain.status !== 'initial_consent_received') {
-    return { sent: false };
-  }
-
-  if (raw.confirmationSentAt) {
+  if (domain.status === 'revoked') {
     return { sent: false };
   }
 
@@ -49,22 +45,56 @@ export async function sendScheduledConfirmationEmail(
     return { sent: false };
   }
 
-  if (!raw.confirmationTokenSealed) {
-    throw new ParentalConsentError(
-      'internal',
-      'Confirmation token seal missing for scheduled send.',
+  if (raw.confirmationSentAt) {
+    return { sent: false };
+  }
+
+  if (!REQUIRE_CONFIRMATION_FOR_APPROVAL && domain.status === 'initial_consent_received') {
+    const migrated = transitionConsent(domain.status, 'processInitialConsent', now);
+    if (migrated.changed) {
+      const update: {
+        status: typeof migrated.status;
+        confirmedAt?: Timestamp;
+      } = { status: migrated.status };
+      if (migrated.confirmedAt) {
+        update.confirmedAt = Timestamp.fromDate(migrated.confirmedAt);
+      }
+      await deps.repository.updateFields(params.requestId, update);
+      domain.status = migrated.status;
+    }
+  }
+
+  if (REQUIRE_CONFIRMATION_FOR_APPROVAL) {
+    if (domain.status !== 'initial_consent_received') {
+      return { sent: false };
+    }
+  } else if (domain.status !== 'approved') {
+    return { sent: false };
+  }
+
+  let confirmationToken: string | undefined;
+  if (REQUIRE_CONFIRMATION_FOR_APPROVAL) {
+    if (!raw.confirmationTokenSealed) {
+      throw new ParentalConsentError(
+        'internal',
+        'Confirmation token seal missing for scheduled send.',
+      );
+    }
+    confirmationToken = unsealToken(
+      raw.confirmationTokenSealed,
+      deps.sealSecret,
     );
   }
 
-  const confirmationToken = unsealToken(
-    raw.confirmationTokenSealed,
-    deps.sealSecret,
-  );
-
-  // Need revoke URL — unseal revoke if sealed, else omit from email... We seal revoke at create.
   let revokeToken: string | undefined;
   if (raw.revokeTokenSealed) {
     revokeToken = unsealToken(raw.revokeTokenSealed, deps.sealSecret);
+  }
+  if (!revokeToken) {
+    throw new ParentalConsentError(
+      'internal',
+      'Revoke token seal missing for scheduled confirmation notice.',
+    );
   }
 
   const actionUrls = buildConsentActionUrls({

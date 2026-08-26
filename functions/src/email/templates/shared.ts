@@ -22,6 +22,19 @@ export function legalDisclaimer(): string {
   );
 }
 
+export function noticeCollectionSummary(): string {
+  return (
+    'If approved, the account may collect account and learning information needed to operate Ignite (such as name, email, and study progress). This message does not include a child’s full personal profile.'
+  );
+}
+
+export function emailActionBlock(label: string, url: string): string {
+  const safeLabel = escapeHtml(label);
+  const safeUrl = escapeHtml(url);
+  return `<p><a href="${safeUrl}">${safeLabel}</a></p>
+    <p>${safeLabel}: ${safeUrl}</p>`;
+}
+
 export function subjectFor(
   environment: IgniteEnvironmentName,
   body: string,

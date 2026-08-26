@@ -2,6 +2,11 @@
  * Sealed HttpOnly browser session cookies for parent Hosting flow (ADR-009).
  * Session carries a sealed copy of the email capability so POST can call use cases
  * without leaving raw tokens in query strings or JavaScript storage.
+ *
+ * Cookie name must be `__session`: Firebase Hosting strips every other cookie
+ * from requests rewritten to Cloud Functions / Cloud Run.
+ * SameSite=Lax is required so a top-level GET from an email client can store
+ * and send the cookie. Lax does not authorize POST; CSRF + explicit POST remain.
  */
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
@@ -23,7 +28,7 @@ export interface BrowserSessionPayload {
   capability: string;
 }
 
-export const CONSENT_SESSION_COOKIE = 'ignite_consent_session';
+export const CONSENT_SESSION_COOKIE = '__session';
 
 function keyFromSecret(secret: string): Buffer {
   return createHash('sha256').update(`browser-session:${secret}`, 'utf8').digest();
@@ -103,11 +108,11 @@ export function buildSessionPayload(params: {
 }
 
 export function sessionCookieHeader(sealed: string, maxAgeSec: number): string {
-  return `${CONSENT_SESSION_COOKIE}=${sealed}; Path=/parent-consent; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAgeSec}`;
+  return `${CONSENT_SESSION_COOKIE}=${sealed}; Path=/parent-consent; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSec}`;
 }
 
 export function clearSessionCookieHeader(): string {
-  return `${CONSENT_SESSION_COOKIE}=; Path=/parent-consent; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
+  return `${CONSENT_SESSION_COOKIE}=; Path=/parent-consent; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 
 export function readCookie(

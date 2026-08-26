@@ -23,7 +23,6 @@ import { ImmediateConfirmationScheduler, RecordingConfirmationScheduler, sendSch
 import { createParentalConsentRequest } from '../createRequest';
 import type { ConsentServiceDeps } from '../createRequest';
 import {
-  processConfirmation,
   processInitialConsent,
 } from '../processInitialConsent';
 import { FirestoreRateLimiter } from '../rateLimiter';
@@ -105,8 +104,8 @@ const shouldRun =
 
       await processInitialConsent(deps, notice!.approvalToken!);
       const confirmation = capture.latestConfirmation();
-      expect(confirmation?.confirmationToken).toBeTruthy();
-      await processConfirmation(deps, confirmation!.confirmationToken!);
+      expect(confirmation?.revokeToken).toBeTruthy();
+      expect(confirmation?.confirmationToken).toBeUndefined();
 
       // Simulate callable extracting uid solely from Auth context.
       const authenticatedUid = user.uid;

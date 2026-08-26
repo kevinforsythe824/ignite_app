@@ -14,4 +14,13 @@ describe('functions export surface (6.5B)', () => {
     expect(index.createParentalConsentRequest).toBeDefined();
     expect(index.claimParentalConsent).toBeDefined();
   });
+
+  it('does not export duplicate *Fn callable aliases', () => {
+    const exported = index as Record<string, unknown>;
+    expect(exported.createParentalConsentRequestFn).toBeUndefined();
+    expect(exported.getParentalConsentStatusFn).toBeUndefined();
+    expect(exported.resendParentalConsentNoticeFn).toBeUndefined();
+    expect(exported.updateParentalConsentEmailFn).toBeUndefined();
+    expect(exported.claimParentalConsentFn).toBeUndefined();
+  });
 });

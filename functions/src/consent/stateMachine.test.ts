@@ -2,23 +2,30 @@ import { transitionConsent } from './stateMachine';
 import { ParentalConsentError } from '../domain/parentalConsent';
 
 describe('consent state machine', () => {
-  it('transitions pending → initial_consent_received', () => {
+  it('transitions pending → approved on the first explicit consent action', () => {
     const result = transitionConsent('pending', 'processInitialConsent');
-    expect(result.status).toBe('initial_consent_received');
+    expect(result.status).toBe('approved');
     expect(result.changed).toBe(true);
     expect(result.initialConsentAt).toBeInstanceOf(Date);
+    expect(result.confirmedAt).toBeInstanceOf(Date);
   });
 
-  it('is idempotent for repeated initial consent', () => {
+  it('is idempotent for repeated initial consent after approval', () => {
+    const result = transitionConsent('approved', 'processInitialConsent');
+    expect(result.status).toBe('approved');
+    expect(result.changed).toBe(false);
+  });
+
+  it('promotes leftover initial_consent_received to approved on the original consent action', () => {
     const result = transitionConsent(
       'initial_consent_received',
       'processInitialConsent',
     );
-    expect(result.status).toBe('initial_consent_received');
-    expect(result.changed).toBe(false);
+    expect(result.status).toBe('approved');
+    expect(result.changed).toBe(true);
   });
 
-  it('transitions initial → approved on confirmation', () => {
+  it('transitions leftover initial → approved on confirmation', () => {
     const result = transitionConsent(
       'initial_consent_received',
       'processConfirmation',

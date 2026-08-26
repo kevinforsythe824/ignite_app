@@ -73,8 +73,31 @@ export function transitionConsent(
 ): TransitionResult {
   switch (action) {
     case 'processInitialConsent': {
-      if (current === 'initial_consent_received' || current === 'approved') {
-        return { status: current, changed: false };
+      if (current === 'approved') {
+        return { status: 'approved', changed: false };
+      }
+      if (REQUIRE_CONFIRMATION_FOR_APPROVAL) {
+        if (current === 'initial_consent_received') {
+          return { status: 'initial_consent_received', changed: false };
+        }
+        if (current !== 'pending') {
+          throw new ParentalConsentError(
+            'failed_precondition',
+            `Cannot record initial consent from status ${current}.`,
+          );
+        }
+        return {
+          status: 'initial_consent_received',
+          changed: true,
+          initialConsentAt: now,
+        };
+      }
+      if (current === 'initial_consent_received') {
+        return {
+          status: 'approved',
+          changed: true,
+          confirmedAt: now,
+        };
       }
       if (current !== 'pending') {
         throw new ParentalConsentError(
@@ -83,21 +106,15 @@ export function transitionConsent(
         );
       }
       return {
-        status: 'initial_consent_received',
+        status: 'approved',
         changed: true,
         initialConsentAt: now,
+        confirmedAt: now,
       };
     }
     case 'processConfirmation': {
       if (current === 'approved') {
         return { status: 'approved', changed: false };
-      }
-      if (!REQUIRE_CONFIRMATION_FOR_APPROVAL && current === 'pending') {
-        return {
-          status: 'approved',
-          changed: true,
-          confirmedAt: now,
-        };
       }
       if (current !== 'initial_consent_received') {
         throw new ParentalConsentError(

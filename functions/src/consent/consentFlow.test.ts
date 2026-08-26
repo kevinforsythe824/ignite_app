@@ -22,7 +22,6 @@ import { TestEmailCapture } from '../email/testEmailCapture';
 import { ConsoleEmailSender } from '../email/consoleEmailSender';
 import { CompositeEmailSender } from '../email/testEmailCapture';
 import { ParentalConsentError } from '../domain/parentalConsent';
-import { unsealToken } from './tokenSeal';
 
 const SEAL = 'unit-test-seal-secret-value';
 
@@ -147,7 +146,7 @@ describe('parental consent use cases', () => {
     expect(status.bindingState).toBe('unbound');
   });
 
-  it('enforces single-purpose tokens and schedules confirmation once', async () => {
+  it('enforces single-purpose tokens and schedules a confirmatory notice once', async () => {
     const recording = new RecordingConfirmationScheduler();
     const { deps, capture, repo } = buildDeps({ scheduler: recording });
     await createParentalConsentRequest(deps, {
@@ -166,24 +165,26 @@ describe('parental consent use cases', () => {
     ).rejects.toMatchObject({ code: 'invalid_token' });
 
     const initial = await processInitialConsent(deps, notice!.approvalToken!);
-    expect(initial.status).toBe('initial_consent_received');
+    expect(initial.status).toBe('approved');
     expect(recording.enqueued).toHaveLength(1);
 
     const stored = repo.peek(initial.requestId)!;
-    expect(stored.confirmationTokenSealed).toBeTruthy();
+    expect(stored.confirmationTokenSealed == null).toBe(true);
     expect(stored.confirmationDeliveryStatus).toBe('scheduled');
 
-    const sealedRaw = unsealToken(stored.confirmationTokenSealed!, SEAL);
     await sendScheduledConfirmationEmail(deps, {
       requestId: initial.requestId,
       confirmationDeliveryVersion: 1,
     });
-    expect(capture.latestConfirmation()?.confirmationToken).toBe(sealedRaw);
-    expect(capture.latestConfirmation()?.idempotencyKey).toBe(
+    const confirmation = capture.latestConfirmation();
+    expect(confirmation?.confirmationToken).toBeUndefined();
+    expect(confirmation?.revokeToken).toBeTruthy();
+    expect(confirmation?.actionUrls?.confirm).toBeUndefined();
+    expect(confirmation?.actionUrls?.revoke).toContain('/parent-consent/revoke/start');
+    expect(confirmation?.idempotencyKey).toBe(
       `confirmation/${initial.requestId}/1`,
     );
 
-    // Retry must not rotate capability or send a different token.
     await sendScheduledConfirmationEmail(deps, {
       requestId: initial.requestId,
       confirmationDeliveryVersion: 1,
@@ -194,9 +195,6 @@ describe('parental consent use cases', () => {
     await expect(
       processConfirmation(deps, notice!.approvalToken!),
     ).rejects.toMatchObject({ code: 'invalid_token' });
-
-    const approved = await processConfirmation(deps, sealedRaw);
-    expect(approved.status).toBe('approved');
   });
 
   it('binds claim from authenticated uid only', async () => {
@@ -206,8 +204,8 @@ describe('parental consent use cases', () => {
     });
     const notice = capture.latestNotice()!;
     await processInitialConsent(deps, notice.approvalToken!);
-    const confirmation = capture.latestConfirmation()!;
-    await processConfirmation(deps, confirmation.confirmationToken!);
+    expect(capture.latestConfirmation()?.revokeToken).toBeTruthy();
+    expect(capture.latestConfirmation()?.confirmationToken).toBeUndefined();
 
     const claimed = await claimParentalConsent(deps, {
       requestId: created.requestId,

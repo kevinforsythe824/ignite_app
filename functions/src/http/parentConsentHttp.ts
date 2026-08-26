@@ -1,4 +1,4 @@
-import { BROWSER_SESSION_TTL_MS } from '../config/consentPolicy';
+import { BROWSER_SESSION_TTL_MS, REQUIRE_CONFIRMATION_FOR_APPROVAL } from '../config/consentPolicy';
 import { getBrowserSessionSecret } from '../config/secrets';
 import {
   processConfirmation,
@@ -354,8 +354,9 @@ export async function parentConsentRouter(
       res,
       purpose: 'approve',
       heading: 'Review parental consent',
-      description:
-        'Please review this Ignite account request. Selecting the button below records your initial consent. A confirmation step may follow by email.',
+      description: REQUIRE_CONFIRMATION_FOR_APPROVAL
+        ? 'Please review this Ignite account request. Selecting the button below records your initial consent. A confirmation step may follow by email.'
+        : 'Please review this Ignite account request. Selecting the button below records your consent. A confirmation notice may follow by email; it does not require another approval.',
       submitLabel: 'I am the parent/guardian and I consent',
       formAction: '/parent-consent',
     });
@@ -368,8 +369,9 @@ export async function parentConsentRouter(
       purpose: 'approve',
       action: 'initial',
       successHeading: 'Consent recorded',
-      successMessage:
-        'Thank you. If confirmation is required, check your email for the next step',
+      successMessage: REQUIRE_CONFIRMATION_FOR_APPROVAL
+        ? 'Thank you. If confirmation is required, check your email for the next step'
+        : 'Thank you. Parental consent is now approved. A confirmation notice will be emailed; it does not require another action',
     });
     return;
   }

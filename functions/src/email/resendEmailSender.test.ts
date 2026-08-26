@@ -41,11 +41,15 @@ describe('ResendEmailSender', () => {
 
     expect(calls).toHaveLength(1);
     const call = calls[0] as {
-      payload: { subject: string; to: string[] };
+      payload: { subject: string; to: string[]; html: string; text: string };
       options: { idempotencyKey: string };
     };
     expect(call.options.idempotencyKey).toBe('initial-notice/req1/1');
     expect(call.payload.subject).toContain('[Ignite DEV]');
+    expect(call.payload.html).toContain('Review and approve');
+    expect(call.payload.html).toContain('/parent-consent/start?c=a');
+    expect(call.payload.text).toMatch(/review and approve/i);
+    expect(call.payload.text).toContain('/parent-consent/start?c=a');
     expect(JSON.stringify(calls)).not.toContain('re_test_key');
   });
 
@@ -68,7 +72,6 @@ describe('ResendEmailSender', () => {
         maskedParentEmail: 's***@example.com',
         idempotencyKey: 'confirmation/req1/1',
         actionUrls: {
-          confirm: 'https://wpf-bible-qizzing.web.app/parent-consent/confirm/start?c=c',
           revoke: 'https://wpf-bible-qizzing.web.app/parent-consent/revoke/start?c=r',
         },
         noticeVersion: '2026-08-2',

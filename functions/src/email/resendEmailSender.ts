@@ -67,10 +67,10 @@ export class ResendEmailSender implements EmailSender {
   async sendParentalConsentConfirmation(
     params: ParentalConsentConfirmationParams,
   ): Promise<void> {
-    if (!params.actionUrls.confirm || !params.actionUrls.revoke) {
+    if (!params.actionUrls.revoke) {
       throw new ParentalConsentError(
         'internal',
-        'Confirmation notice requires confirm and revoke URLs.',
+        'Confirmation notice requires a revoke URL.',
       );
     }
     const rendered = renderConfirmationNotice({

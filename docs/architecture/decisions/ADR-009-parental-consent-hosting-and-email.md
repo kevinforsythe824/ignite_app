@@ -15,12 +15,12 @@ Phase 6.5A established server-authoritative parental consent (Firestore + Cloud 
 
 - Parent UI is Firebase Hosting rewritten to Gen 2 HTTPS Functions (server-rendered HTML).
 - No Parent Portal, parent Auth, SPA framework, analytics, or tracking.
-- GET never mutates consent. Explicit POST + sealed browser session + CSRF required for approve / confirm / revoke.
+- GET never mutates consent. Explicit POST + sealed browser session + CSRF required for approve / revoke. Delayed confirmation email is a notice, not a second consent POST, unless `REQUIRE_CONFIRMATION_FOR_APPROVAL` is enabled.
 - Deployed DEV must not expose public `onRequest` endpoints that mutate consent from raw email tokens alone. Use cases remain internal; tests call them directly or via Hosting handlers.
 
 ### Browser session
 
-- Short-lived **sealed** cookies (`HttpOnly`, `Secure`, `SameSite=Strict`), purpose-bound (`approve` | `confirm` | `revoke`).
+- Short-lived **sealed** cookies (`HttpOnly`, `Secure`, `SameSite=Lax`), purpose-bound (`approve` | `confirm` | `revoke`). `SameSite=Lax` is the minimum that lets a top-level GET from an email client store and send `__session`; it does not authorize POST. Cookie name is `__session` because Firebase Hosting forwards only that cookie to rewritten Cloud Functions / Cloud Run; a custom name is stripped and GET `/parent-consent` shows “Session required.” CSRF is a synchronizer token in the form body, compared to the value sealed inside `__session` — not a second cookie.
 - Sensitive responses use `Cache-Control: no-store`, `Referrer-Policy: no-referrer`, restrictive CSP, and frame protections.
 - Capabilities are never stored in `localStorage` / `sessionStorage`.
 
@@ -34,7 +34,7 @@ Phase 6.5A established server-authoritative parental consent (Firestore + Cloud 
 ### Confirmation delay
 
 - Firebase Task Queue Functions (`onTaskDispatched`) enforce `CONFIRMATION_EMAIL_DELAY_MS` (DEV may use a shortened explicit value).
-- Confirmation capability is generated once at initial consent: hash-at-rest + sealed ciphertext for retries; raw token never logged or stored in plaintext Firestore fields. After successful send, sealed ciphertext is cleared.
+- Confirmation capability is generated only when two-step parent confirmation is enabled. The delayed Task Queue send is a confirmatory notice (revoke link) by default; raw tokens are never logged or stored in plaintext Firestore fields. After successful send, any sealed confirmation ciphertext is cleared.
 - Task retries must not rotate the confirmation capability or create a different logical confirmation email.
 
 ### Environment

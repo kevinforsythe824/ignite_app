@@ -1,6 +1,7 @@
 import {
   buildSessionPayload,
   sealBrowserSession,
+  sessionCookieHeader,
   unsealBrowserSession,
 } from './browserSession';
 import { CONSENT_SECURITY_HEADERS } from './securityHeaders';
@@ -32,6 +33,18 @@ describe('browserSession', () => {
     });
     const sealed = sealBrowserSession(payload, secret);
     expect(() => unsealBrowserSession(sealed, secret)).toThrow(/expired/i);
+  });
+
+  it('sets the Hosting-forwarded __session cookie with HttpOnly Secure SameSite=Lax', () => {
+    const header = sessionCookieHeader('sealed-value', 1200);
+    expect(header.startsWith('__session=')).toBe(true);
+    expect(header).toContain('HttpOnly');
+    expect(header).toContain('Secure');
+    expect(header).toContain('SameSite=Lax');
+    expect(header).not.toContain('SameSite=Strict');
+    expect(header).toContain('Path=/parent-consent');
+    expect(header).toContain('Max-Age=1200');
+    expect(header).not.toContain('ignite_consent_session');
   });
 });
 

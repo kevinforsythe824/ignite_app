@@ -1,20 +1,21 @@
 /**
- * DEV harness: create a parental consent request against deployed/emulator callables.
+ * DEV harness: resend the parental-consent notice email.
  *
- * Usage (deployed DEV):
- *   npx tsx scripts/consent/devCreateConsentRequest.ts kforsythe88@gmail.com
+ * Usage:
+ *   npx tsx scripts/consent/devResendConsentNotice.ts <requestId> <clientSessionToken>
  *
- * Does not mutate consent via raw tokens — parent actions use Hosting session flow.
+ * Rotates the approval link. Use the new email; do not reuse an old approve URL.
  */
 
 import { loadDevWebFirebaseConfig } from './loadDevWebConfig';
 
-const parentEmail = process.argv[2];
+const requestId = process.argv[2];
+const clientSessionToken = process.argv[3];
 
 async function main(): Promise<void> {
-  if (!parentEmail) {
+  if (!requestId || !clientSessionToken) {
     console.error(
-      'Usage: tsx scripts/consent/devCreateConsentRequest.ts <parentEmail>',
+      'Usage: tsx scripts/consent/devResendConsentNotice.ts <requestId> <clientSessionToken>',
     );
     process.exit(1);
   }
@@ -36,12 +37,11 @@ async function main(): Promise<void> {
     connectFunctionsEmulator(functions, '127.0.0.1', 5001);
   }
 
-  const create = httpsCallable(functions, 'createParentalConsentRequest');
-  const result = await create({ parentEmail });
-  console.info('Created parental consent request:');
+  const resend = httpsCallable(functions, 'resendParentalConsentNotice');
+  const result = await resend({ requestId, clientSessionToken });
   console.info(JSON.stringify(result.data, null, 2));
   console.info(
-    'Keep clientSessionToken in this terminal only. Open the email notice to continue. Do not use raw-token HTTP mutate endpoints.',
+    'If sent, use the NEW approve link in the latest email. Old approve links may no longer work.',
   );
 }
 
