@@ -81,7 +81,7 @@ Separating status from binding keeps revocation and claim history intelligible. 
 ## Consequences
 
 - Phase 6.5A adds a `functions/` package and deny-all consent/rate-limit rules.
-- Under-13 mobile UX remains the Phase 5 terminal hold until 6.5C.
+- Under-13 mobile UX is integrated in Phase 6.5C ([ADR-010](ADR-010-mobile-parental-consent-integration.md)).
 - Integration tests for claim must use Auth + Functions + Firestore emulators so `request.auth.uid` is real, not a mocked auth object alone.
 - HMAC secret must never be committed; local/emulator uses gitignored env; deployed DEV uses Functions secrets.
 

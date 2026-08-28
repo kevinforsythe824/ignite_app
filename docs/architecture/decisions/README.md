@@ -88,6 +88,7 @@ Folder layout remains in [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 | [ADR-007](ADR-007-authentication-boundary-and-identity.md) | Authentication boundary and identity separation | Accepted |
 | [ADR-008](ADR-008-parental-consent-email-plus.md) | Parental consent email-plus foundation (server-authoritative) | Accepted |
 | [ADR-009](ADR-009-parental-consent-hosting-and-email.md) | Parental consent Hosting surface and transactional email (DEV) | Accepted |
+| [ADR-010](ADR-010-mobile-parental-consent-integration.md) | Mobile parental consent integration (Phase 6.5C) | Accepted |
 
 ## Open Decisions
 

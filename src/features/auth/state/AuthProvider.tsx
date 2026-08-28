@@ -12,6 +12,7 @@ import type {
   ChangeEmailInput,
   ChangePasswordInput,
 } from '../domain/accountCredentialChange';
+import type { AuthenticatedIdentity } from '../domain/authenticatedIdentity';
 import type { EmailPasswordCredentials } from '../domain/emailPasswordCredentials';
 import type { AuthRepository } from '../repositories/authRepository';
 import { firebaseAuthRepository } from '../repositories';
@@ -27,7 +28,7 @@ export const AuthSessionContext = createContext<AuthSessionState | undefined>(
 
 export interface AuthActions {
   signIn(credentials: EmailPasswordCredentials): Promise<void>;
-  signUp(credentials: EmailPasswordCredentials): Promise<void>;
+  signUp(credentials: EmailPasswordCredentials): Promise<AuthenticatedIdentity>;
   signOut(): Promise<void>;
   sendPasswordResetEmail(email: string): Promise<void>;
   changeEmail(input: ChangeEmailInput): Promise<void>;
@@ -65,7 +66,11 @@ export function AuthProvider({
   }, []);
 
   const signUp = useCallback(async (credentials: EmailPasswordCredentials) => {
-    await repositoryRef.current.signUp(credentials);
+    const identity = await repositoryRef.current.signUp(credentials);
+    // Sync React auth immediately so post-signup claim can bind UID before
+    // relying solely on a possibly delayed onAuthStateChanged emission.
+    dispatch({ type: 'auth_state_resolved', identity });
+    return identity;
   }, []);
 
   const signOut = useCallback(async () => {

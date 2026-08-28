@@ -208,7 +208,7 @@ describe('AuthProvider', () => {
 
   it('becomes authenticated after sign-up without profile fields', async () => {
     const repository = createAuthRepositoryFake();
-    let result: { signUp: (credentials: { email: string; password: string }) => Promise<void> };
+    let result: ReturnType<typeof useAuth>;
 
     function ActionsProbe(): React.JSX.Element {
       result = useAuth();

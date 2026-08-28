@@ -17,6 +17,11 @@ export {
   readIgniteEnvironment,
 } from './firebaseEnvironments';
 export type { IgniteEnvironmentName } from './firebaseEnvironments';
+export {
+  FIREBASE_FUNCTIONS_REGION,
+  getFirebaseFunctions,
+  resetFirebaseFunctionsForTests,
+} from './firebaseFunctions';
 export { createFirebaseService, firebaseService } from './firebaseService';
 export { getFirebaseFirestore } from './firestore';
 export type { FirebaseService } from './firebaseService';

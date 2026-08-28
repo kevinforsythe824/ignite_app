@@ -13,7 +13,7 @@ export interface UseAuthResult {
   session: AuthSessionState;
   identity: AuthenticatedIdentity | null;
   signIn(credentials: EmailPasswordCredentials): Promise<void>;
-  signUp(credentials: EmailPasswordCredentials): Promise<void>;
+  signUp(credentials: EmailPasswordCredentials): Promise<AuthenticatedIdentity>;
   signOut(): Promise<void>;
   sendPasswordResetEmail(email: string): Promise<void>;
   changeEmail(input: ChangeEmailInput): Promise<void>;

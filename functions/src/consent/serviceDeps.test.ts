@@ -3,7 +3,7 @@ import { ConsoleEmailSender } from '../email/consoleEmailSender';
 import { ResendEmailSender } from '../email/resendEmailSender';
 import { TestEmailCapture } from '../email/testEmailCapture';
 import { CompositeEmailSender } from '../email/testEmailCapture';
-import { resolveConsentEmailSender } from './serviceDeps';
+import { buildConsentServiceDeps, resolveConsentEmailSender } from './serviceDeps';
 
 describe('resolveConsentEmailSender', () => {
   it('uses console sender in emulator/test context', () => {
@@ -40,5 +40,30 @@ describe('resolveConsentEmailSender', () => {
       emailSender: override,
     });
     expect(sender).toBe(override);
+  });
+});
+
+describe('buildConsentServiceDeps skipEmail', () => {
+  const priorEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...priorEnv };
+  });
+
+  it('does not require RESEND_API_KEY for read-only callables', () => {
+    process.env.PARENT_EMAIL_HMAC_SECRET = 'unit-test-hmac-secret';
+    delete process.env.RESEND_API_KEY;
+    delete process.env.FUNCTIONS_EMULATOR;
+    delete process.env.FIRESTORE_EMULATOR_HOST;
+    delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    delete process.env.IGNITE_CONSENT_TEST_MODE;
+
+    const deps = buildConsentServiceDeps({
+      skipEmail: true,
+      hmacSecret: 'unit-test-hmac-secret',
+      sealSecret: 'unit-test-seal-secret',
+    });
+
+    expect(deps.emailSender).toBeInstanceOf(ConsoleEmailSender);
   });
 });

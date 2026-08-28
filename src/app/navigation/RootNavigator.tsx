@@ -6,6 +6,8 @@ import { AuthNavigator } from '../../features/auth/navigation/AuthNavigator';
 import { IgniteEntryScreen } from '../../features/auth/screens/IgniteEntryScreen';
 import { useAuth } from '../../features/auth';
 import { hideNativeSplash } from '../../features/auth/splash/nativeSplash';
+import { ConsentClaimPendingScreen } from '../../features/parentalConsent/screens/ConsentClaimPendingScreen';
+import { useParentalConsent } from '../../features/parentalConsent/hooks/useParentalConsent';
 import { useQuizzerProfile } from '../../features/profile/state/QuizzerProfileProvider';
 import { QuizzerNameScreen } from '../../features/profile/screens/QuizzerNameScreen';
 import { QuizzerProfileLoadErrorScreen } from '../../features/profile/screens/QuizzerProfileLoadErrorScreen';
@@ -18,32 +20,41 @@ import type { RootStackParamList } from './types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /**
- * Root stack switches on AuthProvider session and QuizzerProfileProvider presence:
+ * Root stack switches on AuthProvider session, parental-consent claim gate,
+ * and QuizzerProfileProvider presence:
  * initializing → Ignite Entry
  * unauthenticated → Auth flow
+ * authenticated + claim required → ConsentClaimPending
  * authenticated + profile loading/idle → profile loading cover
  * authenticated + profile missing → Quizzer name onboarding
  * authenticated + profile error → recoverable load error
  * authenticated + profile ready → MainTabs
- *
- * Screens do not navigate around this gate after provisioning.
  */
 export function RootNavigator(): React.JSX.Element {
   const { session } = useAuth();
   const { session: profileSession } = useQuizzerProfile();
+  const { isClaimRequired, session: consentSession } = useParentalConsent();
 
   useEffect(() => {
     void hideNativeSplash();
   }, [session.status]);
 
+  const consentHydrated = consentSession.hydrateStatus === 'ready';
+  const claimPending =
+    session.status === 'authenticated' && consentHydrated && isClaimRequired;
+
   const authenticatedDestination =
-    profileSession.status === 'ready'
-      ? 'ready'
-      : profileSession.status === 'missing'
-        ? 'missing'
-        : profileSession.status === 'error'
-          ? 'error'
-          : 'loading';
+    session.status === 'authenticated' && !consentHydrated
+      ? 'loading'
+      : claimPending
+        ? 'claim'
+        : profileSession.status === 'ready'
+          ? 'ready'
+          : profileSession.status === 'missing'
+            ? 'missing'
+            : profileSession.status === 'error'
+              ? 'error'
+              : 'loading';
 
   return (
     <NavigationContainer>
@@ -63,6 +74,8 @@ export function RootNavigator(): React.JSX.Element {
           <Stack.Screen name="IgniteEntry" component={IgniteEntryScreen} />
         ) : session.status === 'unauthenticated' ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : authenticatedDestination === 'claim' ? (
+          <Stack.Screen name="ConsentClaimPending" component={ConsentClaimPendingScreen} />
         ) : authenticatedDestination === 'ready' ? (
           <>
             <Stack.Screen

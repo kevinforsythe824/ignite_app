@@ -6,9 +6,14 @@ import { RootNavigator } from '../../../src/app/navigation/RootNavigator';
 import { AuthProvider } from '../../../src/features/auth';
 import { authCopy } from '../../../src/features/auth/copy/authCopy';
 import { IgniteEntryScreen } from '../../../src/features/auth/screens/IgniteEntryScreen';
+import { ParentalConsentProvider } from '../../../src/features/parentalConsent';
+import { ParentalConsentError } from '../../../src/features/parentalConsent/errors/parentalConsentError';
+import { parentalConsentCopy } from '../../../src/features/parentalConsent/copy/parentalConsentCopy';
 import { QuizzerProfileError } from '../../../src/features/profile';
 import { QuizzerProfileProvider } from '../../../src/features/profile/state/QuizzerProfileProvider';
 import { createAuthRepositoryFake } from '../../../test-utils/authRepositoryFake';
+import { createConsentSecureStoreFake } from '../../../test-utils/consentSecureStoreFake';
+import { createParentalConsentRepositoryFake } from '../../../test-utils/parentalConsentRepositoryFake';
 import { createQuizzerProfileRepositoryFake } from '../../../test-utils/quizzerProfileRepositoryFake';
 
 jest.mock('../../../src/features/flashcards/repositories/firebaseCurriculumSource', () => {
@@ -25,12 +30,21 @@ jest.mock('../../../src/features/flashcards/repositories/firebaseCurriculumSourc
 async function renderRoot(
   repository: ReturnType<typeof createAuthRepositoryFake>,
   profileRepository: ReturnType<typeof createQuizzerProfileRepositoryFake> = createQuizzerProfileRepositoryFake(),
+  consentOptions?: {
+    secureStore?: ReturnType<typeof createConsentSecureStoreFake>;
+    consentRepository?: ReturnType<typeof createParentalConsentRepositoryFake>;
+  },
 ) {
   return render(
     <AuthProvider repository={repository}>
-      <QuizzerProfileProvider repository={profileRepository}>
-        <RootNavigator />
-      </QuizzerProfileProvider>
+      <ParentalConsentProvider
+        repository={consentOptions?.consentRepository ?? createParentalConsentRepositoryFake()}
+        secureStore={consentOptions?.secureStore ?? createConsentSecureStoreFake()}
+      >
+        <QuizzerProfileProvider repository={profileRepository}>
+          <RootNavigator />
+        </QuizzerProfileProvider>
+      </ParentalConsentProvider>
     </AuthProvider>,
   );
 }
@@ -182,6 +196,397 @@ describe('RootNavigator auth session switch', () => {
     expect(screen.queryByTestId('quizzer-profile-loading')).toBeNull();
     expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
     expect(profileRepository.getProfile).toHaveBeenCalledTimes(getProfileCallsBefore);
+  });
+
+  it('blocks profile routes until pendingClaimUid claim completes', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      pendingClaimUid: 'user-1',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    // Keep claim pending visible: hang the claim callable.
+    (consentRepository.claim as jest.Mock).mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    expect(await screen.findByTestId('consent-claim-pending-title')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+  });
+
+  it('does not claim or block when signed-in UID differs from pendingClaimUid', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-b',
+        email: 'other@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-b',
+      firstName: 'Other',
+      lastName: 'User',
+      avatarId: null,
+    });
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      pendingClaimUid: 'user-a',
+    });
+
+    const screen = await renderRoot(repository, profileRepository, { secureStore });
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(screen.queryByTestId('consent-claim-pending-title')).toBeNull();
+  });
+
+  it('AUTH HYDRATION RACE: awaitingClaim survives Auth initializing then gates ConsentClaimPending', async () => {
+    const repository = createAuthRepositoryFake({ emitOnSubscribe: false });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-race',
+      firstName: 'Race',
+      lastName: 'User',
+      avatarId: null,
+    });
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      awaitingClaim: true,
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    (consentRepository.claim as jest.Mock).mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    // Auth still initializing — do not unlock profile routes.
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(secureStore.peek()?.awaitingClaim).toBe(true);
+
+    await act(async () => {
+      repository.emit({
+        uid: 'user-race',
+        email: 'race@example.com',
+        emailVerified: false,
+      });
+    });
+
+    expect(await screen.findByTestId('consent-claim-pending-title')).toBeTruthy();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(secureStore.peek()?.pendingClaimUid).toBe('user-race');
+    expect(secureStore.peek()?.awaitingClaim).toBeUndefined();
+  });
+
+  it('BOUND CLAIM RECOVERY: always calls claim even when status is already bound', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      pendingClaimUid: 'user-1',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'bound',
+      },
+    });
+    // Same-UID idempotent success despite bound snapshot.
+    consentRepository.setClaimResult({
+      status: 'approved',
+      bindingState: 'bound',
+      claimedByUid: 'user-1',
+    });
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    await waitFor(() => {
+      expect(consentRepository.claim).toHaveBeenCalled();
+    });
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(screen.queryByTestId('consent-claim-pending-title')).toBeNull();
+    expect(secureStore.peek()).toBeNull();
+  });
+
+  it('BOUND CLAIM RECOVERY: different-account bound enters fresh-consent recovery', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      pendingClaimUid: 'user-1',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'bound',
+      },
+    });
+    consentRepository.setClaimError(
+      new ParentalConsentError('already-exists', 'already bound'),
+    );
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    await waitFor(() => {
+      expect(consentRepository.claim).toHaveBeenCalled();
+    });
+    expect(await screen.findByTestId('consent-claim-pending-sign-out')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(secureStore.peek()?.pendingClaimUid).toBe('user-1');
+    expect(secureStore.peek()?.needsFreshConsent).toBe(true);
+    expect(secureStore.peek()?.requestId).toBeUndefined();
+  });
+
+  it('FRESH UNDER-13 SIGNUP: claim auto-runs without Sign-in-to-finish message then QuizzerName', async () => {
+    const repository = createAuthRepositoryFake({ emitOnSubscribe: false });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      awaitingClaim: true,
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    consentRepository.setClaimResult({
+      status: 'approved',
+      bindingState: 'bound',
+      claimedByUid: 'user-fresh',
+    });
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    await act(async () => {
+      repository.emit({
+        uid: 'user-fresh',
+        email: 'fresh@example.com',
+        emailVerified: false,
+      });
+    });
+
+    await waitFor(() => {
+      expect(consentRepository.claim).toHaveBeenCalled();
+    });
+    expect(screen.queryByText(parentalConsentCopy.errors.unauthenticated)).toBeNull();
+    expect(screen.queryByText(parentalConsentCopy.claimPending.transient)).toBeNull();
+    expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
+    expect(secureStore.peek()).toBeNull();
+  });
+
+  it('CLAIM ERROR UX: authenticated unauthenticated is not network and not Sign-in-to-finish', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      pendingClaimUid: 'user-1',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    consentRepository.setClaimError(
+      new ParentalConsentError('unauthenticated', parentalConsentCopy.errors.unauthenticated),
+    );
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    await waitFor(() => {
+      expect(consentRepository.claim).toHaveBeenCalled();
+    });
+    expect(await screen.findByText(parentalConsentCopy.claimPending.authContext)).toBeTruthy();
+    expect(screen.queryByText(parentalConsentCopy.errors.unauthenticated)).toBeNull();
+    expect(screen.queryByText(parentalConsentCopy.claimPending.transient)).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+  });
+
+  it('CLAIM ERROR UX: real network/unavailable still uses connection copy', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      pendingClaimUid: 'user-1',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    consentRepository.setClaimError(
+      new ParentalConsentError('network-unavailable', parentalConsentCopy.errors.network),
+    );
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    await waitFor(() => {
+      expect(consentRepository.claim).toHaveBeenCalled();
+    });
+    expect(await screen.findByText(parentalConsentCopy.claimPending.transient)).toBeTruthy();
+    expect(screen.queryByText(parentalConsentCopy.claimPending.authContext)).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+  });
+
+  it('EXISTING-ACCOUNT RECOVERY: matching UID claims; no second Auth account created', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-existing',
+        email: 'existing@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-fresh',
+      clientSessionToken: 'token-fresh',
+      pendingClaimUid: 'user-existing',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    consentRepository.setClaimResult({
+      status: 'approved',
+      bindingState: 'bound',
+      claimedByUid: 'user-existing',
+    });
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    await waitFor(() => {
+      expect(consentRepository.claim).toHaveBeenCalled();
+    });
+    expect(repository.signUp).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
+    expect(secureStore.peek()).toBeNull();
   });
 });
 

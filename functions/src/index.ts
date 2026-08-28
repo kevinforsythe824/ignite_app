@@ -1,3 +1,7 @@
+import { ensureFirebaseAdminInitialized } from './config/adminInit';
+
+ensureFirebaseAdminInitialized();
+
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { onTaskDispatched } from 'firebase-functions/v2/tasks';
 
@@ -58,7 +62,7 @@ export const getParentalConsentStatus = onCall(
   async (request) => {
     try {
       guardEnvironment();
-      const deps = buildConsentServiceDeps();
+      const deps = buildConsentServiceDeps({ skipEmail: true });
       return await getParentalConsentStatusUseCase(deps, {
         requestId: String(request.data?.requestId ?? ''),
         clientSessionToken: String(request.data?.clientSessionToken ?? ''),
@@ -104,25 +108,39 @@ export const updateParentalConsentEmail = onCall(
   },
 );
 
-export const claimParentalConsent = onCall(callableOpts, async (request) => {
-  try {
-    guardEnvironment();
-    if (!request.auth?.uid) {
-      throw new HttpsError(
-        'unauthenticated',
-        'Authentication is required to claim parental consent.',
-      );
+/**
+ * Claim is the only consent callable that always sends a Firebase Auth ID token.
+ * Gen2 Cloud Run must allow unauthenticated invoke (invoker public) so IAM does not
+ * attempt to verify that Firebase token as a Google identity token; Auth is enforced
+ * below via request.auth.
+ */
+export const claimParentalConsent = onCall(
+  {
+    ...callableOpts,
+    invoker: 'public',
+  },
+  async (request) => {
+    try {
+      guardEnvironment();
+
+      if (!request.auth?.uid) {
+        throw new HttpsError(
+          'unauthenticated',
+          'Authentication is required to claim parental consent.',
+        );
+      }
+
+      const deps = buildConsentServiceDeps({ skipEmail: true });
+      return await claimParentalConsentUseCase(deps, {
+        requestId: String(request.data?.requestId ?? ''),
+        clientSessionToken: String(request.data?.clientSessionToken ?? ''),
+        authenticatedUid: request.auth.uid,
+      });
+    } catch (error) {
+      throw toHttpsError(error);
     }
-    const deps = buildConsentServiceDeps();
-    return await claimParentalConsentUseCase(deps, {
-      requestId: String(request.data?.requestId ?? ''),
-      clientSessionToken: String(request.data?.clientSessionToken ?? ''),
-      authenticatedUid: request.auth.uid,
-    });
-  } catch (error) {
-    throw toHttpsError(error);
-  }
-});
+  },
+);
 
 /**
  * Hosting rewrite target for all /parent-consent* routes.

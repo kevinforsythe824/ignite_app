@@ -154,7 +154,7 @@ npm run firebase:use:dev
 
 Resend DEV testing: `onboarding@resend.dev` may send to the Resend account owner address; other recipients need a verified sender domain.
 
-Mobile under-13 UX remains the Phase 5 terminal hold until a later phase integrates this backend.
+Mobile under-13 UX consumes these DEV callables from the app (Phase 6.5C; [ADR-010](../architecture/decisions/ADR-010-mobile-parental-consent-integration.md)). Functions region remains `us-central1`. Do not point local Expo at staging/prod for consent work.
 
 **Phase 4 DEV deploy (manual, after review):**
 

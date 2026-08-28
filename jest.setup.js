@@ -161,3 +161,25 @@ jest.mock('firebase/auth', () => ({
   verifyBeforeUpdateEmail: jest.fn(),
   updatePassword: jest.fn(),
 }));
+
+jest.mock('firebase/functions', () => ({
+  getFunctions: jest.fn(() => ({})),
+  httpsCallable: jest.fn(() =>
+    jest.fn(() => Promise.reject(new Error('Firebase Functions is mocked in tests'))),
+  ),
+}));
+
+jest.mock('expo-secure-store', () => ({
+  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 1,
+  WHEN_UNLOCKED: 2,
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 3,
+  getItemAsync: jest.fn(async () => null),
+  setItemAsync: jest.fn(async () => undefined),
+  deleteItemAsync: jest.fn(async () => undefined),
+}));
+
+jest.mock('react-native/Libraries/AppState/AppState', () => ({
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  removeEventListener: jest.fn(),
+  currentState: 'active',
+}));

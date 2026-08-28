@@ -1,6 +1,6 @@
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, spacing, typography } from '../../../shared/theme';
@@ -20,19 +20,122 @@ import {
   validatePasswordConfirmation,
   type CreateAccountFormErrors,
 } from '../validation/authFormValidation';
+import { parentalConsentCopy } from '../../parentalConsent/copy/parentalConsentCopy';
+import { hasConsentCapability } from '../../parentalConsent/domain/consentClientSession';
+import { useParentalConsent } from '../../parentalConsent/hooks/useParentalConsent';
 
 export function CreateAccountScreen(): React.JSX.Element {
   const navigation =
     useNavigation<NativeStackNavigationProp<AccountCreationStackParamList, 'CreateAccount'>>();
-  const { signUp } = useAuth();
+  const { session: authSession, signUp } = useAuth();
+  const {
+    session: consentSession,
+    hasActiveConsent,
+    needsFreshConsent,
+    refreshStatus,
+    resolveResumeDestination,
+    beginPostSignupClaim,
+    completePostSignupClaim,
+    cancelPostSignupClaim,
+  } = useParentalConsent();
   const { submitting, errorMessage, run } = useAuthOperation();
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
+  const [gateReady, setGateReady] = useState(false);
+  const refreshStatusRef = useRef(refreshStatus);
+  refreshStatusRef.current = refreshStatus;
+  const resolveResumeDestinationRef = useRef(resolveResumeDestination);
+  resolveResumeDestinationRef.current = resolveResumeDestination;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<CreateAccountFormErrors>({});
+
+  const redirectFromGate = useCallback(
+    (destination: ReturnType<typeof resolveResumeDestination>) => {
+      if (destination === 'pending') {
+        navigation.replace('ConsentPending');
+        return;
+      }
+      if (destination === 'recovery') {
+        navigation.replace('ConsentRecovery');
+        return;
+      }
+      if (destination === 'signInToClaim') {
+        const parent = navigation.getParent<NativeStackNavigationProp<AuthStackParamList>>();
+        parent?.replace('SignIn');
+      }
+    },
+    [navigation],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+
+      const enforceGate = async () => {
+        setGateReady(false);
+
+        // needsFreshConsent / pendingClaimUid / awaitingClaim must never create
+        // another Auth account (including ambiguous post-signup claim intent).
+        // When already authenticated, RootNavigator owns the claim gate — do not
+        // bounce a fresh under-13 signup to Sign In.
+        if (
+          needsFreshConsent ||
+          Boolean(consentSession.capability?.pendingClaimUid) ||
+          Boolean(consentSession.capability?.awaitingClaim)
+        ) {
+          if (authSession.status !== 'authenticated') {
+            redirectFromGate('signInToClaim');
+          }
+          return;
+        }
+
+        if (!hasActiveConsent) {
+          // 13+ path — no consent session.
+          if (!cancelled) {
+            setGateReady(true);
+          }
+          return;
+        }
+
+        try {
+          const snapshot = await refreshStatusRef.current();
+          if (cancelled) {
+            return;
+          }
+          if (!snapshot) {
+            navigation.replace('ConsentRecovery');
+            return;
+          }
+          const destination = resolveResumeDestinationRef.current(snapshot);
+          if (destination !== 'createAccount') {
+            redirectFromGate(destination);
+            return;
+          }
+          setGateReady(true);
+        } catch {
+          if (!cancelled) {
+            navigation.replace('ConsentRecovery');
+          }
+        }
+      };
+
+      void enforceGate();
+      return () => {
+        cancelled = true;
+      };
+    }, [
+      authSession.status,
+      consentSession.capability?.awaitingClaim,
+      consentSession.capability?.pendingClaimUid,
+      hasActiveConsent,
+      needsFreshConsent,
+      navigation,
+      redirectFromGate,
+    ]),
+  );
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -108,8 +211,33 @@ export function CreateAccountScreen(): React.JSX.Element {
       return;
     }
 
-    void run(() => signUp({ email: email.trim(), password }));
+    const underThirteenPath = hasConsentCapability(consentSession.capability);
+
+    void run(async () => {
+      if (underThirteenPath) {
+        await beginPostSignupClaim();
+        try {
+          const identity = await signUp({ email: email.trim(), password });
+          await completePostSignupClaim(identity.uid);
+        } catch (error) {
+          await cancelPostSignupClaim();
+          throw error;
+        }
+        return;
+      }
+      await signUp({ email: email.trim(), password });
+    });
   };
+
+  if (!gateReady) {
+    return (
+      <AuthScreenLayout onBack={handleBack}>
+        <Text style={styles.supporting} testID="auth-create-account-gate">
+          {parentalConsentCopy.createAccount.gateBlocked}
+        </Text>
+      </AuthScreenLayout>
+    );
+  }
 
   return (
     <AuthScreenLayout onBack={handleBack}>

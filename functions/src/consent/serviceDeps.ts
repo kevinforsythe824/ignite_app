@@ -1,7 +1,7 @@
-import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFunctions } from 'firebase-admin/functions';
 import { getFirestore } from 'firebase-admin/firestore';
 
+import { ensureFirebaseAdminInitialized } from '../config/adminInit';
 import {
   isEmulatorOrConsentTestContext,
   readIgniteEnvironment,
@@ -51,12 +51,6 @@ export function setConfirmationSchedulerForTests(
 
 export function getTestEmailCapture(): TestEmailCapture | undefined {
   return testEmailCapture;
-}
-
-function ensureAdminApp(): void {
-  if (getApps().length === 0) {
-    initializeApp();
-  }
 }
 
 export function resolveConsentEmailSender(params: {
@@ -118,7 +112,7 @@ function buildCoreDeps(params: {
   hmacSecret: string;
   sealSecret: string;
 }): ConsentServiceDeps {
-  ensureAdminApp();
+  ensureFirebaseAdminInitialized();
   const db = getFirestore();
   return {
     repository: new ConsentRepository(db),
@@ -138,13 +132,20 @@ export function buildConsentServiceDeps(
     hmacSecret?: string;
     sealSecret?: string;
     confirmationScheduler?: ConfirmationScheduler;
+    /**
+     * Read-only callables (getStatus, claim) must not require Resend or Task Queue
+     * at cold start — email infra is only needed for create/resend/update flows.
+     */
+    skipEmail?: boolean;
   },
 ): ConsentServiceDeps {
   if (testDepsOverride) {
     return testDepsOverride;
   }
 
-  const emailSender = buildEmailSender(options);
+  const emailSender = options?.skipEmail
+    ? (options.emailSender ?? new ConsoleEmailSender())
+    : buildEmailSender(options);
   const hmacSecret = options?.hmacSecret ?? getParentEmailHmacSecret();
   const sealSecret = options?.sealSecret ?? getConsentSealSecret();
 
@@ -152,7 +153,9 @@ export function buildConsentServiceDeps(
     options?.confirmationScheduler ?? testScheduler ?? undefined;
 
   if (!confirmationScheduler) {
-    if (isEmulatorOrConsentTestContext()) {
+    if (options?.skipEmail) {
+      confirmationScheduler = new RecordingConfirmationScheduler();
+    } else if (isEmulatorOrConsentTestContext()) {
       confirmationScheduler = new ImmediateConfirmationScheduler(async (p) => {
         const deps = buildCoreDeps({
           emailSender,

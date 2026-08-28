@@ -10,8 +10,10 @@ export type MainTabParamList = {
 };
 
 /**
- * Root groups follow AuthProvider session and QuizzerProfile presence:
+ * Root groups follow AuthProvider session, parental-consent claim gate,
+ * and QuizzerProfile presence:
  * initializing → IgniteEntry; unauthenticated → Auth;
+ * authenticated + claim required → ConsentClaimPending;
  * authenticated + loading/idle → QuizzerProfileLoading;
  * authenticated + missing → QuizzerName; authenticated + error → QuizzerProfileLoadError;
  * authenticated + ready → MainTabs.
@@ -19,6 +21,7 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   IgniteEntry: undefined;
   Auth: undefined;
+  ConsentClaimPending: undefined;
   MainTabs: undefined;
   TournamentDetails: undefined;
   QuizzerName: undefined;

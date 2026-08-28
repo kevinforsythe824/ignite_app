@@ -31,14 +31,10 @@ ignite_app/
 ├── src/
 │   ├── app/                     # App shell only
 │   │   ├── navigation/          # React Navigation (stack + tabs)
-│   │   └── providers/           # Gesture/safe-area + AuthProvider
+│   │   └── providers/           # Gesture/safe-area + Auth + ParentalConsent + QuizzerProfile
 │   ├── features/                # Feature modules (feature-first)
 │   │   ├── auth/                # Authentication application layer + Firebase adapter
-│   │   │   ├── domain/          # AuthenticatedIdentity (not Quizzer profile)
-│   │   │   ├── errors/          # Application-facing AuthenticationError
-│   │   │   ├── hooks/           # useAuth
-│   │   │   ├── repositories/    # AuthRepository; Firebase Auth live adapter
-│   │   │   └── state/           # Session reducer + AuthProvider
+│   │   ├── parentalConsent/     # Under-13 parental consent (callables + SecureStore capability)
 │   │   ├── profile/             # Quizzer profile domain + Firestore repository + Profile/Settings UI
 │   │   │   ├── domain/          # QuizzerProfile (separate from AuthenticatedIdentity)
 │   │   │   ├── data/            # Firestore DTO + faithful mapper
@@ -169,6 +165,7 @@ Prefer **named exports**; default exports are used for some screens/components f
   - `useFlashcards` — the screen-facing API
 - Mount providers **next to the feature route**, not in `AppProviders`, unless state is truly app-wide.
 - **Authentication** session state is app-wide via `AuthProvider` in `AppProviders` (`src/features/auth/`).
+- **Parental consent** capability/session is app-wide via `ParentalConsentProvider` between Auth and QuizzerProfile (`src/features/parentalConsent/`). See [ADR-010](docs/architecture/decisions/ADR-010-mobile-parental-consent-integration.md).
 - Derived values belong in pure functions or hooks — not duplicated in components.
 
 ---
@@ -176,10 +173,11 @@ Prefer **named exports**; default exports are used for some screens/components f
 ## 7. Navigation
 
 - **Library:** React Navigation (not Expo Router).
-- **Root:** native stack switched on AuthProvider session and Quizzer profile presence:
+- **Root:** native stack switched on AuthProvider session, parental-consent claim gate, and Quizzer profile presence:
   - `initializing` → Ignite Entry (branded cover; does not delay auth restoration)
   - `unauthenticated` → Auth stack (Welcome, Sign In, Forgot Password, nested AccountCreation)
-  - Create Account path → PrivacyAge boundary → CreateAccount (13+) or UnderThirteenBlocked (terminal hold; Phase 6.5A/B server consent + DEV Hosting/email exist — mobile integration is a later phase)
+  - Create Account path → PrivacyAge → CreateAccount (13+, no active consent) or parental-consent screens (under 13; ADR-010)
+  - `authenticated` + `pendingClaimUid === uid` → `ConsentClaimPending` (before profile routes)
   - `authenticated` → resolve Quizzer profile before MainTabs:
     - `loading` / `idle` → profile loading cover
     - `missing` → Quizzer name onboarding
@@ -201,7 +199,7 @@ Route param lists: `src/app/navigation/types.ts`. Auth stack types: `src/feature
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app, Firestore, and Auth singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`). Authentication application logic lives in `src/features/auth/`. The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
+| `firebase/` | Firebase JS SDK app, Firestore, Auth, and Functions singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`, `getFirebaseFunctions` / `us-central1`). Authentication application logic lives in `src/features/auth/`. Parental consent callables are consumed from `src/features/parentalConsent/`. The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 

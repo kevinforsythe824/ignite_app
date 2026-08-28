@@ -28,6 +28,7 @@ export async function claimParentalConsent(
       'Authentication is required to claim parental consent.',
     );
   }
+
   if (!input.requestId || !input.clientSessionToken) {
     throw new ParentalConsentError(
       'invalid_argument',
@@ -38,13 +39,16 @@ export async function claimParentalConsent(
   const now = deps.now?.() ?? new Date();
 
   const existing = await deps.repository.requireRaw(input.requestId);
+
   assertTokenMatches(
     input.clientSessionToken,
     existing.clientSessionTokenHash,
     'clientSession',
   );
+
   const preview = deps.repository.toDomain(existing);
   const expiry = applyExpiryIfNeeded(preview, now);
+
   if (expiry.changed) {
     await deps.repository.updateFields(input.requestId, { status: 'expired' });
     throw new ParentalConsentError('expired', 'This consent request has expired.');
@@ -58,6 +62,7 @@ export async function claimParentalConsent(
     );
 
     const domain = deps.repository.toDomain(raw);
+
     if (domain.status === 'expired') {
       throw new ParentalConsentError('expired', 'This consent request has expired.');
     }

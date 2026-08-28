@@ -9,9 +9,12 @@ import { AuthNavigator } from '../../../src/features/auth/navigation/AuthNavigat
 import { CreateAccountScreen } from '../../../src/features/auth/screens/CreateAccountScreen';
 import { ForgotPasswordScreen } from '../../../src/features/auth/screens/ForgotPasswordScreen';
 import { SignInScreen } from '../../../src/features/auth/screens/SignInScreen';
+import { ParentalConsentProvider } from '../../../src/features/parentalConsent';
 import { quizzerProfileCopy } from '../../../src/features/profile/copy/quizzerProfileCopy';
 import { QuizzerProfileProvider } from '../../../src/features/profile/state/QuizzerProfileProvider';
 import { createAuthRepositoryFake } from '../../../test-utils/authRepositoryFake';
+import { createConsentSecureStoreFake } from '../../../test-utils/consentSecureStoreFake';
+import { createParentalConsentRepositoryFake } from '../../../test-utils/parentalConsentRepositoryFake';
 import { createQuizzerProfileRepositoryFake } from '../../../test-utils/quizzerProfileRepositoryFake';
 
 const Stack = createNativeStackNavigator();
@@ -21,9 +24,14 @@ async function renderAuthFlow(
 ) {
   return render(
     <AuthProvider repository={repository}>
-      <NavigationContainer>
-        <AuthNavigator />
-      </NavigationContainer>
+      <ParentalConsentProvider
+        repository={createParentalConsentRepositoryFake()}
+        secureStore={createConsentSecureStoreFake()}
+      >
+        <NavigationContainer>
+          <AuthNavigator />
+        </NavigationContainer>
+      </ParentalConsentProvider>
     </AuthProvider>,
   );
 }
@@ -35,11 +43,16 @@ async function renderScreen(
 ) {
   return render(
     <AuthProvider repository={repository}>
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen name={name} component={component} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <ParentalConsentProvider
+        repository={createParentalConsentRepositoryFake()}
+        secureStore={createConsentSecureStoreFake()}
+      >
+        <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen name={name} component={component} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ParentalConsentProvider>
     </AuthProvider>,
   );
 }
@@ -86,14 +99,14 @@ describe('AuthNavigator screens', () => {
     expect(screen.getByLabelText(authCopy.fields.confirmPassword)).toBeTruthy();
   });
 
-  it('blocks the under-13 path from reaching Create Account', async () => {
+  it('routes the under-13 path to parent consent intro before Create Account', async () => {
     const repository = createAuthRepositoryFake();
     const screen = await renderAuthFlow(repository);
 
     fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
     fireEvent.press(await screen.findByTestId('auth-privacy-age-under-thirteen'));
 
-    expect(await screen.findByTestId('auth-under-thirteen-title')).toBeTruthy();
+    expect(await screen.findByTestId('consent-intro-title')).toBeTruthy();
     expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
     expect(repository.signUp).not.toHaveBeenCalled();
   });
@@ -128,22 +141,28 @@ describe('AuthNavigator screens', () => {
 
     const screen = await render(
       <AuthProvider repository={authRepository}>
-        <QuizzerProfileProvider repository={profileRepository}>
-          <NavigationContainer>
-            <AuthNavigator />
-          </NavigationContainer>
-        </QuizzerProfileProvider>
+        <ParentalConsentProvider
+          repository={createParentalConsentRepositoryFake()}
+          secureStore={createConsentSecureStoreFake()}
+        >
+          <QuizzerProfileProvider repository={profileRepository}>
+            <NavigationContainer>
+              <AuthNavigator />
+            </NavigationContainer>
+          </QuizzerProfileProvider>
+        </ParentalConsentProvider>
       </AuthProvider>,
     );
 
     fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
     expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
+    expect(screen.getByText(authCopy.privacyAge.supporting)).toBeTruthy();
 
     jest.clearAllMocks();
     setItem.mockClear();
 
     fireEvent.press(screen.getByTestId('auth-privacy-age-under-thirteen'));
-    expect(await screen.findByTestId('auth-under-thirteen-title')).toBeTruthy();
+    expect(await screen.findByTestId('consent-intro-title')).toBeTruthy();
 
     expect(authRepository.signUp).not.toHaveBeenCalled();
     expect(authRepository.signIn).not.toHaveBeenCalled();
@@ -151,14 +170,8 @@ describe('AuthNavigator screens', () => {
     expect(profileRepository.provisionProfile).not.toHaveBeenCalled();
     expect(setItem).not.toHaveBeenCalled();
 
-    fireEvent.press(screen.getByTestId('auth-under-thirteen-back-welcome'));
-    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
-    expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
-
-    jest.clearAllMocks();
-    setItem.mockClear();
-
-    fireEvent.press(screen.getByTestId('auth-privacy-age-thirteen-or-older'));
+    fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    fireEvent.press(await screen.findByTestId('auth-privacy-age-thirteen-or-older'));
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
 
     expect(authRepository.signUp).not.toHaveBeenCalled();

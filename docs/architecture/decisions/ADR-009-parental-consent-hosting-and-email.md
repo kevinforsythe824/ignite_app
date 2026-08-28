@@ -45,7 +45,7 @@ Phase 6.5A established server-authoritative parental consent (Firestore + Cloud 
 
 - Hosting site at `https://wpf-bible-qizzing.web.app` for parent flows.
 - Secrets (`RESEND_API_KEY`, HMAC, session/token seal) live in Secret Manager / gitignored local env — never Expo or Hosting JS.
-- Mobile under-13 UI remains Phase 5 terminal hold until Phase 6.5C.
+- Mobile under-13 UI is integrated in Phase 6.5C ([ADR-010](ADR-010-mobile-parental-consent-integration.md)).
 
 ## Alternatives considered
 

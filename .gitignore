@@ -39,6 +39,10 @@ firebase-debug.log
 firebase-debug.*.log
 ui-debug.log
 
+# Cursor debug session logs (keep .cursor/rules tracked)
+.cursor/debug-*.log
+.cursor/*.log
+
 # local env files (keep committed *.example files)
 .env
 .env.*
