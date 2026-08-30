@@ -732,4 +732,86 @@ describe('ParentalConsentProvider claim intent', () => {
 
     expect(screen.getByTestId('status').props.children).toBe('approved');
   });
+
+  it('does not resurrect capability when createRequest completes after clearSession', async () => {
+    let releaseCreate: () => void = () => undefined;
+    const pendingCreate = new Promise<void>((resolve) => {
+      releaseCreate = resolve;
+    });
+    const repository = createParentalConsentRepositoryFake();
+    repository.setCreateDelay(() => pendingCreate);
+
+    const { screen, secureStore } = await renderConsent({ repository });
+
+    await waitFor(() => expect(screen.getByTestId('hydrate').props.children).toBe('ready'));
+
+    fireEvent.press(screen.getByTestId('create-request'));
+    await waitFor(() => expect(repository.createRequest).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId('clear'));
+    await waitFor(() => {
+      expect(screen.getByTestId('request-id').props.children).toBe('');
+    });
+    expect(secureStore.peek()).toBeNull();
+
+    await act(async () => {
+      releaseCreate();
+    });
+
+    await waitFor(() => expect(repository.createRequest).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('request-id').props.children).toBe('');
+    expect(screen.getByTestId('active').props.children).toBe('no');
+    expect(secureStore.peek()).toBeNull();
+  });
+
+  it('does not wipe pendingClaimUid when claim completes after clearSession', async () => {
+    let releaseClaim: () => void = () => undefined;
+    const pendingClaim = new Promise<void>((resolve) => {
+      releaseClaim = resolve;
+    });
+    const auth = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-existing',
+        email: 'existing@example.com',
+        emailVerified: false,
+      },
+    });
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-fresh',
+      clientSessionToken: 'token-fresh',
+      pendingClaimUid: 'user-existing',
+    });
+    const repository = createParentalConsentRepositoryFake();
+    repository.setClaimDelay(() => pendingClaim);
+
+    const { screen, secureStore: store } = await renderConsent({
+      auth,
+      secureStore,
+      repository,
+    });
+
+    await waitFor(() => expect(screen.getByTestId('pending-uid').props.children).toBe('user-existing'));
+
+    fireEvent.press(screen.getByTestId('claim'));
+    await waitFor(() => expect(repository.claim).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId('clear'));
+    await waitFor(() => {
+      expect(screen.getByTestId('request-id').props.children).toBe('');
+    });
+    expect(store.peek()?.pendingClaimUid).toBe('user-existing');
+    expect(store.peek()?.needsFreshConsent).toBe(true);
+
+    await act(async () => {
+      releaseClaim();
+    });
+
+    await waitFor(() => expect(repository.claim).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('pending-uid').props.children).toBe('user-existing');
+    expect(screen.getByTestId('fresh').props.children).toBe('yes');
+    expect(store.peek()?.pendingClaimUid).toBe('user-existing');
+    expect(store.peek()?.needsFreshConsent).toBe(true);
+    expect(store.peek()?.requestId).toBeUndefined();
+  });
 });

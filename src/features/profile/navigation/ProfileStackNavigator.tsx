@@ -2,6 +2,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
 import { colors } from '../../../shared/theme';
+import { FeedbackComposeScreen } from '../../feedback/screens/FeedbackComposeScreen';
+import { HelpAndFeedbackScreen } from '../../feedback/screens/HelpAndFeedbackScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { ChangeEmailScreen } from '../screens/ChangeEmailScreen';
 import { ChangePasswordScreen } from '../screens/ChangePasswordScreen';
@@ -40,6 +42,16 @@ export function ProfileStackNavigator(): React.JSX.Element {
         name="ChangePassword"
         component={ChangePasswordScreen}
         options={{ title: 'Change Password' }}
+      />
+      <Stack.Screen
+        name="HelpAndFeedback"
+        component={HelpAndFeedbackScreen}
+        options={{ title: 'Help & Feedback' }}
+      />
+      <Stack.Screen
+        name="FeedbackCompose"
+        component={FeedbackComposeScreen}
+        options={{ title: 'Feedback' }}
       />
       <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
     </Stack.Navigator>

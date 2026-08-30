@@ -90,6 +90,7 @@ Folder layout remains in [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 | [ADR-009](ADR-009-parental-consent-hosting-and-email.md) | Parental consent Hosting surface and transactional email (DEV) | Accepted |
 | [ADR-010](ADR-010-mobile-parental-consent-integration.md) | Mobile parental consent integration (Phase 6.5C) | Accepted |
 | [ADR-011](ADR-011-account-lifecycle-routing.md) | Account lifecycle routing | Accepted |
+| [ADR-012](ADR-012-in-app-feedback-submission.md) | In-app feedback submission | Accepted |
 
 ## Open Decisions
 

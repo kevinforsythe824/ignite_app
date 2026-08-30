@@ -50,6 +50,10 @@ Divisions, Cards, annotations, rules, tournament configuration
 
 Season isolation (ADR-002) applies: another Quizzer's `seasonId + cardId` learning state is independent.
 
+### Feedback submissions (Phase 8 / ADR-012)
+
+`feedbackSubmissions` are **not** user-owned through a UID field. Phase 8 does not persist `actorUid` / `uid` / `userId`. Do **not** classify these documents as account-owned for deletion solely because an authenticated user created them. Any later correlation or deletion linkage is an **open privacy/architecture decision** — not implied by this runbook.
+
 ---
 
 ## What account deletion is not
@@ -139,5 +143,6 @@ Record gaps explicitly; get product-owner decisions before coding:
 |----------|------|
 | [Playbook §10](../development/Ignite_Development_Playbook.md) | Account lifecycle and deletion planning |
 | [ADR-006](../architecture/decisions/ADR-006-privacy-by-design.md) | Minimum data; deletion not decided there |
+| [ADR-012](../architecture/decisions/ADR-012-in-app-feedback-submission.md) | Feedback has no persisted account identifier |
 | [ADR Open Decisions](../architecture/decisions/README.md) | Account deletion row |
 | [BUG_TRIAGE_RUNBOOK.md](BUG_TRIAGE_RUNBOOK.md) | Privacy during investigation |

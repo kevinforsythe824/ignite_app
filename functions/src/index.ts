@@ -22,6 +22,11 @@ import { getParentalConsentStatus as getParentalConsentStatusUseCase } from './c
 import { resendParentalConsentNotice as resendParentalConsentNoticeUseCase } from './consent/resendNotice';
 import { buildConsentServiceDeps } from './consent/serviceDeps';
 import { updateParentalConsentEmail as updateParentalConsentEmailUseCase } from './consent/updateEmail';
+import { toFeedbackHttpsError } from './feedback/feedbackHttpsError';
+import {
+  createFirestoreFeedbackRepository,
+  submitFeedback as submitFeedbackUseCase,
+} from './feedback/submitFeedback';
 import { parentConsentRouter } from './http/parentConsentHttp';
 import { clientIpFromRawRequest, toHttpsError } from './http/errors';
 import { layoutPage, outcomeHtml } from './http/parentConsentPages';
@@ -138,6 +143,45 @@ export const claimParentalConsent = onCall(
       });
     } catch (error) {
       throw toHttpsError(error);
+    }
+  },
+);
+
+/**
+ * Authenticated Help & Feedback. Gen2 Cloud Run must allow unauthenticated invoke
+ * (invoker public) so IAM does not treat the Firebase ID token as a Google identity
+ * token; Auth is enforced below via request.auth. UID is not persisted.
+ */
+export const submitFeedback = onCall(
+  {
+    ...appCheckCallableOptions(),
+    invoker: 'public',
+  },
+  async (request) => {
+    try {
+      guardEnvironment();
+
+      if (!request.auth?.uid) {
+        throw new HttpsError(
+          'unauthenticated',
+          'Authentication is required to submit feedback.',
+        );
+      }
+
+      const data =
+        request.data && typeof request.data === 'object'
+          ? (request.data as Record<string, unknown>)
+          : {};
+
+      return await submitFeedbackUseCase(
+        {
+          repository: createFirestoreFeedbackRepository(),
+          environment: readIgniteEnvironment(),
+        },
+        data,
+      );
+    } catch (error) {
+      throw toFeedbackHttpsError(error);
     }
   },
 );

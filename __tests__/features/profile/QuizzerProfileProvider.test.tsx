@@ -684,3 +684,146 @@ describe('isolateQuizzerProfileSessionForUid', () => {
     });
   });
 });
+
+describe('QuizzerProfileProvider stale mutations', () => {
+  it('does not apply a stale updateName after switching to user B', async () => {
+    let releaseUpdate: () => void = () => undefined;
+    const pendingUpdate = new Promise<void>((resolve) => {
+      releaseUpdate = resolve;
+    });
+
+    const auth = createAuthRepositoryFake({
+      initialIdentity: { uid: 'user-a', email: 'a@example.com', emailVerified: false },
+    });
+    const profiles = createQuizzerProfileRepositoryFake();
+    profiles.seed({
+      quizzerId: 'user-a',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      avatarId: null,
+    });
+    profiles.seed({
+      quizzerId: 'user-b',
+      firstName: 'Bailey',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    profiles.setUpdateNameDelay(() => pendingUpdate);
+
+    let updateName: (input: { firstName: string; lastName: string }) => Promise<unknown> =
+      async () => undefined;
+
+    function UpdateProbe(): React.JSX.Element {
+      const profile = useQuizzerProfile();
+      updateName = profile.updateName;
+      return (
+        <View>
+          <Text testID="profile-status">{profile.session.status}</Text>
+          {profile.session.status === 'ready' ? (
+            <Text testID="profile-quizzer-id">{profile.session.quizzerId}</Text>
+          ) : null}
+          {profile.session.status === 'ready' ? (
+            <Text testID="profile-first-name">{profile.session.profile.firstName}</Text>
+          ) : null}
+        </View>
+      );
+    }
+
+    const screen = await renderWithProviders(<UpdateProbe />, { auth, profiles });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    });
+    expect(screen.getByTestId('profile-first-name').props.children).toBe('Ada');
+
+    let updatePromise: Promise<unknown>;
+    await act(async () => {
+      updatePromise = updateName({ firstName: 'Stale', lastName: 'Name' });
+    });
+
+    await act(async () => {
+      auth.emit({ uid: 'user-b', email: 'b@example.com', emailVerified: false });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-b');
+    });
+    expect(screen.getByTestId('profile-first-name').props.children).toBe('Bailey');
+
+    await act(async () => {
+      releaseUpdate();
+      await updatePromise!;
+    });
+
+    expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-b');
+    expect(screen.getByTestId('profile-first-name').props.children).toBe('Bailey');
+  });
+
+  it('does not apply a stale provisionProfile after switching to user B', async () => {
+    let releaseProvision: () => void = () => undefined;
+    const pendingProvision = new Promise<void>((resolve) => {
+      releaseProvision = resolve;
+    });
+
+    const auth = createAuthRepositoryFake({
+      initialIdentity: { uid: 'user-a', email: 'a@example.com', emailVerified: false },
+    });
+    const profiles = createQuizzerProfileRepositoryFake();
+    profiles.seed({
+      quizzerId: 'user-b',
+      firstName: 'Bailey',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    profiles.setProvisionDelay(() => pendingProvision);
+
+    let provisionProfile: (input: { firstName: string; lastName: string }) => Promise<unknown> =
+      async () => undefined;
+
+    function ProvisionProbe(): React.JSX.Element {
+      const profile = useQuizzerProfile();
+      provisionProfile = profile.provisionProfile;
+      return (
+        <View>
+          <Text testID="profile-status">{profile.session.status}</Text>
+          {profile.session.status === 'ready' ? (
+            <Text testID="profile-quizzer-id">{profile.session.quizzerId}</Text>
+          ) : null}
+          {profile.session.status === 'ready' ? (
+            <Text testID="profile-first-name">{profile.session.profile.firstName}</Text>
+          ) : null}
+        </View>
+      );
+    }
+
+    const screen = await renderWithProviders(<ProvisionProbe />, { auth, profiles });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('missing');
+    });
+
+    let provisionPromise: Promise<unknown>;
+    await act(async () => {
+      provisionPromise = provisionProfile({ firstName: 'Ada', lastName: 'Lovelace' });
+    });
+
+    await act(async () => {
+      auth.emit({ uid: 'user-b', email: 'b@example.com', emailVerified: false });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-b');
+    });
+    expect(screen.getByTestId('profile-first-name').props.children).toBe('Bailey');
+
+    await act(async () => {
+      releaseProvision();
+      await provisionPromise!;
+    });
+
+    expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-b');
+    expect(screen.getByTestId('profile-first-name').props.children).toBe('Bailey');
+  });
+});

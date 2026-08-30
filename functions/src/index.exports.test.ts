@@ -13,6 +13,7 @@ describe('functions export surface (6.5B)', () => {
     expect(index.sendParentalConsentConfirmationTask).toBeDefined();
     expect(index.createParentalConsentRequest).toBeDefined();
     expect(index.claimParentalConsent).toBeDefined();
+    expect(index.submitFeedback).toBeDefined();
   });
 
   it('does not export duplicate *Fn callable aliases', () => {
@@ -22,5 +23,6 @@ describe('functions export surface (6.5B)', () => {
     expect(exported.resendParentalConsentNoticeFn).toBeUndefined();
     expect(exported.updateParentalConsentEmailFn).toBeUndefined();
     expect(exported.claimParentalConsentFn).toBeUndefined();
+    expect(exported.submitFeedbackFn).toBeUndefined();
   });
 });

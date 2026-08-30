@@ -66,5 +66,10 @@ service cloud.firestore {
     match /parentalConsentRateLimits/{bucketId} {
       allow read, write: if false;
     }
+
+    // Phase 8: feedback is Functions/Admin only (ADR-012). No client UID field.
+    match /feedbackSubmissions/{submissionId} {
+      allow read, write: if false;
+    }
   }
 }

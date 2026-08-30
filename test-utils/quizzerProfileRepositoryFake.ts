@@ -11,6 +11,8 @@ export interface QuizzerProfileRepositoryFake extends QuizzerProfileRepository {
   seed(profile: QuizzerProfile): void;
   /** Remove a stored profile (test helper). */
   clear(quizzerId?: string): void;
+  setProvisionDelay(delay: () => Promise<void>): void;
+  setUpdateNameDelay(delay: () => Promise<void>): void;
 }
 
 export function createQuizzerProfileRepositoryFake(options?: {
@@ -19,6 +21,8 @@ export function createQuizzerProfileRepositoryFake(options?: {
   updateNameError?: QuizzerProfileError;
 }): QuizzerProfileRepositoryFake {
   const store = new Map<string, QuizzerProfile>();
+  let provisionDelay: (() => Promise<void>) | null = null;
+  let updateNameDelay: (() => Promise<void>) | null = null;
 
   return {
     seed(profile) {
@@ -33,6 +37,14 @@ export function createQuizzerProfileRepositoryFake(options?: {
       store.delete(quizzerId);
     },
 
+    setProvisionDelay(delay) {
+      provisionDelay = delay;
+    },
+
+    setUpdateNameDelay(delay) {
+      updateNameDelay = delay;
+    },
+
     getProfile: jest.fn(async (quizzerId: string) => {
       if (options?.getError) {
         throw options.getError;
@@ -41,6 +53,9 @@ export function createQuizzerProfileRepositoryFake(options?: {
     }),
 
     provisionProfile: jest.fn(async (input: ProvisionQuizzerProfileInput) => {
+      if (provisionDelay) {
+        await provisionDelay();
+      }
       if (options?.provisionError) {
         throw options.provisionError;
       }
@@ -60,6 +75,9 @@ export function createQuizzerProfileRepositoryFake(options?: {
     }),
 
     updateName: jest.fn(async (input) => {
+      if (updateNameDelay) {
+        await updateNameDelay();
+      }
       if (options?.updateNameError) {
         throw options.updateNameError;
       }

@@ -72,6 +72,18 @@ describe('Profile + Settings foundation', () => {
     expect(await screen.findByTestId('edit-name-first')).toBeTruthy();
   });
 
+  it('opens Help & Feedback from Settings', async () => {
+    const user = userEvent.setup();
+    const { screen } = await renderProfileStack();
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    await user.press(await screen.findByTestId('settings-help-feedback'));
+    expect(await screen.findByTestId('help-feedback-supporting')).toBeTruthy();
+    expect(screen.getByTestId('help-feedback-bug')).toBeTruthy();
+    expect(screen.getByTestId('help-feedback-feature')).toBeTruthy();
+    expect(screen.getByTestId('help-feedback-general')).toBeTruthy();
+  });
+
   it('prefills Edit Name and updates via provider', async () => {
     const user = userEvent.setup();
     const { screen, profiles } = await renderProfileStack();

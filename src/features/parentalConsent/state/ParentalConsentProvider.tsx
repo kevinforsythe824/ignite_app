@@ -234,9 +234,20 @@ export function ParentalConsentProvider({
 
   const createRequest = useCallback(
     async (parentEmail: string): Promise<ParentalConsentSnapshot> => {
+      const generation = refreshGenerationRef.current;
       setSession((current) => ({ ...current, refreshing: true, lastError: null }));
       try {
         const result = await repositoryRef.current.createRequest({ parentEmail });
+        const snapshot: ParentalConsentSnapshot = {
+          status: result.status,
+          maskedParentEmail: result.maskedParentEmail,
+          expiresAt: result.expiresAt,
+          bindingState: result.bindingState,
+          noticeDeliveryStatus: result.noticeDeliveryStatus,
+        };
+        if (refreshGenerationRef.current !== generation) {
+          return snapshot;
+        }
         const previous = capabilityRef.current ?? createEmptyConsentClientSession();
         const next: ConsentClientSession = {
           version: previous.version,
@@ -246,14 +257,10 @@ export function ParentalConsentProvider({
           pendingClaimUid: previous.pendingClaimUid,
           needsFreshConsent: previous.needsFreshConsent,
         };
-        const snapshot: ParentalConsentSnapshot = {
-          status: result.status,
-          maskedParentEmail: result.maskedParentEmail,
-          expiresAt: result.expiresAt,
-          bindingState: result.bindingState,
-          noticeDeliveryStatus: result.noticeDeliveryStatus,
-        };
         await persistCapability(next);
+        if (refreshGenerationRef.current !== generation) {
+          return snapshot;
+        }
         setSession((current) => ({
           ...current,
           snapshot,
@@ -263,6 +270,9 @@ export function ParentalConsentProvider({
         return snapshot;
       } catch (error) {
         const translated = translateParentalConsentError(error);
+        if (refreshGenerationRef.current !== generation) {
+          throw translated;
+        }
         setSession((current) => ({
           ...current,
           refreshing: false,
@@ -318,9 +328,13 @@ export function ParentalConsentProvider({
 
   const resendNotice = useCallback(async (): Promise<void> => {
     const credentials = requireCredentials(capabilityRef.current);
+    const generation = refreshGenerationRef.current;
     setSession((current) => ({ ...current, refreshing: true, lastError: null }));
     try {
       const result = await repositoryRef.current.resendNotice(credentials);
+      if (refreshGenerationRef.current !== generation) {
+        return;
+      }
       setSession((current) => ({
         ...current,
         refreshing: false,
@@ -334,6 +348,9 @@ export function ParentalConsentProvider({
       }));
     } catch (error) {
       const translated = translateParentalConsentError(error);
+      if (refreshGenerationRef.current !== generation) {
+        throw translated;
+      }
       setSession((current) => ({
         ...current,
         refreshing: false,
@@ -346,6 +363,7 @@ export function ParentalConsentProvider({
   const updateParentEmail = useCallback(
     async (parentEmail: string): Promise<ParentalConsentSnapshot> => {
       const credentials = requireCredentials(capabilityRef.current);
+      const generation = refreshGenerationRef.current;
       setSession((current) => ({ ...current, refreshing: true, lastError: null }));
       try {
         const result = await repositoryRef.current.updateParentEmail({
@@ -361,6 +379,9 @@ export function ParentalConsentProvider({
           bindingState: status.bindingState,
           noticeDeliveryStatus: result.noticeDeliveryStatus,
         };
+        if (refreshGenerationRef.current !== generation) {
+          return snapshot;
+        }
         setSession((current) => ({
           ...current,
           snapshot,
@@ -370,6 +391,9 @@ export function ParentalConsentProvider({
         return snapshot;
       } catch (error) {
         const translated = translateParentalConsentError(error);
+        if (refreshGenerationRef.current !== generation) {
+          throw translated;
+        }
         setSession((current) => ({
           ...current,
           refreshing: false,
@@ -491,10 +515,17 @@ export function ParentalConsentProvider({
       );
     }
 
+    const generation = refreshGenerationRef.current;
     setSession((current) => ({ ...current, refreshing: true, lastError: null }));
     try {
       await repositoryRef.current.claim(requireCredentials(capability));
+      if (refreshGenerationRef.current !== generation) {
+        return;
+      }
       await persistCapability(null);
+      if (refreshGenerationRef.current !== generation) {
+        return;
+      }
       setSession((current) => ({
         ...current,
         refreshing: false,
@@ -503,6 +534,9 @@ export function ParentalConsentProvider({
       }));
     } catch (error) {
       const translated = translateParentalConsentError(error);
+      if (refreshGenerationRef.current !== generation) {
+        throw translated;
+      }
       if (isTerminalClaimError(translated) && !isTransientParentalConsentError(translated)) {
         // Prefer getStatus when failed-precondition is ambiguous.
         if (translated.code === 'failed-precondition' && hasConsentCapability(capability)) {
@@ -510,6 +544,9 @@ export function ParentalConsentProvider({
             const status = await repositoryRef.current.getStatus(
               requireCredentials(capability),
             );
+            if (refreshGenerationRef.current !== generation) {
+              throw translated;
+            }
             if (
               status.status === 'approved' &&
               status.bindingState === 'unbound'
@@ -533,6 +570,9 @@ export function ParentalConsentProvider({
               // Fall through to terminal recovery when status also fails.
             }
           }
+        }
+        if (refreshGenerationRef.current !== generation) {
+          throw translated;
         }
         await enterFreshConsentRecovery(uid);
         setSession((current) => ({

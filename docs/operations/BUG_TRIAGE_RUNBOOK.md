@@ -4,7 +4,9 @@ How Ignite investigates, fixes, verifies, and releases bug fixes.
 
 **Sources:** [Development Playbook](../development/Ignite_Development_Playbook.md) (§§12–14), [PRD](../product/PRD.md) (§§43–44, 47–48), [ENVIRONMENTS.md](ENVIRONMENTS.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md), [ADRs](../architecture/decisions/README.md).
 
-Use the GitHub **Bug Report** issue form (`.github/ISSUE_TEMPLATE/bug_report.yml`) for all new bugs.
+Use the GitHub **Bug Report** issue form (`.github/ISSUE_TEMPLATE/bug_report.yml`) for engineering-filed bugs.
+
+**In-app Help & Feedback** (Settings → Help & Feedback, ADR-012) is **intake for manual review** in the Firebase Console (`feedbackSubmissions`). It does **not** auto-create GitHub issues, store GitHub tokens, or replace this runbook. After a person reviews a submission, follow the existing reproduce → layer → smallest fix → regression → DEV → STAGING path. Create a GitHub issue from the Bug Report form only when that review warrants one.
 
 ---
 

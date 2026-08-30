@@ -29,6 +29,7 @@ export const quizzerProfileCopy = {
     editName: 'Edit Name',
     changeEmail: 'Change Email',
     changePassword: 'Change Password',
+    helpAndFeedback: 'Help & Feedback',
     about: 'About',
     signOut: 'Sign Out',
     signingOut: 'Signing out',

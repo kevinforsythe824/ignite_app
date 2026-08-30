@@ -42,9 +42,10 @@ ignite_app/
 │   │   │   ├── errors/          # QuizzerProfileError + translation
 │   │   │   ├── repositories/    # getProfile + provisionProfile + updateName (name fields only)
 │   │   │   ├── screens/         # Onboarding + Profile/Settings screens
-│   │   │   ├── navigation/      # Profile stack (home → Settings subflows)
+│   │   │   ├── navigation/      # Profile stack (home → Settings → Help & Feedback / About)
 │   │   │   ├── components/      # QuizzerAvatar, SettingsRow
-│   │   │   └── utils/           # Presentation helpers (deriveInitials, getAppVersion)
+│   │   │   └── utils/           # Presentation helpers (deriveInitials; getAppVersion re-export)
+│   │   ├── feedback/            # Help & Feedback (callable → feedbackSubmissions; no UID stored)
 │   │   └── flashcards/          # Full Study/Flashcards feature
 │   │       ├── components/      # Presentation UI
 │   │       ├── data/            # JSON + Firestore persistence DTOs → Card mappers
@@ -55,7 +56,7 @@ ignite_app/
 │   │       ├── types/           # Domain types
 │   │       └── utils/           # Pure domain helpers (parsing, caches)
 │   ├── screens/                 # App-level / placeholder screens
-│   ├── shared/                  # Cross-feature only (theme, utils, …)
+│   ├── shared/                  # Cross-feature only (theme, utils including getAppVersion, …)
 │   ├── services/                # Firebase JS SDK init + storage/API stubs
 │   └── data/                    # Shared mock JSON (e.g. curriculum fixtures)
 ```
@@ -181,7 +182,7 @@ Prefer **named exports**; default exports are used for some screens/components f
   - Authenticated remount key is `authenticated:${uid}` only. Destination is not part of the key.
   - Season setup and entitlement access are contract destinations only. If returned without screens, they fail closed to the loading cover — never MainTabs.
 - **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
-- **Profile tab:** nested `ProfileStackNavigator` (Profile home → Settings → Edit Name / Change Email / Change Password / About).
+- **Profile tab:** nested `ProfileStackNavigator` (Profile home → Settings → Edit Name / Change Email / Change Password / Help & Feedback / About).
 - **Default authenticated entry (profile ready):** Study → Flashcards (current product experience).
 - Placeholder tabs live in `src/screens/*` until their features exist (Home/Practice remain placeholders; Profile is feature-backed).
 - Tab screens are `lazy: true`.
@@ -196,7 +197,7 @@ Route param lists: `src/app/navigation/types.ts`. Auth stack types: `src/feature
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app, Firestore, Auth, and Functions singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`, `getFirebaseFunctions` / `us-central1`). Authentication application logic lives in `src/features/auth/`. Parental consent callables are consumed from `src/features/parentalConsent/`. The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
+| `firebase/` | Firebase JS SDK app, Firestore, Auth, and Functions singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`, `getFirebaseFunctions` / `us-central1`). Authentication application logic lives in `src/features/auth/`. Parental consent callables are consumed from `src/features/parentalConsent/`. Help & Feedback uses `submitFeedback` from `src/features/feedback/` (ADR-012; no persisted UID). The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `test-season` through `FirestoreCurriculumRepository`. `JsonCurriculumRepository` remains for tests/fixtures. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 

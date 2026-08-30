@@ -2,8 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, typography } from '../../../shared/theme';
+import { getAppVersion } from '../../../shared/utils/getAppVersion';
 import { quizzerProfileCopy } from '../copy/quizzerProfileCopy';
-import { getAppVersion } from '../utils/getAppVersion';
 
 /** Basic About / version information. */
 export function AboutScreen(): React.JSX.Element {

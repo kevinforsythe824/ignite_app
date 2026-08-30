@@ -129,6 +129,8 @@ export function QuizzerProfileProvider({
         );
       }
 
+      const generation = requestGenerationRef.current;
+
       try {
         const profile = await repositoryRef.current.provisionProfile({
           quizzerId,
@@ -136,6 +138,14 @@ export function QuizzerProfileProvider({
           lastName: input.lastName,
           avatarId: null,
         });
+        // Stale UID / generation: return the saved profile to the caller but do
+        // not overwrite the current session (User A mutation after User B fetch).
+        if (
+          requestGenerationRef.current !== generation ||
+          authenticatedUidRef.current !== quizzerId
+        ) {
+          return profile;
+        }
         // Authoritative ready from returned profile (or would refresh equivalently).
         setSession({ status: 'ready', quizzerId, profile });
         return profile;
@@ -156,12 +166,20 @@ export function QuizzerProfileProvider({
         );
       }
 
+      const generation = requestGenerationRef.current;
+
       try {
         const profile = await repositoryRef.current.updateName({
           quizzerId,
           firstName: input.firstName,
           lastName: input.lastName,
         });
+        if (
+          requestGenerationRef.current !== generation ||
+          authenticatedUidRef.current !== quizzerId
+        ) {
+          return profile;
+        }
         setSession({ status: 'ready', quizzerId, profile });
         return profile;
       } catch (error) {

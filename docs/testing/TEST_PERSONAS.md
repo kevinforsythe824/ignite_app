@@ -47,7 +47,7 @@ Each persona below includes:
 
 ## Sprint 2 — Authentication & Onboarding
 
-Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name onboarding, parental-consent claim, and returning-user **routing** from Auth + consent + profile (PRD §62, ADR-011). Age collection, division selection, and eligibility validation belong to **Sprint 3** (season / eligibility). Use S2-001, S2-002, S2-009, S2-010 plus consent-claim personas for Sprint 2 routing. Age/division personas below (S2-003+) are Sprint 3 placeholders, not Phase 7 routing cases. Sprint 2 does **not** deliver season lifecycle, official publishing, or purchase/access (Sprints 3–4).
+Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name onboarding, parental-consent claim, returning-user **routing** from Auth + consent + profile (PRD §62, ADR-011), and authenticated Help & Feedback (ADR-012). Age collection, division selection, and eligibility validation belong to **Sprint 3** (season / eligibility). Use S2-001, S2-002, S2-009, S2-010 plus the named consent and feedback personas below for Sprint 2 routing and intake. Age/division personas (S2-003+) are Sprint 3 placeholders, not Phase 7 routing cases. Sprint 2 does **not** deliver season lifecycle, official publishing, or purchase/access (Sprints 3–4).
 
 ### S2-001 — New unauthenticated user
 
@@ -212,6 +212,102 @@ Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name 
 | **Security expectation** | Sign-in required before profile access |
 | **Sprint** | 2 |
 | **Testing use** | Manual, automated |
+
+### S2-011 — Consent pending (under-13)
+
+| Field | Value |
+|-------|-------|
+| **Persona ID** | `s2-consent-pending-001` |
+| **Intended scenario** | Under-13 privacy path; parent approval not yet received |
+| **Age / eligibility** | Privacy choice “Under 13” (not a persisted DOB) |
+| **Authentication** | Signed out until claim; local consent capability present |
+| **Onboarding** | Blocked on parent approval (`pending` / waiting presentation) |
+| **Season** | N/A |
+| **Entitlement** | N/A |
+| **Expected routing / result** | Consent pending; must not reach CreateAccount, QuizzerName, or MainTabs |
+| **Security expectation** | Capability in SecureStore only; no local `approved=true`; Firestore consent docs client-denied |
+| **Sprint** | 2 |
+| **Testing use** | Automated (consent provider/screens), manual DEV |
+
+### S2-012 — Consent approved, unclaimed
+
+| Field | Value |
+|-------|-------|
+| **Persona ID** | `s2-consent-approved-unclaimed-001` |
+| **Intended scenario** | Parent approved; claim not yet bound to an Auth UID |
+| **Age / eligibility** | Privacy choice “Under 13” |
+| **Authentication** | Unauthenticated or signing in to claim |
+| **Onboarding** | Approved + unbound → CreateAccount (no recovery UID) or Sign In to claim (recovery UID) |
+| **Season** | N/A |
+| **Entitlement** | N/A |
+| **Expected routing / result** | Claim gate before profile/MainTabs (ADR-010 / ADR-011) |
+| **Security expectation** | Client never sends claim UID; `request.auth.uid` binds on the server |
+| **Sprint** | 2 |
+| **Testing use** | Automated, manual DEV |
+
+### S2-013 — Consent claimed, profile complete
+
+| Field | Value |
+|-------|-------|
+| **Persona ID** | `s2-consent-complete-001` |
+| **Intended scenario** | Claim succeeded and Quizzer profile is ready |
+| **Age / eligibility** | Privacy choice already completed; no age stored on profile |
+| **Authentication** | Signed in, session persisted |
+| **Onboarding** | Complete |
+| **Season** | N/A |
+| **Entitlement** | N/A |
+| **Expected routing / result** | MainTabs (same as S2-009) |
+| **Security expectation** | Profile is `quizzerId` + names + avatar only; no consent status on the profile document |
+| **Sprint** | 2 |
+| **Testing use** | Automated (lifecycle), manual DEV |
+
+### S2-014 — User A → User B switch
+
+| Field | Value |
+|-------|-------|
+| **Persona ID** | `s2-user-switch-001` |
+| **Intended scenario** | Authenticated User A is replaced by User B on the same device |
+| **Age / eligibility** | N/A |
+| **Authentication** | Signed in as B after A |
+| **Onboarding** | Each UID has its own profile presence |
+| **Season** | N/A |
+| **Entitlement** | N/A |
+| **Expected routing / result** | No User A ready/missing/error flash; remount key `authenticated:${uid}` (ADR-011) |
+| **Security expectation** | Stale profile fetch and provision/updateName mutations must not overwrite B’s session |
+| **Sprint** | 2 |
+| **Testing use** | Automated (`QuizzerProfileProvider`) |
+
+### S2-015 — Profile load error
+
+| Field | Value |
+|-------|-------|
+| **Persona ID** | `s2-profile-error-001` |
+| **Intended scenario** | Authenticated user; `getProfile` fails |
+| **Age / eligibility** | N/A |
+| **Authentication** | Signed in |
+| **Onboarding** | Unknown — error is not treated as missing |
+| **Season** | N/A |
+| **Entitlement** | N/A |
+| **Expected routing / result** | Profile load-error screen with Retry / Sign Out; never QuizzerName or MainTabs |
+| **Security expectation** | Translated error only; no raw Firebase strings |
+| **Sprint** | 2 |
+| **Testing use** | Automated (lifecycle + profile screens) |
+
+### S2-016 — Authenticated Help & Feedback
+
+| Field | Value |
+|-------|-------|
+| **Persona ID** | `s2-feedback-submit-001` |
+| **Intended scenario** | Completed profile submits Settings → Help & Feedback |
+| **Age / eligibility** | N/A (must not appear on the feedback document) |
+| **Authentication** | Signed in, profile ready |
+| **Onboarding** | Complete |
+| **Season** | N/A |
+| **Entitlement** | N/A |
+| **Expected routing / result** | Settings → Help & Feedback → compose; callable accepts; no signed-out support path |
+| **Security expectation** | Document has category/message/safe metadata only — **no** UID, name, email, consent, or profile (ADR-012) |
+| **Sprint** | 2 |
+| **Testing use** | Automated (UI + Functions + rules); manual DEV after Functions deploy |
 
 ### Sprint 2 cross-cutting notes
 

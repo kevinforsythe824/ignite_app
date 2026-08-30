@@ -89,6 +89,11 @@ export function SettingsScreen(): React.JSX.Element {
           testID="settings-change-password"
         />
         <SettingsRow
+          label={quizzerProfileCopy.settings.helpAndFeedback}
+          onPress={() => navigation.navigate('HelpAndFeedback')}
+          testID="settings-help-feedback"
+        />
+        <SettingsRow
           label={quizzerProfileCopy.settings.about}
           onPress={() => navigation.navigate('About')}
           testID="settings-about"

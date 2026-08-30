@@ -19,6 +19,8 @@ export interface ParentalConsentRepositoryFake extends ParentalConsentRepository
   /** Call counts for getStatus generations / stale response tests. */
   getStatusCallCount(): number;
   setGetStatusDelay(delay: () => Promise<void>): void;
+  setCreateDelay(delay: () => Promise<void>): void;
+  setClaimDelay(delay: () => Promise<void>): void;
 }
 
 export function createParentalConsentRepositoryFake(options?: {
@@ -37,6 +39,8 @@ export function createParentalConsentRepositoryFake(options?: {
   let claimResult: ClaimParentalConsentResult | null = null;
   let getStatusCalls = 0;
   let getStatusDelay: (() => Promise<void>) | null = null;
+  let createDelay: (() => Promise<void>) | null = null;
+  let claimDelay: (() => Promise<void>) | null = null;
   let nextRequestId = 1;
 
   return {
@@ -62,8 +66,17 @@ export function createParentalConsentRepositoryFake(options?: {
     setGetStatusDelay(delay) {
       getStatusDelay = delay;
     },
+    setCreateDelay(delay) {
+      createDelay = delay;
+    },
+    setClaimDelay(delay) {
+      claimDelay = delay;
+    },
 
     createRequest: jest.fn(async (input) => {
+      if (createDelay) {
+        await createDelay();
+      }
       if (createError) {
         throw createError;
       }
@@ -130,6 +143,9 @@ export function createParentalConsentRepositoryFake(options?: {
     }),
 
     claim: jest.fn(async () => {
+      if (claimDelay) {
+        await claimDelay();
+      }
       if (claimError) {
         throw claimError;
       }
