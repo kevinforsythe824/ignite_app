@@ -15,7 +15,10 @@ import { QuizzerProfileError } from '../errors/quizzerProfileError';
 import { translateQuizzerProfileError } from '../errors/translateQuizzerProfileError';
 import type { QuizzerProfileRepository } from '../repositories/quizzerProfileRepository';
 import { firestoreQuizzerProfileRepository } from '../repositories';
-import type { QuizzerProfileSessionState } from './quizzerProfileSessionState';
+import {
+  isolateQuizzerProfileSessionForUid,
+  type QuizzerProfileSessionState,
+} from './quizzerProfileSessionState';
 
 export interface QuizzerProfileContextValue {
   session: QuizzerProfileSessionState;
@@ -168,14 +171,19 @@ export function QuizzerProfileProvider({
     [],
   );
 
+  const isolatedSession = useMemo(
+    () => isolateQuizzerProfileSessionForUid(session, authenticatedUid),
+    [session, authenticatedUid],
+  );
+
   const value = useMemo<QuizzerProfileContextValue>(
     () => ({
-      session,
+      session: isolatedSession,
       retry,
       provisionProfile,
       updateName,
     }),
-    [session, retry, provisionProfile, updateName],
+    [isolatedSession, retry, provisionProfile, updateName],
   );
 
   return (

@@ -89,6 +89,7 @@ Folder layout remains in [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 | [ADR-008](ADR-008-parental-consent-email-plus.md) | Parental consent email-plus foundation (server-authoritative) | Accepted |
 | [ADR-009](ADR-009-parental-consent-hosting-and-email.md) | Parental consent Hosting surface and transactional email (DEV) | Accepted |
 | [ADR-010](ADR-010-mobile-parental-consent-integration.md) | Mobile parental consent integration (Phase 6.5C) | Accepted |
+| [ADR-011](ADR-011-account-lifecycle-routing.md) | Account lifecycle routing | Accepted |
 
 ## Open Decisions
 
@@ -98,7 +99,7 @@ These items are **not Accepted**. Do not implement a guessed rule as if the PRD 
 |-------|-----------------|-------------------|-------|
 | Authentication methods | An account is required. Auth is Firebase Authentication and stays independent of Quizzer domain data. | Which sign-in methods (Apple, Google, email, etc.) and credential-recovery details | PRD §42, §56; playbook Sprint 2 guardrails |
 | Experienced / Senior eligibility | Divisions exist; user selects within age eligibility; division is season-scoped and does not change mid-season in V1. Intermediate includes first-year Quizzers 15–18. Experienced/Senior is “advanced” Quizzers 12–18. | The exact rule that distinguishes first-year vs advanced / Experienced vs Senior | PRD §8, §56 |
-| Account deletion | Privacy-by-design and minimum data collection are required. | Exact deletion, retention, and recovery behavior | Not specified in the PRD; playbook §10 and Sprint 2 require planning before release |
+| Account deletion | Privacy-by-design and minimum data collection are required. Phase 7 lifecycle routing does **not** implement deletion and does **not** close this prerequisite (ADR-011). After a future deletion the resolver would see no Auth session. | Exact deletion, retention, and recovery behavior | Not specified in the PRD; playbook §§10, 18 and Sprint 2 / MVP-before-release still require architecture and implementation; [`ACCOUNT_DELETION_RUNBOOK.md`](../../operations/ACCOUNT_DELETION_RUNBOOK.md) |
 | Production content import format | Committee provides official material. Import must validate identity, numbering, Scripture, divisions, annotations, quiz metadata, and tournament/rules config. Invalid content fails before publication. | Concrete production file/package format and toolchain | PRD §50; playbook Sprint 3 |
 | Store-product mapping | One season purchase grants core season access. AI is a separate optional entitlement. Restore/access recovery is required. | Store SKUs, product IDs, and provider mapping | PRD §9, §26.4; playbook Sprint 4 |
 | Backend environments | Three Firebase projects: `dev` → `wpf-bible-qizzing`, `staging` → `ignite-staging-01`, `prod` → `ignite-prod-01`. See [`docs/operations/ENVIRONMENTS.md`](../../operations/ENVIRONMENTS.md). | Native iOS/Android app registration per environment; capturing existing remote Firestore rules before any first deploy | ENVIRONMENTS.md |

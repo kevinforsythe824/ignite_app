@@ -10,13 +10,14 @@ export type MainTabParamList = {
 };
 
 /**
- * Root groups follow AuthProvider session, parental-consent claim gate,
- * and QuizzerProfile presence:
+ * Root groups follow the derived AccountLifecycleDestination (ADR-011):
  * initializing → IgniteEntry; unauthenticated → Auth;
- * authenticated + claim required → ConsentClaimPending;
- * authenticated + loading/idle → QuizzerProfileLoading;
- * authenticated + missing → QuizzerName; authenticated + error → QuizzerProfileLoadError;
- * authenticated + ready → MainTabs.
+ * resolving → QuizzerProfileLoading;
+ * consentClaim → ConsentClaimPending;
+ * profileOnboarding → QuizzerName; profileError → QuizzerProfileLoadError;
+ * main → MainTabs.
+ * seasonSetup / entitlementAccess have no screens yet — fail closed to
+ * QuizzerProfileLoading. No route-param payloads for lifecycle.
  */
 export type RootStackParamList = {
   IgniteEntry: undefined;

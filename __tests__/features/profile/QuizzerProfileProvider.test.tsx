@@ -11,6 +11,7 @@ import {
   QuizzerProfileProvider,
   useQuizzerProfile,
 } from '../../../src/features/profile/state/QuizzerProfileProvider';
+import { isolateQuizzerProfileSessionForUid } from '../../../src/features/profile/state/quizzerProfileSessionState';
 import { createAuthRepositoryFake } from '../../../test-utils/authRepositoryFake';
 import { createQuizzerProfileRepositoryFake } from '../../../test-utils/quizzerProfileRepositoryFake';
 
@@ -238,6 +239,77 @@ describe('QuizzerProfileProvider auth lifecycle', () => {
     });
 
     expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-b');
+  });
+
+  it('does not expose user A ready/missing/error on the first paint after switching to user B', async () => {
+    let releaseB: (profile: {
+      quizzerId: string;
+      firstName: string;
+      lastName: string;
+      avatarId: null;
+    }) => void = () => undefined;
+    const pendingB = new Promise<{
+      quizzerId: string;
+      firstName: string;
+      lastName: string;
+      avatarId: null;
+    }>((resolve) => {
+      releaseB = resolve;
+    });
+
+    const auth = createAuthRepositoryFake({
+      initialIdentity: { uid: 'user-a', email: 'a@example.com', emailVerified: false },
+    });
+    const profiles = createQuizzerProfileRepositoryFake();
+    profiles.seed({
+      quizzerId: 'user-a',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    (profiles.getProfile as jest.Mock).mockImplementation(async (quizzerId: string) => {
+      if (quizzerId === 'user-a') {
+        return {
+          quizzerId: 'user-a',
+          firstName: 'Taylor',
+          lastName: 'Quizzer',
+          avatarId: null,
+        };
+      }
+      return pendingB;
+    });
+
+    const screen = await renderWithProviders(<ProfileStatusProbe />, { auth, profiles });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    });
+    expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-a');
+
+    await act(async () => {
+      auth.emit({ uid: 'user-b', email: 'b@example.com', emailVerified: false });
+    });
+
+    expect(screen.getByTestId('profile-status').props.children).not.toBe('ready');
+    expect(screen.getByTestId('profile-status').props.children).not.toBe('missing');
+    expect(screen.getByTestId('profile-status').props.children).not.toBe('error');
+    expect(screen.queryByTestId('profile-first-name')).toBeNull();
+    expect(screen.getByTestId('profile-scoped-id').props.children).toBe('user-b');
+
+    await act(async () => {
+      releaseB({
+        quizzerId: 'user-b',
+        firstName: 'Bailey',
+        lastName: 'Quizzer',
+        avatarId: null,
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-status').props.children).toBe('ready');
+    });
     expect(screen.getByTestId('profile-quizzer-id').props.children).toBe('user-b');
   });
 
@@ -564,6 +636,51 @@ describe('QuizzerNameScreen validation', () => {
       firstName: '太郎',
       lastName: 'José',
       avatarId: null,
+    });
+  });
+});
+
+describe('isolateQuizzerProfileSessionForUid', () => {
+  const readyA = {
+    status: 'ready' as const,
+    quizzerId: 'user-a',
+    profile: {
+      quizzerId: 'user-a',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    },
+  };
+  const missingA = { status: 'missing' as const, quizzerId: 'user-a' };
+  const errorA = {
+    status: 'error' as const,
+    quizzerId: 'user-a',
+    error: new QuizzerProfileError('unavailable', 'Profile is temporarily unavailable.'),
+  };
+
+  it('exposes idle when signed out, even if a ready session is still in memory', () => {
+    expect(isolateQuizzerProfileSessionForUid(readyA, null)).toEqual({ status: 'idle' });
+  });
+
+  it('does not surface mismatched ready/missing/error for the current uid', () => {
+    expect(isolateQuizzerProfileSessionForUid(readyA, 'user-b')).toEqual({
+      status: 'loading',
+      quizzerId: 'user-b',
+    });
+    expect(isolateQuizzerProfileSessionForUid(missingA, 'user-b')).toEqual({
+      status: 'loading',
+      quizzerId: 'user-b',
+    });
+    expect(isolateQuizzerProfileSessionForUid(errorA, 'user-b')).toEqual({
+      status: 'loading',
+      quizzerId: 'user-b',
+    });
+  });
+
+  it('passes through a session that already matches the current uid', () => {
+    expect(isolateQuizzerProfileSessionForUid(readyA, 'user-a')).toBe(readyA);
+    expect(isolateQuizzerProfileSessionForUid({ status: 'idle' }, 'user-a')).toEqual({
+      status: 'idle',
     });
   });
 });

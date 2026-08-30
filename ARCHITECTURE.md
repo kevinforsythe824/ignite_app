@@ -30,6 +30,7 @@ ignite_app/
 ├── .cursor/rules/               # AI coding rules (incl. project-philosophy)
 ├── src/
 │   ├── app/                     # App shell only
+│   │   ├── lifecycle/           # Pure account-lifecycle destination (ADR-011)
 │   │   ├── navigation/          # React Navigation (stack + tabs)
 │   │   └── providers/           # Gesture/safe-area + Auth + ParentalConsent + QuizzerProfile
 │   ├── features/                # Feature modules (feature-first)
@@ -114,7 +115,7 @@ Each feature is a vertical slice:
 Allowed direction (import arrows point toward dependencies):
 
 ```text
-screens / app/navigation
+screens / app/navigation / app/lifecycle
         → features/*
         → shared/*
         → services/*
@@ -166,6 +167,7 @@ Prefer **named exports**; default exports are used for some screens/components f
 - Mount providers **next to the feature route**, not in `AppProviders`, unless state is truly app-wide.
 - **Authentication** session state is app-wide via `AuthProvider` in `AppProviders` (`src/features/auth/`).
 - **Parental consent** capability/session is app-wide via `ParentalConsentProvider` between Auth and QuizzerProfile (`src/features/parentalConsent/`). See [ADR-010](docs/architecture/decisions/ADR-010-mobile-parental-consent-integration.md).
+- **Account lifecycle destination** is derived in `src/app/lifecycle/` (ADR-011). It is not a provider or persisted store. Production season/entitlement seams are `unavailable`.
 - Derived values belong in pure functions or hooks — not duplicated in components.
 
 ---
@@ -173,16 +175,11 @@ Prefer **named exports**; default exports are used for some screens/components f
 ## 7. Navigation
 
 - **Library:** React Navigation (not Expo Router).
-- **Root:** native stack switched on AuthProvider session, parental-consent claim gate, and Quizzer profile presence:
-  - `initializing` → Ignite Entry (branded cover; does not delay auth restoration)
-  - `unauthenticated` → Auth stack (Welcome, Sign In, Forgot Password, nested AccountCreation)
-  - Create Account path → PrivacyAge → CreateAccount (13+, no active consent) or parental-consent screens (under 13; ADR-010)
-  - `authenticated` + `pendingClaimUid === uid` → `ConsentClaimPending` (before profile routes)
-  - `authenticated` → resolve Quizzer profile before MainTabs:
-    - `loading` / `idle` → profile loading cover
-    - `missing` → Quizzer name onboarding
-    - `error` → Retry / Sign Out recovery
-    - `ready` → `MainTabs` (+ TournamentDetails placeholder)
+- **Root:** native stack switched on the derived `AccountLifecycleDestination` from `src/app/lifecycle/` (ADR-011). `RootNavigator` does not inline the routing table.
+  - Precedence: Auth initializing → Ignite Entry; unauthenticated → Auth stack; consent hydrate not ready → loading cover; `isClaimRequired` → `ConsentClaimPending` (before profile routes); UID-mismatched profile → loading cover; profile idle/loading → loading cover; profile error → Retry / Sign Out; profile missing → Quizzer name onboarding; season/entitlement seams `unavailable` (Phase 7) are skipped; otherwise `MainTabs` (+ TournamentDetails placeholder)
+  - Create Account path remains a pre-auth nested stack: PrivacyAge → CreateAccount (13+, no active consent) or parental-consent screens (under 13; ADR-010)
+  - Authenticated remount key is `authenticated:${uid}` only. Destination is not part of the key.
+  - Season setup and entitlement access are contract destinations only. If returned without screens, they fail closed to the loading cover — never MainTabs.
 - **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
 - **Profile tab:** nested `ProfileStackNavigator` (Profile home → Settings → Edit Name / Change Email / Change Password / About).
 - **Default authenticated entry (profile ready):** Study → Flashcards (current product experience).

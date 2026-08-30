@@ -2,6 +2,7 @@ import { act, render, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 
+import type { FutureLifecycleSeam } from '../../../src/app/lifecycle';
 import { RootNavigator } from '../../../src/app/navigation/RootNavigator';
 import { AuthProvider } from '../../../src/features/auth';
 import { authCopy } from '../../../src/features/auth/copy/authCopy';
@@ -34,6 +35,10 @@ async function renderRoot(
     secureStore?: ReturnType<typeof createConsentSecureStoreFake>;
     consentRepository?: ReturnType<typeof createParentalConsentRepositoryFake>;
   },
+  seams?: {
+    seasonSeam?: FutureLifecycleSeam;
+    entitlementSeam?: FutureLifecycleSeam;
+  },
 ) {
   return render(
     <AuthProvider repository={repository}>
@@ -42,7 +47,10 @@ async function renderRoot(
         secureStore={consentOptions?.secureStore ?? createConsentSecureStoreFake()}
       >
         <QuizzerProfileProvider repository={profileRepository}>
-          <RootNavigator />
+          <RootNavigator
+            seasonSeam={seams?.seasonSeam}
+            entitlementSeam={seams?.entitlementSeam}
+          />
         </QuizzerProfileProvider>
       </ParentalConsentProvider>
     </AuthProvider>,
@@ -587,6 +595,251 @@ describe('RootNavigator auth session switch', () => {
     expect(repository.signUp).not.toHaveBeenCalled();
     expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
     expect(secureStore.peek()).toBeNull();
+  });
+});
+
+describe('RootNavigator account lifecycle', () => {
+  it('does not flash user A MainTabs when switching to user B', async () => {
+    let releaseB: (profile: {
+      quizzerId: string;
+      firstName: string;
+      lastName: string;
+      avatarId: null;
+    }) => void = () => undefined;
+    const pendingB = new Promise<{
+      quizzerId: string;
+      firstName: string;
+      lastName: string;
+      avatarId: null;
+    }>((resolve) => {
+      releaseB = resolve;
+    });
+
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-a',
+        email: 'a@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    (profileRepository.getProfile as jest.Mock).mockImplementation(async (quizzerId: string) => {
+      if (quizzerId === 'user-a') {
+        return {
+          quizzerId: 'user-a',
+          firstName: 'Taylor',
+          lastName: 'Quizzer',
+          avatarId: null,
+        };
+      }
+      return pendingB;
+    });
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+
+    await act(async () => {
+      repository.emit({
+        uid: 'user-b',
+        email: 'b@example.com',
+        emailVerified: false,
+      });
+    });
+
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(await screen.findByTestId('quizzer-profile-loading')).toBeTruthy();
+
+    await act(async () => {
+      releaseB({
+        quizzerId: 'user-b',
+        firstName: 'Bailey',
+        lastName: 'Quizzer',
+        avatarId: null,
+      });
+    });
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(screen.queryByTestId('quizzer-profile-loading')).toBeNull();
+  });
+
+  it('routes a returning complete user from Sign In to MainTabs', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake({ emitOnSubscribe: false });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    await act(async () => {
+      repository.emit(null);
+    });
+
+    expect(await screen.findByTestId('auth-welcome-sign-in')).toBeTruthy();
+    await user.press(screen.getByTestId('auth-welcome-sign-in'));
+    await user.type(await screen.findByTestId('auth-sign-in-email'), 'quizzer@example.com');
+    await user.type(screen.getByTestId('auth-sign-in-password'), 'secret');
+    await user.press(screen.getByTestId('auth-sign-in-submit'));
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(screen.queryByTestId('auth-welcome-create-account')).toBeNull();
+  });
+
+  it('routes a returning profile-incomplete user from Sign In to QuizzerName', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake({ emitOnSubscribe: false });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    await act(async () => {
+      repository.emit(null);
+    });
+
+    await user.press(await screen.findByTestId('auth-welcome-sign-in'));
+    await user.type(await screen.findByTestId('auth-sign-in-email'), 'quizzer@example.com');
+    await user.type(screen.getByTestId('auth-sign-in-password'), 'secret');
+    await user.press(screen.getByTestId('auth-sign-in-submit'));
+
+    expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+  });
+
+  it('reconstructs MainTabs after an authenticated ready restart', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+  });
+
+  it('reconstructs QuizzerName after an authenticated missing-profile restart', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+
+    const screen = await renderRoot(repository);
+
+    expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+  });
+
+  it('reconstructs ConsentClaimPending after a pending-claim restart', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      pendingClaimUid: 'user-1',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    (consentRepository.claim as jest.Mock).mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    expect(await screen.findByTestId('consent-claim-pending-title')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+  });
+
+  it('fail-closes an injected seasonSetup seam to the loading cover, not MainTabs', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderRoot(repository, profileRepository, undefined, {
+      seasonSeam: { status: 'required' },
+    });
+
+    expect(await screen.findByTestId('quizzer-profile-loading')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+  });
+
+  it('fail-closes an injected entitlementAccess seam to the loading cover, not MainTabs', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderRoot(repository, profileRepository, undefined, {
+      entitlementSeam: { status: 'required' },
+    });
+
+    expect(await screen.findByTestId('quizzer-profile-loading')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
   });
 });
 

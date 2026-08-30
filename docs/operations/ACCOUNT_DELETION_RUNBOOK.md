@@ -2,7 +2,7 @@
 
 Architecture and operations requirements for **deleting a user's Ignite account** — without implementing deletion in this step.
 
-**Status:** Planning skeleton — detailed deletion behavior is **UNRESOLVED** (PRD gap, ADR Open Decisions). Implementation must be complete **before public release** (playbook §§10, 17).
+**Status:** Planning skeleton — detailed deletion behavior is **UNRESOLVED** (PRD gap, ADR Open Decisions). Implementation must be complete **before public release** (playbook §§10, 18). **Phase 7 account-lifecycle routing does not implement deletion and does not close this Sprint 2 / MVP-before-release prerequisite.**
 
 **Sources:** [PRD](../product/PRD.md) (§§43–44), [Development Playbook](../development/Ignite_Development_Playbook.md) (§§10, 17), [ADR-006](../architecture/decisions/ADR-006-privacy-by-design.md), [ADR Open Decisions](../architecture/decisions/README.md), [ENVIRONMENTS.md](ENVIRONMENTS.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md).
 
@@ -125,7 +125,7 @@ Record gaps explicitly; get product-owner decisions before coding:
 
 | Sprint | Expected work |
 |--------|----------------|
-| **Sprint 2** | Account deletion **architecture** planned; auth vs Quizzer separation; routing does not block future deletion |
+| **Sprint 2** | Account deletion **architecture** planned; auth vs Quizzer separation. Phase 7 (ADR-011) derives routing from Auth + consent + profile and does **not** close this prerequisite. After a future deletion the resolver would see no Auth session (`unauthenticated`). Do not encode deletion as an onboarding flag. |
 | **Sprint 3** | Season-scoped participation models remain deletable in principle |
 | **Sprint 4** | Entitlement/purchase interaction with deletion; sandbox testing; no guessed store SKU behavior |
 | **Pre–public release** | Full deletion implementation, Security Rules, legal/privacy review |

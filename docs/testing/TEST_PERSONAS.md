@@ -47,7 +47,7 @@ Each persona below includes:
 
 ## Sprint 2 — Authentication & Onboarding
 
-Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer onboarding, age collection, division selection, eligibility validation, and returning-user routing (PRD §62). It does **not** deliver season lifecycle, official publishing, or purchase/access (Sprints 3–4).
+Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name onboarding, parental-consent claim, and returning-user **routing** from Auth + consent + profile (PRD §62, ADR-011). Age collection, division selection, and eligibility validation belong to **Sprint 3** (season / eligibility). Use S2-001, S2-002, S2-009, S2-010 plus consent-claim personas for Sprint 2 routing. Age/division personas below (S2-003+) are Sprint 3 placeholders, not Phase 7 routing cases. Sprint 2 does **not** deliver season lifecycle, official publishing, or purchase/access (Sprints 3–4).
 
 ### S2-001 — New unauthenticated user
 

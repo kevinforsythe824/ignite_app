@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../../shared/theme';
 import { quizzerProfileCopy } from '../copy/quizzerProfileCopy';
 
-/** Non-MainTabs loading cover while Quizzer profile presence resolves. */
+/** Non-MainTabs loading cover while account lifecycle is resolving. */
 export function QuizzerProfileLoadingScreen(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>

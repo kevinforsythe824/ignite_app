@@ -14,7 +14,7 @@ Sprint 2 requires Firebase Authentication for account identity while keeping Qui
 - Firebase Auth is infrastructure: only `getFirebaseAuth()` in `src/services/firebase/` and the Firebase auth source adapter import `firebase/auth`.
 - **`AuthenticatedIdentity`** contains auth-level fields only (`uid`, `email`, `emailVerified`). It does not own Quizzer profile data (name, avatar, age, division, season, progress, entitlement, etc.).
 - Firebase/provider failures are translated into **`AuthenticationError`** before leaving the repository boundary.
-- App-root **`AuthProvider`** owns session resolution (`initializing` → `unauthenticated` | `authenticated`). Onboarding, profile, and entitlement state compose separately in later Sprint 2 phases.
+- App-root **`AuthProvider`** owns session resolution (`initializing` → `unauthenticated` | `authenticated`). Onboarding, profile, and entitlement state compose separately; root routing composition is [ADR-011](ADR-011-account-lifecycle-routing.md). This ADR does not change identity ownership.
 - React Native auth persistence uses `@react-native-async-storage/async-storage` with Firebase `getReactNativePersistence`, following the installed AsyncStorage package API.
 
 ## Rationale
@@ -26,7 +26,7 @@ Mirrors ADR-001 repository isolation for a non-Firestore concern. Keeps future o
 - Legacy `AuthService` / `AuthUser` stubs in `src/services/firebase/` are removed; authentication consumers import from `src/features/auth/`.
 - Forgot Password / reset email is part of the authentication contract (`sendPasswordResetEmail`). A missing account (`user-not-found`) is treated as success so reset does not enumerate emails; other reset failures still become `AuthenticationError`. Settings-phase account operations on `AuthRepository` are `changeEmail` (internal reauth + `verifyBeforeUpdateEmail`), `changePassword` (internal reauth + `updatePassword`), and `refreshIdentity`. Reauthentication is not a public repository method.
 - Sign-up creates a Firebase Auth account only. It does not provision a Quizzer profile. Authenticated identity with a missing profile is a valid later onboarding/recovery state.
-- Root navigation gates presentation on AuthProvider session and Quizzer profile presence: initializing shows Ignite Entry; unauthenticated shows the auth stack; authenticated resolves Quizzer profile (`loading` / `missing` / `error` / `ready`) before MainTabs. Missing profile shows name onboarding; load failure shows Retry / Sign Out; ready shows MainTabs.
+- Root navigation composes Auth session with consent and Quizzer profile via the derived lifecycle destination in [ADR-011](ADR-011-account-lifecycle-routing.md). Authenticated identity remains separate from Quizzer profile data.
 - Welcome starts account creation through the nested `AccountCreation` stack (`startAccountCreation`) rather than opening the credential form directly. That stack’s initial route is the privacy-age boundary; under-13 users continue through the Phase 6.5C parental-consent flow (parent email → approval → Create Account → claim). See [ADR-010](ADR-010-mobile-parental-consent-integration.md).
 - Root navigation also gates authenticated under-13 users on `pendingClaimUid === currentUid` via `ConsentClaimPending` before Quizzer profile routes (ADR-010).
 

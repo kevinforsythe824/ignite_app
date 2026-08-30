@@ -16,7 +16,7 @@ export const quizzerProfileCopy = {
     tryAgain: 'Try Again',
   },
   loading: {
-    accessibilityLabel: 'Loading your profile',
+    accessibilityLabel: 'Loading your account',
   },
   profile: {
     title: 'Profile',
