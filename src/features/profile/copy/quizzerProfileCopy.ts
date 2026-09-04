@@ -21,6 +21,7 @@ export const quizzerProfileCopy = {
   profile: {
     title: 'Profile',
     settings: 'Settings',
+    unavailable: 'Profile isn’t available right now.',
     avatarAccessibilityLabel: (fullName: string) => `Profile photo for ${fullName}`,
   },
   settings: {
@@ -33,6 +34,7 @@ export const quizzerProfileCopy = {
     about: 'About',
     signOut: 'Sign Out',
     signingOut: 'Signing out',
+    signOutFailed: 'Unable to sign out. Check your connection and try again.',
   },
   editName: {
     title: 'Edit Name',

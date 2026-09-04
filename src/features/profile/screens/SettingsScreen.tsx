@@ -4,7 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, typography } from '../../../shared/theme';
-import { useAuth } from '../../auth';
+import { AuthenticationError, useAuth } from '../../auth';
 import { AuthPrimaryButton } from '../../auth/components/AuthPrimaryButton';
 import { SettingsRow } from '../components/SettingsRow';
 import { quizzerProfileCopy } from '../copy/quizzerProfileCopy';
@@ -23,6 +23,7 @@ export function SettingsScreen(): React.JSX.Element {
   const navigation = useNavigation<SettingsNavigation>();
   const { identity, signOut, refreshIdentity } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | undefined>();
 
   useFocusEffect(
     useCallback(() => {
@@ -52,8 +53,15 @@ export function SettingsScreen(): React.JSX.Element {
       return;
     }
     setSigningOut(true);
+    setSignOutError(undefined);
     try {
       await signOut();
+    } catch (error) {
+      setSignOutError(
+        error instanceof AuthenticationError
+          ? error.message
+          : quizzerProfileCopy.settings.signOutFailed,
+      );
     } finally {
       setSigningOut(false);
     }
@@ -99,6 +107,17 @@ export function SettingsScreen(): React.JSX.Element {
           testID="settings-about"
         />
       </View>
+
+      {signOutError ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+          style={styles.signOutError}
+          testID="settings-sign-out-error"
+        >
+          {signOutError}
+        </Text>
+      ) : null}
 
       <AuthPrimaryButton
         label={
@@ -149,5 +168,9 @@ const styles = StyleSheet.create({
   emailValue: {
     ...typography.valueBody,
     color: colors.navy,
+  },
+  signOutError: {
+    ...typography.hint,
+    color: colors.accentRed,
   },
 });

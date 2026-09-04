@@ -101,6 +101,7 @@ Do not run `firebase deploy` against `prod` as a habit. There is no npm script t
 - `users/{userId}/profile/{profileId}` — authenticated owner read/create of `main`; owner may update only `first_name` and `last_name` (Sprint 2 Phase 6 Edit Name). Deletes denied. Cross-user and unauthenticated access denied.
 - `parentalConsentRequests/{requestId}` — **deny all** client read/write (Phase 6.5A). Cloud Functions Admin SDK only.
 - `parentalConsentRateLimits/{bucketId}` — **deny all** client read/write (Phase 6.5A abuse counters). Cloud Functions Admin SDK only.
+- `feedbackSubmissions/{submissionId}` — **deny all** client read/write (Phase 8 / ADR-012). Created only via authenticated `submitFeedback` callable (Admin SDK). Not account-owned by UID; see [`ACCOUNT_DELETION_RUNBOOK.md`](ACCOUNT_DELETION_RUNBOOK.md).
 
 **Workflow**
 

@@ -39,7 +39,6 @@ export const AuthTextField = forwardRef<TextInput, AuthTextFieldProps>(
             secureTextEntry={secureTextEntry}
             editable={editable}
             accessibilityLabel={label}
-            accessibilityHint={error}
             accessibilityState={{ disabled: !editable }}
             placeholderTextColor={colors.textMuted}
             style={[

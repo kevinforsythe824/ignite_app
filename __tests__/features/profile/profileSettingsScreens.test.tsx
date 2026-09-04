@@ -67,6 +67,7 @@ describe('Profile + Settings foundation', () => {
     await user.press(screen.getByTestId('profile-home-settings'));
     expect(await screen.findByTestId('settings-email')).toBeTruthy();
     expect(screen.getByText('quizzer@example.com')).toBeTruthy();
+    expect(screen.queryByText(/delete account/i)).toBeNull();
 
     await user.press(screen.getByTestId('settings-edit-name'));
     expect(await screen.findByTestId('edit-name-first')).toBeTruthy();
@@ -136,6 +137,31 @@ describe('Profile + Settings foundation', () => {
     await waitFor(() => {
       expect(auth.signOut).toHaveBeenCalled();
     });
+  });
+
+  it('surfaces Sign Out failure without leaving Settings', async () => {
+    const user = userEvent.setup();
+    const auth = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-a',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+      signOutError: new AuthenticationError(
+        'network-unavailable',
+        'Unable to reach the authentication service. Check your connection.',
+      ),
+    });
+    const { screen } = await renderProfileStack({ auth });
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    await user.press(await screen.findByTestId('settings-sign-out'));
+
+    expect(await screen.findByTestId('settings-sign-out-error')).toHaveTextContent(
+      'Unable to reach the authentication service. Check your connection.',
+    );
+    expect(screen.getByTestId('settings-sign-out')).toBeTruthy();
+    expect(screen.getByTestId('settings-email')).toBeTruthy();
   });
 
   it('About shows app version from app.json', async () => {

@@ -182,7 +182,7 @@ Prefer **named exports**; default exports are used for some screens/components f
   - Authenticated remount key is `authenticated:${uid}` only. Destination is not part of the key.
   - Season setup and entitlement access are contract destinations only. If returned without screens, they fail closed to the loading cover — never MainTabs.
 - **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
-- **Profile tab:** nested `ProfileStackNavigator` (Profile home → Settings → Edit Name / Change Email / Change Password / Help & Feedback / About).
+- **Profile tab:** nested `ProfileStackNavigator` (Profile home → Settings → Edit Name / Change Email / Change Password / Help & Feedback / About). **No Delete Account** row — Sprint 2 Phase 9 deletion foundation is documentation only ([`ACCOUNT_DELETION_RUNBOOK.md`](docs/operations/ACCOUNT_DELETION_RUNBOOK.md)).
 - **Default authenticated entry (profile ready):** Study → Flashcards (current product experience).
 - Placeholder tabs live in `src/screens/*` until their features exist (Home/Practice remain placeholders; Profile is feature-backed).
 - Tab screens are `lazy: true`.
@@ -219,7 +219,8 @@ Example: **Practice**
 6. Use `shared/` only for truly cross-cutting pieces (theme first).
 7. Use `services/` for remote/offline I/O.
 8. Add Jest tests for reducer/utils/hooks under `__tests__/`.
-9. Update Cursor rules / this doc if conventions change.
+9. If the feature adds **user-owned persistent data**, update [`docs/operations/ACCOUNT_DELETION_RUNBOOK.md`](docs/operations/ACCOUNT_DELETION_RUNBOOK.md) (storage, association, classification, open retention).
+10. Update Cursor rules / this doc if conventions change.
 
 Move code before rewriting it. Preserve behavior. Prefer small commits.
 

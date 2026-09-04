@@ -1,4 +1,4 @@
-import { act, render, userEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { AccessibilityInfo } from 'react-native';
 
@@ -471,6 +471,113 @@ describe('RootNavigator auth session switch', () => {
     expect(screen.queryByText(parentalConsentCopy.claimPending.transient)).toBeNull();
     expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
     expect(secureStore.peek()).toBeNull();
+  });
+
+  it('FRESH UNDER-13 CREATE ACCOUNT: in-flight awaitingClaim must not replace SignIn then reaches QuizzerName', async () => {
+    const user = userEvent.setup();
+    let releaseSignUp: () => void = () => undefined;
+    const signUpGate = new Promise<void>((resolve) => {
+      releaseSignUp = resolve;
+    });
+    const repository = createAuthRepositoryFake({
+      signUpDelay: () => signUpGate,
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+    consentRepository.setClaimResult({
+      status: 'approved',
+      bindingState: 'bound',
+      claimedByUid: 'user-1',
+    });
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue-approval').props.accessibilityState
+          ?.disabled,
+      ).not.toBe(true);
+    });
+    fireEvent.press(screen.getByTestId('auth-privacy-age-continue-approval'));
+
+    expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
+
+    await user.type(screen.getByTestId('auth-create-account-email'), 'fresh@example.com');
+    await user.type(screen.getByTestId('auth-create-account-password'), 'secret');
+    await user.type(screen.getByTestId('auth-create-account-confirm-password'), 'secret');
+    await user.press(screen.getByTestId('auth-create-account-submit'));
+
+    await waitFor(() => {
+      expect(secureStore.peek()?.awaitingClaim).toBe(true);
+    });
+    expect(screen.queryByTestId('auth-sign-in-submit')).toBeNull();
+    expect(screen.getByTestId('auth-create-account-submit')).toBeTruthy();
+    expect(repository.signUp).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      releaseSignUp();
+    });
+
+    await waitFor(() => {
+      expect(consentRepository.claim).toHaveBeenCalled();
+    });
+    expect(screen.queryByTestId('auth-sign-in-submit')).toBeNull();
+    expect(await screen.findByTestId('quizzer-name-title')).toBeTruthy();
+    expect(secureStore.peek()).toBeNull();
+  });
+
+  it('RESTART RECOVERY: signed-out awaitingClaim without local Create Account ownership routes to Sign In', async () => {
+    const repository = createAuthRepositoryFake();
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      awaitingClaim: true,
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+
+    const screen = await renderRoot(repository, profileRepository, {
+      secureStore,
+      consentRepository,
+    });
+
+    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue-approval').props.accessibilityState
+          ?.disabled,
+      ).not.toBe(true);
+    });
+    fireEvent.press(screen.getByTestId('auth-privacy-age-continue-approval'));
+
+    expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();
+    expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+    expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+    expect(secureStore.peek()?.awaitingClaim).toBe(true);
   });
 
   it('CLAIM ERROR UX: authenticated unauthenticated is not network and not Sign-in-to-finish', async () => {

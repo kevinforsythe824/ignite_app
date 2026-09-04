@@ -124,7 +124,12 @@ export function ChangeEmailScreen(): React.JSX.Element {
           testID="change-email-password"
         />
         {errorMessage ? (
-          <Text style={styles.error} accessibilityLiveRegion="polite" testID="change-email-error">
+          <Text
+            style={styles.error}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+            testID="change-email-error"
+          >
             {errorMessage}
           </Text>
         ) : null}

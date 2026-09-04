@@ -14,6 +14,7 @@ export function createAuthRepositoryFake(options?: {
   initialIdentity?: AuthenticatedIdentity | null;
   signInError?: AuthenticationError;
   signUpError?: AuthenticationError;
+  signOutError?: AuthenticationError;
   resetError?: AuthenticationError;
   changeEmailError?: AuthenticationError;
   changePasswordError?: AuthenticationError;
@@ -64,6 +65,9 @@ export function createAuthRepositoryFake(options?: {
       return identity;
     }),
     signOut: jest.fn(async () => {
+      if (options?.signOutError) {
+        throw options.signOutError;
+      }
       emit(null);
     }),
     sendPasswordResetEmail: jest.fn(async () => {

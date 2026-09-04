@@ -299,6 +299,7 @@ Cursor is an implementation assistant, not the source of product decisions (play
 |----------|------|
 | [Ignite_Development_Playbook.md](../development/Ignite_Development_Playbook.md) | Bug workflow (§13), observability (§12), release discipline (§14) |
 | [ENVIRONMENTS.md](ENVIRONMENTS.md) | Firebase project mapping and production safeguards |
+| [ACCOUNT_DELETION_RUNBOOK.md](ACCOUNT_DELETION_RUNBOOK.md) | Account-owned vs local cleanup inventory; privacy/destructive deletion planning (no Delete Account in Sprint 2) |
 | [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md) | Synthetic users for reproduction and tests |
 | [PRD.md](../product/PRD.md) | Product rules, error handling, privacy |
 | [ADR index](../architecture/decisions/README.md) | Durable architectural boundaries |

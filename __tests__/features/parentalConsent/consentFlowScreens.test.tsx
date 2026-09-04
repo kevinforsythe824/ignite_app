@@ -7,6 +7,8 @@ import { Alert } from 'react-native';
 import { AuthProvider } from '../../../src/features/auth';
 import { authCopy } from '../../../src/features/auth/copy/authCopy';
 import { AuthNavigator } from '../../../src/features/auth/navigation/AuthNavigator';
+import { CreateAccountScreen } from '../../../src/features/auth/screens/CreateAccountScreen';
+import { SignInScreen } from '../../../src/features/auth/screens/SignInScreen';
 import { ParentalConsentProvider } from '../../../src/features/parentalConsent';
 import { parentalConsentCopy } from '../../../src/features/parentalConsent/copy/parentalConsentCopy';
 import { ConsentPendingScreen } from '../../../src/features/parentalConsent/screens/ConsentPendingScreen';
@@ -192,6 +194,51 @@ describe('parental consent account-creation flow', () => {
     await openPrivacyAge(screen);
     fireEvent.press(screen.getByTestId('auth-privacy-age-thirteen-or-older'));
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
+  });
+
+  it('signed-out pre-existing awaitingClaim without local in-flight ownership redirects focused Create Account to Sign In', async () => {
+    const Parent = createNativeStackNavigator();
+    const Nested = createNativeStackNavigator();
+
+    function NestedCreateAccount() {
+      return (
+        <Nested.Navigator>
+          <Nested.Screen name="CreateAccount" component={CreateAccountScreen} />
+        </Nested.Navigator>
+      );
+    }
+
+    const secureStore = createConsentSecureStoreFake({
+      version: 1,
+      requestId: 'req-1',
+      clientSessionToken: 'token-1',
+      awaitingClaim: true,
+    });
+    const consentRepository = createParentalConsentRepositoryFake({
+      initialSnapshot: {
+        status: 'approved',
+        maskedParentEmail: 'p***@example.com',
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        bindingState: 'unbound',
+      },
+    });
+
+    const screen = await render(
+      <AuthProvider repository={createAuthRepositoryFake()}>
+        <ParentalConsentProvider repository={consentRepository} secureStore={secureStore}>
+          <NavigationContainer>
+            <Parent.Navigator initialRouteName="AccountCreation">
+              <Parent.Screen name="SignIn" component={SignInScreen} />
+              <Parent.Screen name="AccountCreation" component={NestedCreateAccount} />
+            </Parent.Navigator>
+          </NavigationContainer>
+        </ParentalConsentProvider>
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();
+    expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+    expect(secureStore.peek()?.awaitingClaim).toBe(true);
   });
 });
 

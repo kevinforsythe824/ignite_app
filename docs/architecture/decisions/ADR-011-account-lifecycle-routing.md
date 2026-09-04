@@ -48,7 +48,7 @@ Re-resolve from authoritative sources after every process start. There is no “
 
 ### Account deletion
 
-Phase 7 does **not** implement account deletion and does **not** close that Sprint 2 / MVP-before-release prerequisite. After a future deletion, the account simply has no Auth session and the resolver returns `unauthenticated`. A future Settings deletion flow must not encode deletion as an onboarding flag. See [`ACCOUNT_DELETION_RUNBOOK.md`](../../operations/ACCOUNT_DELETION_RUNBOOK.md) and Open Decisions.
+Phase 7 does **not** implement account deletion. Sprint 2 Phase 9 documents the inventory and future-feature contract in [`ACCOUNT_DELETION_RUNBOOK.md`](../../operations/ACCOUNT_DELETION_RUNBOOK.md) but still adds **no** Delete Account UI or destructive callable — full implementation remains a pre–public-release prerequisite. After a future deletion, the account simply has no Auth session and the resolver returns `unauthenticated`. A future Settings deletion flow must not encode deletion as an onboarding flag. See Open Decisions.
 
 ## Rationale
 
@@ -59,7 +59,7 @@ Derived routing keeps ADR-007 identity separation and ADR-010 claim-before-profi
 - Phase 6.5C claim gate remains in front of profile routes. Parental consent and Functions are consumed, not rewritten.
 - QuizzerProfile stays `quizzerId`, `firstName`, `lastName`, `avatarId`. No age, DOB, division, season, entitlement, or onboarding-complete fields.
 - No new PII. Routing does not use email, names, DOB, or special accounts. Do not log UIDs, tokens, or profile contents.
-- Account deletion architecture remains an open Sprint 2 / MVP prerequisite. Phase 7 adds no Delete Account UI and no destructive callables.
+- Account deletion exact behavior remains open (Open Decisions). Phase 9 runbook is the inventory/contract; Phase 7/9 add no Delete Account UI and no destructive callables.
 
 ## Alternatives considered
 

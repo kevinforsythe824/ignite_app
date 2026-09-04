@@ -15,7 +15,8 @@ type ProfileHomeNavigation = NativeStackNavigationProp<ProfileStackParamList, 'P
 
 /**
  * Permanent Profile foundation: name, initials avatar, Settings entry.
- * Rendered only when QuizzerProfileProvider is ready (RootNavigator gate).
+ * RootNavigator + Phase 7 resolver remain authoritative for whether Profile can render.
+ * Non-ready is an invariant/defensive fallback only — not a second lifecycle or navigator.
  */
 export function ProfileHomeScreen(): React.JSX.Element {
   const navigation = useNavigation<ProfileHomeNavigation>();
@@ -24,7 +25,18 @@ export function ProfileHomeScreen(): React.JSX.Element {
   if (session.status !== 'ready') {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.content} />
+        <View style={styles.content}>
+          <Text accessibilityRole="header" style={styles.title}>
+            {quizzerProfileCopy.profile.title}
+          </Text>
+          <Text
+            accessibilityLiveRegion="polite"
+            style={styles.unavailable}
+            testID="profile-home-unavailable"
+          >
+            {quizzerProfileCopy.profile.unavailable}
+          </Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -68,6 +80,10 @@ const styles = StyleSheet.create({
   title: {
     ...typography.verseReference,
     color: colors.navy,
+  },
+  unavailable: {
+    ...typography.valueBody,
+    color: colors.textSecondary,
   },
   identity: {
     alignItems: 'center',

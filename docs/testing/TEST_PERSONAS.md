@@ -47,7 +47,7 @@ Each persona below includes:
 
 ## Sprint 2 — Authentication & Onboarding
 
-Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name onboarding, parental-consent claim, returning-user **routing** from Auth + consent + profile (PRD §62, ADR-011), and authenticated Help & Feedback (ADR-012). Age collection, division selection, and eligibility validation belong to **Sprint 3** (season / eligibility). Use S2-001, S2-002, S2-009, S2-010 plus the named consent and feedback personas below for Sprint 2 routing and intake. Age/division personas (S2-003+) are Sprint 3 placeholders, not Phase 7 routing cases. Sprint 2 does **not** deliver season lifecycle, official publishing, or purchase/access (Sprints 3–4).
+Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name onboarding, parental-consent claim, returning-user **routing** from Auth + consent + profile (PRD §62, ADR-011), and authenticated Help & Feedback (ADR-012). Phase 9 documents account-deletion **architecture** in [`ACCOUNT_DELETION_RUNBOOK.md`](../operations/ACCOUNT_DELETION_RUNBOOK.md) but does **not** ship Delete Account. Age collection, division selection, and eligibility validation belong to **Sprint 3** (season / eligibility). Use S2-001, S2-002, S2-009, S2-010 plus the named consent and feedback personas below for Sprint 2 routing and intake. Age/division personas (S2-003+) are Sprint 3 placeholders, not Phase 7 routing cases. Sprint 2 does **not** deliver season lifecycle, official publishing, or purchase/access (Sprints 3–4).
 
 ### S2-001 — New unauthenticated user
 
@@ -309,12 +309,28 @@ Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name 
 | **Sprint** | 2 |
 | **Testing use** | Automated (UI + Functions + rules); manual DEV after Functions deploy |
 
+### S2-017 — Account deletion (placeholder)
+
+| Field | Value |
+|-------|-------|
+| **Persona ID** | `s2-account-deletion-001` |
+| **Intended scenario** | Authenticated Quizzer requests permanent account deletion from Settings |
+| **Age / eligibility** | N/A for Phase 9 |
+| **Authentication** | Signed in (method **UNRESOLVED** for re-auth) |
+| **Onboarding** | Profile complete |
+| **Season** | N/A until Sprint 3+ inventory rows exist |
+| **Entitlement** | N/A until Sprint 4 |
+| **Expected routing / result** | **UNRESOLVED / not executable in Phase 9** — Delete Account UI and callable do not exist. After a future successful deletion, Auth session is gone → lifecycle `unauthenticated` (ADR-011). |
+| **Security expectation** | Server-enforced cleanup per [`ACCOUNT_DELETION_RUNBOOK.md`](../operations/ACCOUNT_DELETION_RUNBOOK.md); no cross-user impact; parental-consent server retention still **UNRESOLVED** |
+| **Sprint** | 2 (architecture only) / pre–public release (implementation) |
+| **Testing use** | Planning placeholder only — do not automate or run manually as a Phase 9 E2E |
+
 ### Sprint 2 cross-cutting notes
 
 | Topic | Status |
 |-------|--------|
 | Authentication methods (Apple, Google, email, etc.) | **UNRESOLVED** — personas are method-agnostic |
-| Account deletion / retention | **UNRESOLVED** — plan in Sprint 2, behavior not specified |
+| Account deletion / retention | **UNRESOLVED** — Phase 9 inventory/contract in runbook; behavior not specified; S2-017 not executable |
 | Credential recovery | **UNRESOLVED** — depends on chosen auth methods |
 | Entitlement / purchase routing | Deferred to Sprint 4 — personas stop at onboarding-complete routing |
 

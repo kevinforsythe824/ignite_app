@@ -100,7 +100,12 @@ export function EditNameScreen(): React.JSX.Element {
           testID="edit-name-last"
         />
         {errorMessage ? (
-          <Text style={styles.error} accessibilityLiveRegion="polite">
+          <Text
+            style={styles.error}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="alert"
+            testID="edit-name-error"
+          >
             {errorMessage}
           </Text>
         ) : null}

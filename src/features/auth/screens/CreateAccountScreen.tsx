@@ -46,6 +46,13 @@ export function CreateAccountScreen(): React.JSX.Element {
   refreshStatusRef.current = refreshStatus;
   const resolveResumeDestinationRef = useRef(resolveResumeDestination);
   resolveResumeDestinationRef.current = resolveResumeDestination;
+  /**
+   * This mounted screen currently owns an in-flight fresh under-13 signup.
+   * Set synchronously before beginPostSignupClaim so the focus gate does not
+   * treat this screen's own awaitingClaim as prior-attempt Sign In recovery.
+   * Must not persist across remounts.
+   */
+  const freshSignupInFlightRef = useRef(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,22 +82,34 @@ export function CreateAccountScreen(): React.JSX.Element {
       let cancelled = false;
 
       const enforceGate = async () => {
-        setGateReady(false);
+        const ownedInFlightAwaitingClaim =
+          freshSignupInFlightRef.current &&
+          Boolean(consentSession.capability?.awaitingClaim);
 
         // needsFreshConsent / pendingClaimUid / awaitingClaim must never create
         // another Auth account (including ambiguous post-signup claim intent).
         // When already authenticated, RootNavigator owns the claim gate — do not
         // bounce a fresh under-13 signup to Sign In.
+        // Local in-flight ownership: this screen just created awaitingClaim —
+        // do not treat it as a prior/restarted attempt requiring Sign In.
         if (
           needsFreshConsent ||
           Boolean(consentSession.capability?.pendingClaimUid) ||
-          Boolean(consentSession.capability?.awaitingClaim)
+          (Boolean(consentSession.capability?.awaitingClaim) &&
+            !freshSignupInFlightRef.current)
         ) {
+          setGateReady(false);
           if (authSession.status !== 'authenticated') {
             redirectFromGate('signInToClaim');
           }
           return;
         }
+
+        if (ownedInFlightAwaitingClaim) {
+          return;
+        }
+
+        setGateReady(false);
 
         if (!hasActiveConsent) {
           // 13+ path — no consent session.
@@ -215,12 +234,20 @@ export function CreateAccountScreen(): React.JSX.Element {
 
     void run(async () => {
       if (underThirteenPath) {
-        await beginPostSignupClaim();
+        freshSignupInFlightRef.current = true;
         try {
-          const identity = await signUp({ email: email.trim(), password });
-          await completePostSignupClaim(identity.uid);
+          await beginPostSignupClaim();
+          try {
+            const identity = await signUp({ email: email.trim(), password });
+            await completePostSignupClaim(identity.uid);
+          } catch (error) {
+            await cancelPostSignupClaim();
+            throw error;
+          }
         } catch (error) {
-          await cancelPostSignupClaim();
+          // Clear only after failure so a later gate pass can recover.
+          // Success leaves ownership until this screen unmounts.
+          freshSignupInFlightRef.current = false;
           throw error;
         }
         return;

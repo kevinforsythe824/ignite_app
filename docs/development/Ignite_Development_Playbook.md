@@ -481,7 +481,7 @@ Explicitly plan:
 - Returning-user routing.
 - New-season returning-user behavior.
 - Credential recovery for chosen auth methods.
-- Account deletion architecture before release.
+- Account deletion architecture before release (Phase 9 foundation: [`ACCOUNT_DELETION_RUNBOOK.md`](../operations/ACCOUNT_DELETION_RUNBOOK.md); final Delete Account UI/callable still deferred to pre–public release).
 - Privacy-minimized data collection.
 - Accessible form/input/error behavior.
 
@@ -494,6 +494,7 @@ Explicitly plan:
 - Locked content enforcement.
 - Staging-before-production publishing process.
 - Synthetic season fixtures for test coverage.
+- Update [`ACCOUNT_DELETION_RUNBOOK.md`](../operations/ACCOUNT_DELETION_RUNBOOK.md) when adding user-owned season participation or related persistent data.
 
 ### Sprint 4 — Purchase & Access
 Explicitly plan:
@@ -504,6 +505,11 @@ Explicitly plan:
 - Returning user/new device access recovery.
 - Archived/expired season handling.
 - Purchase support diagnostics without exposing sensitive data.
+- Update [`ACCOUNT_DELETION_RUNBOOK.md`](../operations/ACCOUNT_DELETION_RUNBOOK.md) for entitlement/purchase ownership and deletion interaction.
+
+### Future-feature deletion inventory obligation
+
+Every sprint that adds **user-owned persistent data** must update [`ACCOUNT_DELETION_RUNBOOK.md`](../operations/ACCOUNT_DELETION_RUNBOOK.md) in the same change set with storage location, association mechanism, deletion classification, and any unresolved retention policy. Do not invent Delete Account UI or retention defaults ahead of product/legal decisions.
 
 ## 19. Core development principle
 
