@@ -6,7 +6,7 @@ How Ignite investigates, fixes, verifies, and releases bug fixes.
 
 Use the GitHub **Bug Report** issue form (`.github/ISSUE_TEMPLATE/bug_report.yml`) for engineering-filed bugs.
 
-**In-app Help & Feedback** (Settings → Help & Feedback, ADR-012) is **intake for manual review** in the Firebase Console (`feedbackSubmissions`). It does **not** auto-create GitHub issues, store GitHub tokens, or replace this runbook. After a person reviews a submission, follow the existing reproduce → layer → smallest fix → regression → DEV → STAGING path. Create a GitHub issue from the Bug Report form only when that review warrants one.
+**In-app Help & Feedback** (Settings → Help & Feedback, ADR-012) is **intake for manual review** in the Firebase Console (`feedbackSubmissions`) and, when configured, a best-effort Google Sheets mirror. Firestore remains authoritative. It does **not** auto-create GitHub issues, store GitHub tokens, or replace this runbook. After a person reviews a submission, follow the existing reproduce → layer → smallest fix → regression → DEV → STAGING path. Create a GitHub issue from the Bug Report form only when that review warrants one.
 
 ---
 

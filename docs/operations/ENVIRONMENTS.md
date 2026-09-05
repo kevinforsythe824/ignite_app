@@ -145,6 +145,23 @@ Server-authoritative consent lives in `functions/` (see [ADR-008](../architectur
 - Auth+Firestore+Functions claim callable integration: `npm run test:functions:integration`
 - Build: `npm run functions:build`
 
+### Help & Feedback Google Sheets mirror (backend-only)
+
+Firestore `feedbackSubmissions` remains the authoritative store (ADR-012). After a successful Admin SDK write, `submitFeedback` best-effort appends allow-listed fields to a private Google Sheet for manual review. A Sheets failure does **not** fail or roll back the Firestore submission.
+
+Backend-only Functions params (never exposed to the React Native client):
+
+- `FEEDBACK_SHEETS_SPREADSHEET_ID` — spreadsheet ID. Required for the mirror to run; missing or blank skips the mirror.
+- `FEEDBACK_SHEETS_WORKSHEET_NAME` — worksheet/tab name. Defaults to `Feedback`.
+
+DEV spreadsheet ID (Restricted/private): `1Onh_-HjxexQWy9EfsTT_YeBgGWihND7Ou1gP9g3YKhM`. Set it in gitignored `functions/.env` before DEV deploy. Do not configure staging or prod until those sheets exist.
+
+The Cloud Functions runtime service account must have Editor access on the spreadsheet. Enable the Google Sheets API on the Firebase/Google Cloud project. The mobile app must not call Sheets, hold credentials, or receive the spreadsheet ID.
+
+Mirrored fields only: server `createdAt`, `category`, optional `title`, `message`, `appVersion`, `platform`, `osVersion`, `deviceType`, `environment`. Never UID, email, Quizzer profile, parental-consent data, tokens, or device/IP identifiers.
+
+**DEV troubleshooting:** if a Firestore document exists but no row appears, check Functions logs for `sheetsMirror.append` with `errorCategory` and `configPresent` only (message/title/UID are not logged). Typical causes: missing `FEEDBACK_SHEETS_SPREADSHEET_ID`, Sheets API disabled, service account not shared as Editor, or wrong worksheet name. Durable retry is a future improvement — not implemented.
+
 **DEV-only deploy (manual, after review — never staging/prod in 6.5B):**
 
 ```bash

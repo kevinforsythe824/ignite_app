@@ -33,10 +33,16 @@ export interface FeedbackRepositoryPort {
   add(document: FeedbackSubmissionWrite): Promise<{ submissionId: string }>;
 }
 
+export interface FeedbackSheetsMirrorPort {
+  append(document: FeedbackSubmissionWrite): Promise<void>;
+}
+
 export interface FeedbackServiceDeps {
   repository: FeedbackRepositoryPort;
   environment: IgniteEnvironmentName;
   now?: () => Date;
+  /** Best-effort secondary review mirror. Must not fail the Firestore write. */
+  sheetsMirror?: FeedbackSheetsMirrorPort;
 }
 
 export interface SubmitFeedbackResult {
@@ -135,7 +141,15 @@ export async function submitFeedback(
     environment: deps.environment,
   };
 
-  return deps.repository.add(document);
+  const result = await deps.repository.add(document);
+  if (deps.sheetsMirror) {
+    try {
+      await deps.sheetsMirror.append(document);
+    } catch {
+      // Sheets is a secondary mirror. Firestore remains authoritative.
+    }
+  }
+  return result;
 }
 
 export function createFirestoreFeedbackRepository(): FeedbackRepositoryPort {

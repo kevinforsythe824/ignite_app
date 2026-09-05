@@ -31,7 +31,7 @@ ADR-001 already requires a repository boundary. ADR-006 requires minimum persona
 
 ## Consequences
 
-- Operators review documents in the Firebase Console. A human may file a GitHub issue from [bug_report.yml](../../../.github/ISSUE_TEMPLATE/bug_report.yml) if needed.
+- Operators review documents in the Firebase Console. A best-effort Google Sheets append may also mirror the same allow-listed fields for manual review; Firestore remains authoritative. A Sheets failure must not fail or roll back the Firestore write. A human may file a GitHub issue from [bug_report.yml](../../../.github/ISSUE_TEMPLATE/bug_report.yml) if needed.
 - Account deletion must **not** treat `feedbackSubmissions` as user-owned solely via a UID field that is not stored. Any later correlation is a new privacy/architecture decision.
 - Future GitHub automation is post-MVP only and must not be implied by this ADR.
 - Help & Feedback does not change account-lifecycle routing (ADR-011). It is reachable only from MainTabs / Settings.

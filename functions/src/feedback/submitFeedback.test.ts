@@ -143,6 +143,48 @@ describe('submitFeedback', () => {
       submitFeedback(createDeps(repository), validPayload({ deviceType: 'phone' })),
     ).rejects.toMatchObject({ code: 'invalid_argument' });
   });
+
+  it('attempts a Sheets append after a successful Firestore write', async () => {
+    const repository = createMemoryRepository();
+    const append = jest.fn().mockResolvedValue(undefined);
+    const result = await submitFeedback(
+      { ...createDeps(repository), sheetsMirror: { append } },
+      validPayload(),
+    );
+
+    expect(result).toEqual({ submissionId: 'fb-1' });
+    expect(append).toHaveBeenCalledTimes(1);
+    expect(append).toHaveBeenCalledWith(repository.lastWrite);
+  });
+
+  it('does not fail the submission when Sheets append rejects', async () => {
+    const repository = createMemoryRepository();
+    const append = jest.fn().mockRejectedValue(new Error('sheets unavailable'));
+    const result = await submitFeedback(
+      { ...createDeps(repository), sheetsMirror: { append } },
+      validPayload(),
+    );
+
+    expect(result).toEqual({ submissionId: 'fb-1' });
+    expect(repository.lastWrite).toBeDefined();
+  });
+
+  it('does not attempt Sheets append when Firestore write fails', async () => {
+    const append = jest.fn();
+    const repository: FeedbackRepositoryPort = {
+      async add() {
+        throw new Error('firestore unavailable');
+      },
+    };
+
+    await expect(
+      submitFeedback(
+        { ...createDeps(repository), sheetsMirror: { append } },
+        validPayload(),
+      ),
+    ).rejects.toThrow('firestore unavailable');
+    expect(append).not.toHaveBeenCalled();
+  });
 });
 
 describe('toFeedbackHttpsError', () => {

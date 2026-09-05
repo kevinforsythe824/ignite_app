@@ -11,8 +11,11 @@ import {
   readIgniteEnvironment,
   resolveActiveProjectId,
 } from './config/environment';
+import { readFeedbackSheetsConfig } from './config/feedbackSheetsConfig';
 import {
   consentFunctionSecrets,
+  feedbackSheetsSpreadsheetIdParam,
+  feedbackSheetsWorksheetNameParam,
   igniteEnvParam,
 } from './config/functionParams';
 import { claimParentalConsent as claimParentalConsentUseCase } from './consent/claimConsent';
@@ -23,6 +26,8 @@ import { resendParentalConsentNotice as resendParentalConsentNoticeUseCase } fro
 import { buildConsentServiceDeps } from './consent/serviceDeps';
 import { updateParentalConsentEmail as updateParentalConsentEmailUseCase } from './consent/updateEmail';
 import { toFeedbackHttpsError } from './feedback/feedbackHttpsError';
+import { createFeedbackSheetsMirror } from './feedback/feedbackSheetsMirror';
+import { createGoogleSheetsValuesAppend } from './feedback/googleSheetsFeedbackAdapter';
 import {
   createFirestoreFeedbackRepository,
   submitFeedback as submitFeedbackUseCase,
@@ -38,6 +43,17 @@ function guardEnvironment(): void {
   }
   const env = readIgniteEnvironment();
   assertProjectMatchesEnvironment(env, resolveActiveProjectId());
+}
+
+function bindFeedbackSheetsParams(): void {
+  if (!process.env.FEEDBACK_SHEETS_SPREADSHEET_ID?.trim()) {
+    process.env.FEEDBACK_SHEETS_SPREADSHEET_ID =
+      feedbackSheetsSpreadsheetIdParam.value();
+  }
+  if (!process.env.FEEDBACK_SHEETS_WORKSHEET_NAME?.trim()) {
+    process.env.FEEDBACK_SHEETS_WORKSHEET_NAME =
+      feedbackSheetsWorksheetNameParam.value();
+  }
 }
 
 const callableOpts = {
@@ -160,6 +176,7 @@ export const submitFeedback = onCall(
   async (request) => {
     try {
       guardEnvironment();
+      bindFeedbackSheetsParams();
 
       if (!request.auth?.uid) {
         throw new HttpsError(
@@ -173,10 +190,16 @@ export const submitFeedback = onCall(
           ? (request.data as Record<string, unknown>)
           : {};
 
+      const environment = readIgniteEnvironment();
       return await submitFeedbackUseCase(
         {
           repository: createFirestoreFeedbackRepository(),
-          environment: readIgniteEnvironment(),
+          environment,
+          sheetsMirror: createFeedbackSheetsMirror({
+            environment,
+            readConfig: readFeedbackSheetsConfig,
+            appendRow: createGoogleSheetsValuesAppend(),
+          }),
         },
         data,
       );
