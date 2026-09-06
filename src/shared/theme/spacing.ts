@@ -7,6 +7,11 @@ export const spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
+  // --- Semantic aliases (Batch 0) ---
+  sectionGap: 24,
+  formFieldGap: 16,
+  rowGap: 12,
+  minTouchTarget: 44,
 } as const;
 
 export type Spacing = typeof spacing;

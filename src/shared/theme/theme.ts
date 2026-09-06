@@ -6,7 +6,11 @@ export const colors = {
   navy: '#0A2540',
   accentRed: '#E85D4A',
   background: '#F5F5F7',
-  /** Warm off-white for authentication / brand entry surfaces. */
+  /**
+   * @deprecated Legacy temporary warm canvas for Auth/entry/consent/loading covers.
+   * Not part of the target Ignite UI system — use `background` (`#F5F5F7`) instead.
+   * Keep until consumers migrate (Batches 1–3); remove only after audit (Batch 8+).
+   */
   brandWarmBackground: '#F7F3EE',
   cardWhite: '#FFFFFF',
   borderLight: '#E5E7EB',
@@ -25,6 +29,17 @@ export const colors = {
   practicingRedBg: '#FEE2E2',
   progressGradientStart: '#F97316',
   progressGradientEnd: '#FACC15',
+  // --- Semantic roles (Batch 0) — independent literals; not aliases of domain keys ---
+  surface: '#FFFFFF',
+  textPrimary: '#0A2540',
+  accent: '#E85D4A',
+  danger: '#EF4444',
+  dangerSoft: '#FEE2E2',
+  success: '#22C55E',
+  successSoft: '#DCFCE7',
+  border: '#E5E7EB',
+  disabledBackground: '#E5E7EB',
+  disabledText: '#9CA3AF',
 } as const;
 
 export const typography = {
@@ -96,6 +111,84 @@ export const typography = {
     fontWeight: '400',
     color: colors.textMuted,
   } satisfies TextStyle,
+  // --- Semantic type roles (Batch 0) — additive; do not reuse verseReference for titles ---
+  screenTitle: {
+    fontFamily: fonts.extraBold,
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    lineHeight: 34,
+  } satisfies TextStyle,
+  stackTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    lineHeight: 24,
+  } satisfies TextStyle,
+  sectionTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    lineHeight: 24,
+  } satisfies TextStyle,
+  cardTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    lineHeight: 22,
+  } satisfies TextStyle,
+  body: {
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    fontWeight: '400',
+    color: colors.textPrimary,
+    lineHeight: 24,
+  } satisfies TextStyle,
+  bodySecondary: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    lineHeight: 20,
+  } satisfies TextStyle,
+  label: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    lineHeight: 18,
+  } satisfies TextStyle,
+  action: {
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    lineHeight: 22,
+  } satisfies TextStyle,
+  input: {
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    fontWeight: '400',
+    color: colors.textPrimary,
+    lineHeight: 22,
+  } satisfies TextStyle,
+  helper: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    lineHeight: 18,
+  } satisfies TextStyle,
+  error: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    fontWeight: '400',
+    color: colors.danger,
+    lineHeight: 18,
+  } satisfies TextStyle,
 } as const;
 
 export const radius = {
@@ -103,6 +196,8 @@ export const radius = {
   pill: 20,
   badge: 8,
   progress: 3,
+  /** Semantic control radius (inputs, compact chrome); independent of legacy `badge`. */
+  control: 8,
 } as const;
 
 export const shadows = {
