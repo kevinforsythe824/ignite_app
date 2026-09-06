@@ -56,3 +56,33 @@ describe('Batch 0 semantic theme tokens', () => {
     expect(radius.badge).toBe(8);
   });
 });
+
+describe('Auth Brand Mode theme tokens', () => {
+  it('locks Auth Brand color hex literals', () => {
+    expect(colors.authBackgroundStart).toBe('#FFF5F0');
+    expect(colors.authBackgroundEnd).toBe('#FFFBFA');
+    expect(colors.authAccent).toBe('#D04925');
+  });
+
+  it('does not change Main Product semantic color keys', () => {
+    expect(colors.background).toBe('#F5F5F7');
+    expect(colors.surface).toBe('#FFFFFF');
+    expect(colors.textPrimary).toBe('#0A2540');
+    expect(colors.textSecondary).toBe('#6B7280');
+    expect(colors.textMuted).toBe('#9CA3AF');
+    expect(colors.accent).toBe('#E85D4A');
+    expect(colors.danger).toBe('#EF4444');
+    expect(colors.dangerSoft).toBe('#FEE2E2');
+    expect(colors.success).toBe('#22C55E');
+    expect(colors.successSoft).toBe('#DCFCE7');
+    expect(colors.border).toBe('#E5E7EB');
+    expect(colors.disabledBackground).toBe('#E5E7EB');
+    expect(colors.disabledText).toBe('#9CA3AF');
+  });
+
+  it('does not add deferred Auth-only surface/border/soft tokens', () => {
+    expect(colors).not.toHaveProperty('authAccentSoft');
+    expect(colors).not.toHaveProperty('authSurface');
+    expect(colors).not.toHaveProperty('authBorder');
+  });
+});

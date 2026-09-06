@@ -7,9 +7,9 @@ export const colors = {
   accentRed: '#E85D4A',
   background: '#F5F5F7',
   /**
-   * @deprecated Legacy temporary warm canvas for Auth/entry/consent/loading covers.
-   * Not part of the target Ignite UI system — use `background` (`#F5F5F7`) instead.
-   * Keep until consumers migrate (Batches 1–3); remove only after audit (Batch 8+).
+   * @deprecated Legacy temporary flat warm canvas for Auth/entry/consent/loading covers.
+   * Not the Auth Brand Mode target — migrate to `authBackgroundStart` / `authBackgroundEnd`.
+   * Keep until Auth Brand consumers migrate; remove only after audit (Batch 8+).
    */
   brandWarmBackground: '#F7F3EE',
   cardWhite: '#FFFFFF',
@@ -40,6 +40,13 @@ export const colors = {
   border: '#E5E7EB',
   disabledBackground: '#E5E7EB',
   disabledText: '#9CA3AF',
+  // --- Auth Brand Mode (additive) — not Main Product canvas/accent ---
+  /** Auth Brand Mode gradient top (light warm blush/peach). */
+  authBackgroundStart: '#FFF5F0',
+  /** Auth Brand Mode gradient bottom (soft near-white warm-neutral). */
+  authBackgroundEnd: '#FFFBFA',
+  /** Auth Brand Mode accent for primary CTAs / emphasis links (white-on-accent ≈ 4.50:1). */
+  authAccent: '#D04925',
 } as const;
 
 export const typography = {
