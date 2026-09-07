@@ -66,7 +66,6 @@ describe('AuthNavigator screens', () => {
     expect(screen.getByText(authCopy.brand.name)).toBeTruthy();
     expect(screen.getByText(authCopy.welcome.headlinePrimary)).toBeTruthy();
     expect(screen.getByText(authCopy.welcome.headlineAccent)).toBeTruthy();
-    expect(screen.getByText(authCopy.welcome.supporting)).toBeTruthy();
     expect(screen.queryByText('COMPETITIVE SCRIPTURE RECALL')).toBeNull();
     for (const item of authCopy.welcome.valueItems) {
       expect(

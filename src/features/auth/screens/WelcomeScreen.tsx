@@ -40,7 +40,6 @@ export function WelcomeScreen(): React.JSX.Element {
           <View style={styles.hero}>
             <Text style={styles.headlinePrimary}>{authCopy.welcome.headlinePrimary}</Text>
             <Text style={styles.headlineAccent}>{authCopy.welcome.headlineAccent}</Text>
-            <Text style={styles.supporting}>{authCopy.welcome.supporting}</Text>
           </View>
 
           <View style={styles.heroValuesGap} />
@@ -92,7 +91,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flexGrow: 1,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xl,
   },
   heroValuesGap: {
     flexGrow: BLOCK_GAP_FLEX,
@@ -117,11 +116,6 @@ const styles = StyleSheet.create({
     ...typography.screenTitle,
     color: colors.authAccent,
     textAlign: 'center',
-  },
-  supporting: {
-    ...typography.bodySecondary,
-    textAlign: 'center',
-    marginTop: spacing.xs,
   },
   values: {
     gap: spacing.rowGap,
