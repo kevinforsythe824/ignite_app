@@ -21,10 +21,9 @@ const VALUE_TONES: Record<(typeof authCopy.welcome.valueItems)[number]['id'], We
 };
 
 /**
- * Leftover vertical space is shared by weight instead of pooling in one gap:
- * most slack sits under the brand mark, the rest is split between the blocks.
+ * Leftover vertical space is split evenly between the block gaps instead of
+ * pooling above the hero, so the wording sits close under the brand mark.
  */
-const HERO_LEAD_FLEX = 3;
 const BLOCK_GAP_FLEX = 1;
 
 export function WelcomeScreen(): React.JSX.Element {
@@ -38,8 +37,6 @@ export function WelcomeScreen(): React.JSX.Element {
         </View>
 
         <View style={styles.body}>
-          <View style={styles.heroLead} />
-
           <View style={styles.hero}>
             <Text style={styles.headlinePrimary}>{authCopy.welcome.headlinePrimary}</Text>
             <Text style={styles.headlineAccent}>{authCopy.welcome.headlineAccent}</Text>
@@ -96,11 +93,6 @@ const styles = StyleSheet.create({
   body: {
     flexGrow: 1,
     paddingTop: spacing.sm,
-  },
-  heroLead: {
-    flexGrow: HERO_LEAD_FLEX,
-    flexShrink: 1,
-    flexBasis: 0,
   },
   heroValuesGap: {
     flexGrow: BLOCK_GAP_FLEX,
