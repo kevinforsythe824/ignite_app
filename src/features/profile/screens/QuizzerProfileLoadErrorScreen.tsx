@@ -46,7 +46,7 @@ export function QuizzerProfileLoadErrorScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout>
+    <AuthScreenLayout canvas="brand">
       <View style={styles.header}>
         <Text
           accessibilityRole="header"
@@ -66,6 +66,7 @@ export function QuizzerProfileLoadErrorScreen(): React.JSX.Element {
       <View style={styles.actions}>
         <AuthPrimaryButton
           testID="quizzer-profile-load-error-retry"
+          accentTone="auth"
           label={quizzerProfileCopy.loadError.tryAgain}
           onPress={() => {
             void handleRetry();
@@ -75,6 +76,7 @@ export function QuizzerProfileLoadErrorScreen(): React.JSX.Element {
         />
         <AuthTextLink
           testID="quizzer-profile-load-error-sign-out"
+          tone="authAccent"
           label={quizzerProfileCopy.actions.signOut}
           disabled={busy}
           onPress={() => {

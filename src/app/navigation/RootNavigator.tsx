@@ -61,11 +61,15 @@ export function RootNavigator({
         screenOptions={{
           headerShown: false,
           headerTintColor: colors.navy,
-          contentStyle: { backgroundColor: colors.brandWarmBackground },
+          contentStyle: { backgroundColor: colors.authBackgroundStart },
         }}
       >
         {rootScreen === 'IgniteEntry' ? (
-          <Stack.Screen name="IgniteEntry" component={IgniteEntryScreen} />
+          <Stack.Screen
+            name="IgniteEntry"
+            component={IgniteEntryScreen}
+            options={{ contentStyle: { backgroundColor: colors.authBackgroundStart } }}
+          />
         ) : rootScreen === 'Auth' ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         ) : rootScreen === 'ConsentClaimPending' ? (

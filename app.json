@@ -27,10 +27,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7F3EE",
-          "image": "./assets/brand/ignite-flame.png",
-          "resizeMode": "contain",
-          "imageWidth": 200
+          "backgroundColor": "#FFF5F0"
         }
       ],
       "expo-font",

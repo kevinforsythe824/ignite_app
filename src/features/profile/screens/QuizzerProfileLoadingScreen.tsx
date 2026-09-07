@@ -24,7 +24,7 @@ export function QuizzerProfileLoadingScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.brandWarmBackground,
+    backgroundColor: colors.authBackgroundStart,
   },
   body: {
     flex: 1,

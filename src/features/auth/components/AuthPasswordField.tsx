@@ -37,7 +37,7 @@ export const AuthPasswordField = forwardRef<TextInput, AuthPasswordFieldProps>(
             <Ionicons
               name={visible ? 'eye-outline' : 'eye-off-outline'}
               size={22}
-              color={colors.navy}
+              color={colors.textPrimary}
             />
           </Pressable>
         }

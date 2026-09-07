@@ -24,16 +24,20 @@ const SIZE_MAP: Record<IgniteBrandMarkSize, number> = {
   welcome: 120,
 };
 
+/** Compact horizontal lockup sizes (flame + wordmark side-by-side). */
+const LOCKUP_SIZES: ReadonlySet<IgniteBrandMarkSize> = new Set(['header', 'default']);
+
 export function IgniteBrandMark({
   iconSize,
   size = 'default',
   showWordmark = true,
 }: IgniteBrandMarkProps): React.JSX.Element {
   const flameSize = iconSize ?? SIZE_MAP[size];
+  const isLockup = showWordmark && LOCKUP_SIZES.has(size);
 
   return (
     <View
-      style={styles.mark}
+      style={[styles.mark, isLockup ? styles.markLockup : styles.markStacked]}
       accessibilityRole="image"
       accessibilityLabel={authCopy.brand.accessibilityLabel}
     >
@@ -55,14 +59,21 @@ export function IgniteBrandMark({
 const styles = StyleSheet.create({
   mark: {
     alignItems: 'center',
+  },
+  markLockup: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  markStacked: {
     gap: spacing.sm,
   },
   name: {
     ...typography.brandWordmark,
-    color: colors.navy,
+    color: colors.textPrimary,
   },
   nameHeader: {
     ...typography.verseReference,
     fontFamily: typography.brandWordmark.fontFamily,
+    color: colors.textPrimary,
   },
 });

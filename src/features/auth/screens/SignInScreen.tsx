@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, spacing, typography } from '../../../shared/theme';
+import { spacing, typography } from '../../../shared/theme';
 import { AuthPasswordField } from '../components/AuthPasswordField';
 import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
@@ -59,13 +59,14 @@ export function SignInScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout onBack={() => navigation.goBack()}>
+    <AuthScreenLayout canvas="brand" onBack={() => navigation.goBack()}>
       <View style={styles.header}>
         <Text style={styles.title}>{authCopy.signIn.title}</Text>
         <Text style={styles.supporting}>{authCopy.signIn.supporting}</Text>
       </View>
       <View style={styles.form}>
         <AuthTextField
+          appearance="system"
           label={authCopy.fields.email}
           value={email}
           onChangeText={handleEmailChange}
@@ -82,6 +83,7 @@ export function SignInScreen(): React.JSX.Element {
           testID="auth-sign-in-email"
         />
         <AuthPasswordField
+          appearance="system"
           ref={passwordRef}
           label={authCopy.fields.password}
           value={password}
@@ -101,12 +103,14 @@ export function SignInScreen(): React.JSX.Element {
         ) : null}
         <AuthTextLink
           testID="auth-sign-in-forgot-password"
+          tone="authAccent"
           label={authCopy.signIn.forgotPassword}
           disabled={submitting}
           onPress={() => navigation.navigate('ForgotPassword')}
         />
         <AuthPrimaryButton
           testID="auth-sign-in-submit"
+          accentTone="auth"
           label={authCopy.signIn.submit}
           loadingLabel={authCopy.signIn.submitting}
           onPress={handleSubmit}
@@ -115,6 +119,7 @@ export function SignInScreen(): React.JSX.Element {
         />
         <AuthTextLink
           testID="auth-sign-in-create-account"
+          tone="authAccent"
           prompt={authCopy.signIn.createAccountPrompt}
           label={authCopy.signIn.createAccount}
           disabled={submitting}
@@ -131,16 +136,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   title: {
-    ...typography.verseReference,
+    ...typography.screenTitle,
   },
   supporting: {
-    ...typography.brandTagline,
+    ...typography.bodySecondary,
   },
   form: {
-    gap: spacing.md,
+    gap: spacing.formFieldGap,
   },
   formError: {
-    ...typography.hint,
-    color: colors.practicingRed,
+    ...typography.error,
   },
 });

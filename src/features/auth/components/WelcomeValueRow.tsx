@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, shadows, spacing, typography } from '../../../shared/theme';
+import { colors, radius, spacing, typography } from '../../../shared/theme';
 
 export type WelcomeValueTone = 'coral' | 'blue' | 'gold';
 
@@ -24,7 +24,7 @@ export function WelcomeValueRow({
 
   return (
     <View
-      style={[styles.card, { borderColor: accent.border }, shadows.card]}
+      style={[styles.card, { borderColor: accent.border }]}
       accessibilityRole="text"
       accessibilityLabel={`${title}. ${description}`}
     >
@@ -61,7 +61,7 @@ const TONE_ACCENTS: Record<
   coral: {
     border: '#E8C4BC',
     well: '#FCEAE6',
-    icon: colors.accentRed,
+    icon: colors.accent,
   },
   blue: {
     border: '#C5D9EB',
@@ -77,14 +77,21 @@ const TONE_ACCENTS: Record<
 
 const ICON_WELL_SIZE = 44;
 
+/**
+ * Floor for the card box so the value stack fills the Welcome canvas.
+ * A floor rather than extra padding keeps cards from over-growing at large text sizes.
+ */
+const CARD_MIN_HEIGHT = 92;
+
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.md,
+    minHeight: CARD_MIN_HEIGHT,
+    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.cardWhite,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderRadius: radius.card,
   },
@@ -100,10 +107,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    ...typography.valueTitle,
+    ...typography.cardTitle,
   },
   description: {
-    ...typography.valueBody,
-    color: colors.navy,
+    ...typography.bodySecondary,
   },
 });

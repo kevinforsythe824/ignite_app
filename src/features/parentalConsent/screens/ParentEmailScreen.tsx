@@ -54,7 +54,7 @@ export function ParentEmailScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout onBack={handleBack}>
+    <AuthScreenLayout canvas="brand" onBack={handleBack}>
       <View style={styles.header}>
         <Text
           accessibilityRole="header"
@@ -67,6 +67,7 @@ export function ParentEmailScreen(): React.JSX.Element {
       </View>
       <View style={styles.form}>
         <AuthTextField
+          appearance="system"
           label={parentalConsentCopy.parentEmail.fieldLabel}
           value={email}
           onChangeText={(value) => {
@@ -96,6 +97,7 @@ export function ParentEmailScreen(): React.JSX.Element {
         ) : null}
         <AuthPrimaryButton
           testID="consent-parent-email-submit"
+          accentTone="auth"
           label={parentalConsentCopy.parentEmail.submit}
           loadingLabel={parentalConsentCopy.parentEmail.submitting}
           onPress={() => {

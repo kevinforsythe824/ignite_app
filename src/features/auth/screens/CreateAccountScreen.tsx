@@ -258,7 +258,7 @@ export function CreateAccountScreen(): React.JSX.Element {
 
   if (!gateReady) {
     return (
-      <AuthScreenLayout onBack={handleBack}>
+      <AuthScreenLayout canvas="brand" onBack={handleBack}>
         <Text style={styles.supporting} testID="auth-create-account-gate">
           {parentalConsentCopy.createAccount.gateBlocked}
         </Text>
@@ -267,13 +267,14 @@ export function CreateAccountScreen(): React.JSX.Element {
   }
 
   return (
-    <AuthScreenLayout onBack={handleBack}>
+    <AuthScreenLayout canvas="brand" onBack={handleBack}>
       <View style={styles.header}>
         <Text style={styles.title}>{authCopy.createAccount.title}</Text>
         <Text style={styles.supporting}>{authCopy.createAccount.supporting}</Text>
       </View>
       <View style={styles.form}>
         <AuthTextField
+          appearance="system"
           label={authCopy.fields.email}
           value={email}
           onChangeText={handleEmailChange}
@@ -290,6 +291,7 @@ export function CreateAccountScreen(): React.JSX.Element {
           testID="auth-create-account-email"
         />
         <AuthPasswordField
+          appearance="system"
           ref={passwordRef}
           label={authCopy.fields.password}
           value={password}
@@ -303,6 +305,7 @@ export function CreateAccountScreen(): React.JSX.Element {
           testID="auth-create-account-password"
         />
         <AuthPasswordField
+          appearance="system"
           ref={confirmRef}
           label={authCopy.fields.confirmPassword}
           value={confirmPassword}
@@ -323,6 +326,7 @@ export function CreateAccountScreen(): React.JSX.Element {
         ) : null}
         <AuthPrimaryButton
           testID="auth-create-account-submit"
+          accentTone="auth"
           label={authCopy.createAccount.submit}
           loadingLabel={authCopy.createAccount.submitting}
           onPress={handleSubmit}
@@ -331,6 +335,7 @@ export function CreateAccountScreen(): React.JSX.Element {
         />
         <AuthTextLink
           testID="auth-create-account-sign-in"
+          tone="authAccent"
           prompt={authCopy.createAccount.signInPrompt}
           label={authCopy.createAccount.signIn}
           disabled={submitting}

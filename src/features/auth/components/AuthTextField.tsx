@@ -12,25 +12,47 @@ import {
 import { colors, radius, spacing, typography } from '../../../shared/theme';
 import { AUTH_MIN_TOUCH_TARGET } from './authLayout';
 
+export type AuthTextFieldAppearance = 'legacy' | 'system';
+
 export interface AuthTextFieldProps
   extends Omit<TextInputProps, 'style' | 'placeholder'> {
   label: string;
   error?: string;
   inputStyle?: TextInputProps['style'];
   endAccessory?: ReactNode;
+  /**
+   * Field chrome/type. Default `legacy` preserves progressCounter / verseBody / badge radius.
+   * Batch 1 screens opt into `system` (`label` / `input` / `error` + `radius.control`).
+   */
+  appearance?: AuthTextFieldAppearance;
 }
 
 export const AuthTextField = forwardRef<TextInput, AuthTextFieldProps>(
   function AuthTextField(
-    { label, error, editable = true, inputStyle, endAccessory, ...inputProps },
+    {
+      label,
+      error,
+      editable = true,
+      inputStyle,
+      endAccessory,
+      appearance = 'legacy',
+      ...inputProps
+    },
     ref,
   ): React.JSX.Element {
     const { secureTextEntry, ...restInputProps } = inputProps;
+    const isSystem = appearance === 'system';
 
     return (
       <View style={styles.field}>
-        <Text style={styles.label}>{label}</Text>
-        <View style={[styles.inputRow, error ? styles.inputError : null]}>
+        <Text style={isSystem ? styles.labelSystem : styles.label}>{label}</Text>
+        <View
+          style={[
+            styles.inputRow,
+            isSystem ? styles.inputRowSystem : null,
+            error ? styles.inputError : null,
+          ]}
+        >
           <TextInput
             // Remount when masking toggles so iOS reapplies secureTextEntry after autofill.
             key={secureTextEntry ? 'secure' : 'plain'}
@@ -42,7 +64,7 @@ export const AuthTextField = forwardRef<TextInput, AuthTextFieldProps>(
             accessibilityState={{ disabled: !editable }}
             placeholderTextColor={colors.textMuted}
             style={[
-              styles.input,
+              isSystem ? styles.inputSystem : styles.input,
               secureTextEntry ? styles.secureEntry : null,
               inputStyle,
             ]}
@@ -53,7 +75,7 @@ export const AuthTextField = forwardRef<TextInput, AuthTextFieldProps>(
           <Text
             accessibilityLiveRegion="polite"
             accessibilityRole="alert"
-            style={styles.error}
+            style={isSystem ? styles.errorSystem : styles.error}
           >
             {error}
           </Text>
@@ -69,16 +91,22 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.progressCounter,
-    color: colors.navy,
+    color: colors.textPrimary,
+  },
+  labelSystem: {
+    ...typography.label,
   },
   inputRow: {
     minHeight: AUTH_MIN_TOUCH_TARGET,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     borderRadius: radius.badge,
-    backgroundColor: colors.cardWhite,
+    backgroundColor: colors.surface,
+  },
+  inputRowSystem: {
+    borderRadius: radius.control,
   },
   input: {
     flex: 1,
@@ -88,7 +116,14 @@ const styles = StyleSheet.create({
     ...typography.verseBody,
     fontSize: 16,
     lineHeight: 22,
-    color: colors.navy,
+    color: colors.textPrimary,
+  },
+  inputSystem: {
+    flex: 1,
+    minHeight: AUTH_MIN_TOUCH_TARGET,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    ...typography.input,
   },
   /**
    * Custom fonts make iOS secure-entry bullets inconsistently sized across fields.
@@ -103,10 +138,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   inputError: {
-    borderColor: colors.practicingRed,
+    borderColor: colors.danger,
   },
   error: {
     ...typography.hint,
-    color: colors.practicingRed,
+    color: colors.danger,
+  },
+  errorSystem: {
+    ...typography.error,
   },
 });

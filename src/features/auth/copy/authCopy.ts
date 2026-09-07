@@ -5,7 +5,9 @@ export const authCopy = {
     accessibilityLabel: 'Ignite',
   },
   welcome: {
-    tagline: 'Study. Practice. Compete.',
+    headlinePrimary: 'Study with purpose.',
+    headlineAccent: 'Compete with confidence.',
+    supporting: 'Memorize scripture, strengthen recall, and prepare to quiz.',
     createAccount: 'Create Account',
     signInPrompt: 'Already have an account?',
     signIn: 'Sign In',
