@@ -35,11 +35,11 @@ export function BottomTabNavigator(): React.JSX.Element {
       screenOptions={({ route }) => ({
         headerShown: false,
         lazy: true,
-        tabBarActiveTintColor: colors.accentRed,
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: colors.cardWhite,
-          borderTopColor: colors.borderLight,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
         },
         tabBarIcon: ({ focused, color, size }) => {
           if (route.name === 'Practice') {
