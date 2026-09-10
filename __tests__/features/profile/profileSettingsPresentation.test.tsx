@@ -37,6 +37,39 @@ function expectGroupedCardChrome(element: StyledElement) {
   expect(card.borderRadius).toBe(radius.card);
 }
 
+function findAncestorBackground(element: { parent?: unknown }): string | undefined {
+  let current: unknown = element.parent;
+  while (current && typeof current === 'object') {
+    const node = current as StyledElement & { parent?: unknown };
+    const style = flattenStyle(node);
+    if (typeof style.backgroundColor === 'string' && style.backgroundColor !== 'transparent') {
+      return style.backgroundColor;
+    }
+    current = node.parent;
+  }
+  return undefined;
+}
+
+function expectProductCanvas(element: { parent?: unknown }) {
+  const background = findAncestorBackground(element);
+  expect(background).toBe(colors.background);
+  expect(AUTH_CANVAS_COLORS).not.toContain(background);
+}
+
+function expectProductFieldChrome(input: StyledElement & { parent?: unknown }) {
+  const row = flattenStyle((input.parent ?? input) as StyledElement);
+  expect(row.backgroundColor).toBe(colors.surface);
+  expect(row.borderColor).toBe(colors.border);
+  expect(row.minHeight).toBeGreaterThanOrEqual(spacing.minTouchTarget);
+}
+
+function expectProductPrimaryButton(element: StyledElement) {
+  const style = flattenStyle(element);
+  expect(style.backgroundColor).toBe(colors.accent);
+  expect(style.backgroundColor).not.toBe(colors.authAccent);
+  expect(style.minHeight).toBeGreaterThanOrEqual(spacing.minTouchTarget);
+}
+
 async function renderProfileStack(options?: {
   auth?: ReturnType<typeof createAuthRepositoryFake>;
 }) {
@@ -239,5 +272,138 @@ describe('Profile + Settings Product Mode presentation', () => {
     expect(AUTH_CANVAS_COLORS).not.toContain(canvas.backgroundColor);
     expect(screen.getByTestId('about-app-name')).toBeTruthy();
     expect(screen.getByTestId('about-version')).toBeTruthy();
+  });
+
+  it('renders Edit Name as a Product Mode form, not Auth Brand Mode', async () => {
+    const user = userEvent.setup();
+    const { screen } = await renderProfileStack();
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    await user.press(await screen.findByTestId('settings-edit-name'));
+
+    const supporting = await screen.findByTestId('edit-name-supporting');
+    expectProductCanvas(supporting);
+    const supportingStyle = flattenStyle(supporting);
+    expect(supportingStyle.fontFamily).toBe(typography.bodySecondary.fontFamily);
+    expect(supportingStyle.fontSize).toBe(typography.bodySecondary.fontSize);
+    expect(supportingStyle.color).toBe(colors.textSecondary);
+
+    const firstNameLabel = flattenStyle(screen.getByText(quizzerProfileCopy.name.firstName));
+    expect(firstNameLabel.fontFamily).toBe(typography.label.fontFamily);
+    expect(firstNameLabel.fontSize).toBe(typography.label.fontSize);
+
+    expectProductFieldChrome(screen.getByTestId('edit-name-first'));
+    expectProductFieldChrome(screen.getByTestId('edit-name-last'));
+    expectProductPrimaryButton(screen.getByTestId('edit-name-save'));
+  });
+
+  it('renders Change Email form and success on the Product canvas with danger errors', async () => {
+    const user = userEvent.setup();
+    const auth = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-a',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+      changeEmailError: new AuthenticationError(
+        'requires-recent-login',
+        'For security, enter your current password and try again.',
+      ),
+    });
+    const { screen } = await renderProfileStack({ auth });
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    await user.press(await screen.findByTestId('settings-change-email'));
+
+    const supporting = await screen.findByTestId('change-email-supporting');
+    expectProductCanvas(supporting);
+    expect(flattenStyle(supporting).color).toBe(colors.textSecondary);
+    expectProductFieldChrome(screen.getByTestId('change-email-new'));
+    expectProductFieldChrome(screen.getByTestId('change-email-password'));
+    expectProductPrimaryButton(screen.getByTestId('change-email-submit'));
+
+    await user.type(screen.getByTestId('change-email-new'), 'new@example.com');
+    await user.type(screen.getByTestId('change-email-password'), 'secret');
+    await user.press(screen.getByTestId('change-email-submit'));
+
+    const errorStyle = flattenStyle(await screen.findByTestId('change-email-error'));
+    expect(errorStyle.color).toBe(colors.danger);
+    expect(errorStyle.color).not.toBe(colors.accent);
+    expect(errorStyle.color).not.toBe(colors.authAccent);
+  });
+
+  it('keeps Change Email success on Product Mode after verification is sent', async () => {
+    const user = userEvent.setup();
+    const { screen } = await renderProfileStack();
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    await user.press(await screen.findByTestId('settings-change-email'));
+    await user.type(await screen.findByTestId('change-email-new'), 'new@example.com');
+    await user.type(screen.getByTestId('change-email-password'), 'secret');
+    await user.press(screen.getByTestId('change-email-submit'));
+
+    const successTitle = await screen.findByTestId('change-email-success-title');
+    expectProductCanvas(successTitle);
+    const titleStyle = flattenStyle(successTitle);
+    expect(titleStyle.fontFamily).toBe(typography.sectionTitle.fontFamily);
+    expect(titleStyle.fontSize).toBe(typography.sectionTitle.fontSize);
+    expect(titleStyle.color).toBe(colors.textPrimary);
+    expectProductPrimaryButton(screen.getByTestId('change-email-done'));
+  });
+
+  it('renders Change Password form, errors, and success in Product Mode', async () => {
+    const user = userEvent.setup();
+    const auth = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-a',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+      changePasswordError: new AuthenticationError(
+        'requires-recent-login',
+        'For security, enter your current password and try again.',
+      ),
+    });
+    const { screen } = await renderProfileStack({ auth });
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    await user.press(await screen.findByTestId('settings-change-password'));
+
+    const supporting = await screen.findByTestId('change-password-supporting');
+    expectProductCanvas(supporting);
+    expect(flattenStyle(supporting).color).toBe(colors.textSecondary);
+    expectProductFieldChrome(screen.getByTestId('change-password-current'));
+    expectProductFieldChrome(screen.getByTestId('change-password-new'));
+    expectProductFieldChrome(screen.getByTestId('change-password-confirm'));
+    expectProductPrimaryButton(screen.getByTestId('change-password-submit'));
+
+    await user.type(screen.getByTestId('change-password-current'), 'old-secret');
+    await user.type(screen.getByTestId('change-password-new'), 'new-secret');
+    await user.type(screen.getByTestId('change-password-confirm'), 'new-secret');
+    await user.press(screen.getByTestId('change-password-submit'));
+
+    const errorStyle = flattenStyle(await screen.findByTestId('change-password-error'));
+    expect(errorStyle.color).toBe(colors.danger);
+    expect(errorStyle.color).not.toBe(colors.accent);
+    expect(errorStyle.color).not.toBe(colors.authAccent);
+  });
+
+  it('keeps Change Password success on Product Mode', async () => {
+    const user = userEvent.setup();
+    const { screen } = await renderProfileStack();
+
+    await user.press(screen.getByTestId('profile-home-settings'));
+    await user.press(await screen.findByTestId('settings-change-password'));
+    await user.type(await screen.findByTestId('change-password-current'), 'old-secret');
+    await user.type(screen.getByTestId('change-password-new'), 'new-secret');
+    await user.type(screen.getByTestId('change-password-confirm'), 'new-secret');
+    await user.press(screen.getByTestId('change-password-submit'));
+
+    const successTitle = await screen.findByTestId('change-password-success-title');
+    expectProductCanvas(successTitle);
+    const titleStyle = flattenStyle(successTitle);
+    expect(titleStyle.fontFamily).toBe(typography.sectionTitle.fontFamily);
+    expect(titleStyle.color).toBe(colors.textPrimary);
+    expectProductPrimaryButton(screen.getByTestId('change-password-done'));
   });
 });

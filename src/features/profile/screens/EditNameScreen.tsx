@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import type { TextInput } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '../../../shared/theme';
+import { spacing, typography } from '../../../shared/theme';
 import { AuthPrimaryButton } from '../../auth/components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../../auth/components/AuthScreenLayout';
 import { AuthTextField } from '../../auth/components/AuthTextField';
@@ -63,12 +63,15 @@ export function EditNameScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout keyboardAvoiding edges={['bottom']}>
+    <AuthScreenLayout canvas="system" keyboardAvoiding edges={['bottom']}>
       <View style={styles.header}>
-        <Text style={styles.supporting}>{quizzerProfileCopy.editName.supporting}</Text>
+        <Text style={styles.supporting} testID="edit-name-supporting">
+          {quizzerProfileCopy.editName.supporting}
+        </Text>
       </View>
       <View style={styles.form}>
         <AuthTextField
+          appearance="system"
           label={quizzerProfileCopy.name.firstName}
           value={firstName}
           onChangeText={(value) => {
@@ -84,6 +87,7 @@ export function EditNameScreen(): React.JSX.Element {
         />
         <AuthTextField
           ref={lastNameRef}
+          appearance="system"
           label={quizzerProfileCopy.name.lastName}
           value={lastName}
           onChangeText={(value) => {
@@ -110,6 +114,7 @@ export function EditNameScreen(): React.JSX.Element {
           </Text>
         ) : null}
         <AuthPrimaryButton
+          accentTone="product"
           label={submitting ? quizzerProfileCopy.editName.saving : quizzerProfileCopy.editName.save}
           onPress={() => {
             void handleSave();
@@ -126,17 +131,16 @@ export function EditNameScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   header: {
     gap: spacing.sm,
-    marginBottom: spacing.lg,
+    paddingTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   supporting: {
-    ...typography.valueBody,
-    color: colors.textSecondary,
+    ...typography.bodySecondary,
   },
   form: {
-    gap: spacing.md,
+    gap: spacing.formFieldGap,
   },
   error: {
-    ...typography.hint,
-    color: colors.accentRed,
+    ...typography.error,
   },
 });
