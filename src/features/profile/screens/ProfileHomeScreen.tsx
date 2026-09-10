@@ -5,13 +5,17 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, spacing, typography } from '../../../shared/theme';
-import { AuthPrimaryButton } from '../../auth/components/AuthPrimaryButton';
 import { QuizzerAvatar } from '../components/QuizzerAvatar';
+import { SettingsRow } from '../components/SettingsRow';
+import { SettingsSection } from '../components/SettingsSection';
 import { quizzerProfileCopy } from '../copy/quizzerProfileCopy';
 import type { ProfileStackParamList } from '../navigation/types';
 import { useQuizzerProfile } from '../state/QuizzerProfileProvider';
 
 type ProfileHomeNavigation = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
+
+const NAME_FONT_SIZE = 24;
+const NAME_LINE_HEIGHT = 32;
 
 /**
  * Permanent Profile foundation: name, initials avatar, Settings entry.
@@ -24,7 +28,7 @@ export function ProfileHomeScreen(): React.JSX.Element {
 
   if (session.status !== 'ready') {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']} testID="profile-home-canvas">
         <View style={styles.content}>
           <Text accessibilityRole="header" style={styles.title}>
             {quizzerProfileCopy.profile.title}
@@ -45,7 +49,7 @@ export function ProfileHomeScreen(): React.JSX.Element {
   const fullName = `${firstName} ${lastName}`.trim();
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top']} testID="profile-home-canvas">
       <View style={styles.content}>
         <Text accessibilityRole="header" style={styles.title} testID="profile-home-title">
           {quizzerProfileCopy.profile.title}
@@ -56,11 +60,14 @@ export function ProfileHomeScreen(): React.JSX.Element {
             {fullName}
           </Text>
         </View>
-        <AuthPrimaryButton
-          label={quizzerProfileCopy.profile.settings}
-          onPress={() => navigation.navigate('Settings')}
-          testID="profile-home-settings"
-        />
+        <SettingsSection testID="profile-home-settings-card">
+          <SettingsRow
+            icon="settings-outline"
+            label={quizzerProfileCopy.profile.settings}
+            onPress={() => navigation.navigate('Settings')}
+            testID="profile-home-settings"
+          />
+        </SettingsSection>
       </View>
     </SafeAreaView>
   );
@@ -74,26 +81,28 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.screenPaddingH,
-    paddingTop: spacing.lg,
-    gap: spacing.xl,
+    paddingTop: spacing.xl,
   },
   title: {
-    ...typography.verseReference,
-    color: colors.navy,
+    ...typography.screenTitle,
+    color: colors.textPrimary,
   },
   unavailable: {
-    ...typography.valueBody,
+    ...typography.bodySecondary,
     color: colors.textSecondary,
+    paddingTop: spacing.lg,
   },
   identity: {
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   name: {
-    ...typography.title,
-    fontSize: 22,
-    color: colors.navy,
+    ...typography.screenTitle,
+    fontSize: NAME_FONT_SIZE,
+    lineHeight: NAME_LINE_HEIGHT,
+    color: colors.textPrimary,
     textAlign: 'center',
   },
 });

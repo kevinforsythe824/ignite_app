@@ -26,6 +26,8 @@ export const quizzerProfileCopy = {
   },
   settings: {
     title: 'Settings',
+    personalInformation: 'Personal Information',
+    support: 'Support',
     emailLabel: 'Email',
     editName: 'Edit Name',
     changeEmail: 'Change Email',
