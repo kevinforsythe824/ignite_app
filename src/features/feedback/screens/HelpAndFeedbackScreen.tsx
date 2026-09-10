@@ -25,22 +25,26 @@ export function HelpAndFeedbackScreen(): React.JSX.Element {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      testID="help-feedback-scroll"
     >
       <Text style={styles.supporting} testID="help-feedback-supporting">
         {feedbackCopy.hub.supporting}
       </Text>
-      <SettingsSection>
+      <SettingsSection testID="help-feedback-section">
         <SettingsRow
+          icon="bug-outline"
           label={feedbackCopy.hub.reportBug}
           onPress={() => openCompose('bug')}
           testID="help-feedback-bug"
         />
         <SettingsRow
+          icon="bulb-outline"
           label={feedbackCopy.hub.requestFeature}
           onPress={() => openCompose('feature')}
           testID="help-feedback-feature"
         />
         <SettingsRow
+          icon="chatbubble-ellipses-outline"
           label={feedbackCopy.hub.general}
           onPress={() => openCompose('general')}
           testID="help-feedback-general"
@@ -56,12 +60,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingVertical: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
     paddingHorizontal: spacing.screenPaddingH,
     gap: spacing.lg,
   },
   supporting: {
-    ...typography.valueBody,
-    color: colors.textSecondary,
+    ...typography.bodySecondary,
   },
 });

@@ -3,7 +3,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import React, { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '../../../shared/theme';
+import { spacing, typography } from '../../../shared/theme';
 import { AuthPrimaryButton } from '../../auth/components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../../auth/components/AuthScreenLayout';
 import { AuthTextField } from '../../auth/components/AuthTextField';
@@ -23,6 +23,8 @@ const COMPOSE_TITLE: Record<FeedbackCategory, string> = {
   feature: feedbackCopy.compose.featureTitle,
   general: feedbackCopy.compose.generalTitle,
 };
+
+const MESSAGE_INPUT_MIN_HEIGHT = 120;
 
 /** Compose and submit one feedback category. */
 export function FeedbackComposeScreen(): React.JSX.Element {
@@ -78,7 +80,7 @@ export function FeedbackComposeScreen(): React.JSX.Element {
 
   if (succeeded) {
     return (
-      <AuthScreenLayout edges={['bottom']}>
+      <AuthScreenLayout canvas="system" edges={['bottom']}>
         <View style={styles.header}>
           <Text
             accessibilityRole="header"
@@ -91,6 +93,7 @@ export function FeedbackComposeScreen(): React.JSX.Element {
           <Text style={styles.supporting}>{feedbackCopy.success.body}</Text>
         </View>
         <AuthPrimaryButton
+          accentTone="product"
           label={feedbackCopy.success.done}
           onPress={() => navigation.goBack()}
           testID="feedback-success-done"
@@ -100,7 +103,7 @@ export function FeedbackComposeScreen(): React.JSX.Element {
   }
 
   return (
-    <AuthScreenLayout keyboardAvoiding edges={['bottom']}>
+    <AuthScreenLayout canvas="system" keyboardAvoiding edges={['bottom']}>
       <View style={styles.header}>
         <Text accessibilityRole="header" style={styles.title} testID="feedback-compose-title">
           {COMPOSE_TITLE[category]}
@@ -111,6 +114,7 @@ export function FeedbackComposeScreen(): React.JSX.Element {
       </View>
       <View style={styles.form}>
         <AuthTextField
+          appearance="system"
           label={feedbackCopy.compose.titleLabel}
           value={title}
           onChangeText={(value) => {
@@ -123,6 +127,7 @@ export function FeedbackComposeScreen(): React.JSX.Element {
           testID="feedback-title"
         />
         <AuthTextField
+          appearance="system"
           label={feedbackCopy.compose.messageLabel}
           value={message}
           onChangeText={(value) => {
@@ -148,6 +153,7 @@ export function FeedbackComposeScreen(): React.JSX.Element {
           </Text>
         ) : null}
         <AuthPrimaryButton
+          accentTone="product"
           label={submitting ? feedbackCopy.compose.submitting : feedbackCopy.compose.submit}
           onPress={() => {
             void handleSubmit();
@@ -164,30 +170,26 @@ export function FeedbackComposeScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   header: {
     gap: spacing.sm,
-    marginBottom: spacing.lg,
+    paddingTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   title: {
-    ...typography.title,
-    fontSize: 22,
-    color: colors.navy,
+    ...typography.sectionTitle,
   },
   supporting: {
-    ...typography.valueBody,
-    color: colors.textSecondary,
+    ...typography.bodySecondary,
   },
   privacy: {
-    ...typography.hint,
-    color: colors.textSecondary,
+    ...typography.helper,
   },
   form: {
-    gap: spacing.md,
+    gap: spacing.formFieldGap,
   },
   messageInput: {
-    minHeight: 120,
+    minHeight: MESSAGE_INPUT_MIN_HEIGHT,
     paddingTop: spacing.sm,
   },
   error: {
-    ...typography.hint,
-    color: colors.accentRed,
+    ...typography.error,
   },
 });
