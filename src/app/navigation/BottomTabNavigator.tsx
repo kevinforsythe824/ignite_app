@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import FlashcardStudyRoute from '../../features/flashcards/screens/FlashcardStudyRoute';
+import { StudyStackNavigator } from '../../features/study/navigation/StudyStackNavigator';
 import HomeScreen from '../../screens/HomeScreen';
 import PracticeScreen from '../../screens/PracticeScreen';
 import ProfileScreen from '../../screens/ProfileScreen';
@@ -55,7 +55,7 @@ export function BottomTabNavigator(): React.JSX.Element {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
-      <Tab.Screen name="Study" component={FlashcardStudyRoute} options={{ title: 'Study' }} />
+      <Tab.Screen name="Study" component={StudyStackNavigator} options={{ title: 'Study' }} />
       <Tab.Screen name="Practice" component={PracticeScreen} options={{ title: 'Practice' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>

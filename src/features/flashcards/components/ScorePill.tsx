@@ -31,13 +31,23 @@ const variantConfig: Record<ScorePillVariant, VariantConfig> = {
   },
 };
 
+const accessibilityLabelFor = (variant: ScorePillVariant, count: number): string =>
+  variant === 'correct' ? `${count} correct` : `${count} needs work`;
+
 export const ScorePill: React.FC<ScorePillProps> = React.memo(({ variant, count, style }) => {
   const { icon, tint, background } = variantConfig[variant];
 
   return (
-    <View style={[styles.pill, { backgroundColor: background }, style]}>
-      <Ionicons name={icon} size={16} color={tint} />
-      <Text style={[styles.count, { color: tint }]}>{count}</Text>
+    <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabelFor(variant, count)}
+      style={[styles.pill, { backgroundColor: background }, style]}
+    >
+      <Ionicons name={icon} size={16} color={tint} importantForAccessibility="no" />
+      <Text style={[styles.count, { color: tint }]} importantForAccessibility="no">
+        {count}
+      </Text>
     </View>
   );
 });

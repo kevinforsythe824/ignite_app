@@ -82,7 +82,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   iconButton: {
-    width: ICON_SIZE + spacing.sm,
+    minWidth: spacing.minTouchTarget,
+    minHeight: spacing.minTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
   },

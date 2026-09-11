@@ -33,7 +33,13 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
         onSwipeNeedsWork={onSwipeNeedsWork}
       />
     </View>
-    <Text style={styles.hint}>Tap to flip</Text>
+    <Text
+      style={styles.hint}
+      accessibilityRole="text"
+      accessibilityLabel="Tap to flip. Swipe right for correct, swipe left for needs work."
+    >
+      Tap to flip
+    </Text>
   </View>
 ));
 

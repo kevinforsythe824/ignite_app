@@ -35,13 +35,13 @@ jest.mock('../../../src/screens/ProfileScreen', () => {
   return { __esModule: true, default: ProfileStub };
 });
 
-jest.mock('../../../src/features/flashcards/screens/FlashcardStudyRoute', () => {
+jest.mock('../../../src/features/study/navigation/StudyStackNavigator', () => {
   const React = require('react');
   const { Text } = require('react-native');
   function StudyStub() {
     return React.createElement(Text, null, 'Study stub');
   }
-  return { __esModule: true, default: StudyStub };
+  return { __esModule: true, StudyStackNavigator: StudyStub };
 });
 
 const AUTH_BRAND_COLORS = [
@@ -169,6 +169,10 @@ describe('Main Product bottom tab shell', () => {
     expect(source).toContain("Study: { focused: 'reader-outline', idle: 'reader-outline' }");
     expect(source).toContain("Profile: { focused: 'person', idle: 'person-outline' }");
     expect(source).toContain('PracticeTabIcon');
+    expect(source).toContain('component={StudyStackNavigator}');
+    expect(source).not.toContain('unmountOnBlur');
+    expect(source).not.toContain('FlashcardStudyRoute');
+    expect(source).not.toContain('StudyScreen');
 
     expect(source).not.toContain('accentRed');
     expect(source).not.toContain('cardWhite');
