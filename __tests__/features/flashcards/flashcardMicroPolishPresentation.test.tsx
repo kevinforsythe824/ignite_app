@@ -18,6 +18,7 @@ describe('Flashcard micro-polish presentation', () => {
         correctCount={2}
         needsWorkCount={1}
         progress={0.1}
+        onBackPress={() => undefined}
         onSettingsPress={() => undefined}
       />,
     );
@@ -27,6 +28,7 @@ describe('Flashcard micro-polish presentation', () => {
     const backStyle = StyleSheet.flatten(back.props.style);
     const settingsStyle = StyleSheet.flatten(settings.props.style);
 
+    expect(back.props.accessibilityRole).toBe('button');
     expect(backStyle.minWidth).toBe(spacing.minTouchTarget);
     expect(backStyle.minHeight).toBe(spacing.minTouchTarget);
     expect(settingsStyle.minWidth).toBe(spacing.minTouchTarget);
@@ -38,6 +40,30 @@ describe('Flashcard micro-polish presentation', () => {
     );
     expect(headerSource).toContain('const ICON_SIZE = 24');
     expect(headerSource).toContain('size={ICON_SIZE}');
+  });
+
+  it('omits StudyHeader back AT when onBackPress is absent and preserves geometry via spacer', async () => {
+    await render(
+      <StudyHeader
+        title="Luke"
+        current={1}
+        total={10}
+        correctCount={2}
+        needsWorkCount={1}
+        progress={0.1}
+        onSettingsPress={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Go back')).toBeNull();
+    expect(screen.getByLabelText('Study settings')).toBeTruthy();
+
+    const headerSource = readFileSync(
+      join(__dirname, '../../../src/features/flashcards/components/StudyHeader.tsx'),
+      'utf8',
+    );
+    expect(headerSource).toContain('onBackPress ?');
+    expect(headerSource).toContain('styles.iconButton');
   });
 
   it('exposes ScorePill counts with spoken labels', async () => {

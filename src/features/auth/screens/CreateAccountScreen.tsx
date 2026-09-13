@@ -362,6 +362,6 @@ const styles = StyleSheet.create({
   },
   formError: {
     ...typography.hint,
-    color: colors.practicingRed,
+    color: colors.danger,
   },
 });

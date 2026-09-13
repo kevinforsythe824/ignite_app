@@ -156,6 +156,7 @@ export function ChangePasswordScreen(): React.JSX.Element {
         {errorMessage ? (
           <Text
             style={styles.error}
+            accessibilityRole="alert"
             accessibilityLiveRegion="polite"
             testID="change-password-error"
           >

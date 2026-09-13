@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   formError: {
     ...typography.hint,
-    color: colors.practicingRed,
+    color: colors.danger,
     marginBottom: spacing.md,
   },
   actions: {

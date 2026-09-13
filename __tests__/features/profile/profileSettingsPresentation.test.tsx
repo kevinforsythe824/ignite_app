@@ -382,7 +382,10 @@ describe('Profile + Settings Product Mode presentation', () => {
     await user.type(screen.getByTestId('change-password-confirm'), 'new-secret');
     await user.press(screen.getByTestId('change-password-submit'));
 
-    const errorStyle = flattenStyle(await screen.findByTestId('change-password-error'));
+    const error = await screen.findByTestId('change-password-error');
+    expect(error.props.accessibilityRole).toBe('alert');
+    expect(error.props.accessibilityLiveRegion).toBe('polite');
+    const errorStyle = flattenStyle(error);
     expect(errorStyle.color).toBe(colors.danger);
     expect(errorStyle.color).not.toBe(colors.accent);
     expect(errorStyle.color).not.toBe(colors.authAccent);
