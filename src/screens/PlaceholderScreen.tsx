@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, spacing, typography } from '../shared/theme';
 
+/** Caps line length on wide canvases so supporting copy stays readable. */
+const CONTENT_MAX_WIDTH = 520;
+
 export interface PlaceholderScreenProps {
   title: string;
   description: string;
@@ -11,10 +14,14 @@ export interface PlaceholderScreenProps {
 
 /** Shared shell for future feature screens that are not built yet. */
 export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ title, description }) => (
-  <SafeAreaView style={styles.safeArea} edges={['top']}>
+  <SafeAreaView style={styles.safeArea} edges={['top']} testID="placeholder-canvas">
     <View style={styles.content}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+      <Text accessibilityRole="header" style={styles.title} testID="placeholder-title">
+        {title}
+      </Text>
+      <Text style={styles.description} testID="placeholder-description">
+        {description}
+      </Text>
     </View>
   </SafeAreaView>
 );
@@ -25,16 +32,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    flex: 1,
-    justifyContent: 'center',
     paddingHorizontal: spacing.screenPaddingH,
-    gap: spacing.sm,
+    paddingTop: spacing.xl,
+    gap: spacing.md,
+    maxWidth: CONTENT_MAX_WIDTH,
   },
   title: {
-    ...typography.verseReference,
+    ...typography.screenTitle,
+    color: colors.textPrimary,
   },
   description: {
-    ...typography.hint,
+    ...typography.bodySecondary,
+    color: colors.textSecondary,
   },
 });
 

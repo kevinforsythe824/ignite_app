@@ -80,7 +80,7 @@ export function ConsentRecoveryScreen(): React.JSX.Element {
   );
 
   return (
-    <AuthScreenLayout onBack={handleBack}>
+    <AuthScreenLayout canvas="brand" onBack={handleBack}>
       <View style={styles.header}>
         <Text
           accessibilityRole="header"
@@ -95,12 +95,14 @@ export function ConsentRecoveryScreen(): React.JSX.Element {
         {showContinueApproval ? (
           <AuthPrimaryButton
             testID="consent-recovery-continue"
+            accentTone="auth"
             label={parentalConsentCopy.recovery.continueApproval}
             onPress={handleContinue}
           />
         ) : null}
         <AuthPrimaryButton
           testID="consent-recovery-start-over"
+          accentTone="auth"
           label={parentalConsentCopy.recovery.startOver}
           variant={showContinueApproval ? 'secondary' : 'primary'}
           onPress={() => {

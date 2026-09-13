@@ -64,7 +64,9 @@ describe('AuthNavigator screens', () => {
 
     expect(await screen.findByTestId('auth-welcome-create-account')).toBeTruthy();
     expect(screen.getByText(authCopy.brand.name)).toBeTruthy();
-    expect(screen.getByText(authCopy.welcome.tagline)).toBeTruthy();
+    expect(screen.getByText(authCopy.welcome.headlinePrimary)).toBeTruthy();
+    expect(screen.getByText(authCopy.welcome.headlineAccent)).toBeTruthy();
+    expect(screen.queryByText('COMPETITIVE SCRIPTURE RECALL')).toBeNull();
     for (const item of authCopy.welcome.valueItems) {
       expect(
         screen.getByLabelText(`${item.title}. ${item.description}`),

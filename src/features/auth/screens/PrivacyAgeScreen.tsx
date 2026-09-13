@@ -130,7 +130,7 @@ export function PrivacyAgeScreen(): React.JSX.Element {
   const showActiveLanding = hasActiveConsent || needsFreshConsent;
 
   return (
-    <AuthScreenLayout onBack={handleBack}>
+    <AuthScreenLayout canvas="brand" onBack={handleBack}>
       <View style={styles.header}>
         <Text style={styles.title}>{authCopy.privacyAge.title}</Text>
         <Text style={styles.supporting}>{authCopy.privacyAge.supporting}</Text>
@@ -150,6 +150,7 @@ export function PrivacyAgeScreen(): React.JSX.Element {
           </Text>
           <AuthPrimaryButton
             testID="auth-privacy-age-continue-approval"
+            accentTone="auth"
             label={parentalConsentCopy.privacyAge.continueApproval}
             onPress={() => {
               void resumeUnderThirteen();
@@ -173,6 +174,7 @@ export function PrivacyAgeScreen(): React.JSX.Element {
           </Text>
           <AuthPrimaryButton
             testID="auth-privacy-age-continue-approval"
+            accentTone="auth"
             label={parentalConsentCopy.privacyAge.continueApproval}
             onPress={() => {
               void resumeUnderThirteen();
@@ -200,6 +202,7 @@ export function PrivacyAgeScreen(): React.JSX.Element {
         <View style={styles.actions}>
           <AuthPrimaryButton
             testID="auth-privacy-age-thirteen-or-older"
+            accentTone="auth"
             label={authCopy.privacyAge.thirteenOrOlder}
             onPress={handleThirteenOrOlder}
             disabled={busy || session.hydrateStatus !== 'ready'}

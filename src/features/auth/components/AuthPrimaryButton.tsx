@@ -4,6 +4,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { colors, radius, shadows, spacing, typography } from '../../../shared/theme';
 import { AUTH_MIN_TOUCH_TARGET } from './authLayout';
 
+export type AuthPrimaryButtonAccentTone = 'product' | 'auth';
+
 export interface AuthPrimaryButtonProps {
   label: string;
   onPress: () => void;
@@ -11,6 +13,11 @@ export interface AuthPrimaryButtonProps {
   loadingLabel?: string;
   disabled?: boolean;
   variant?: 'primary' | 'secondary';
+  /**
+   * Primary fill accent. Default `product` preserves Main Product coral.
+   * Auth / onboarding Brand Mode surfaces opt into `auth`.
+   */
+  accentTone?: AuthPrimaryButtonAccentTone;
   testID?: string;
 }
 
@@ -21,10 +28,12 @@ export function AuthPrimaryButton({
   loadingLabel,
   disabled = false,
   variant = 'primary',
+  accentTone = 'product',
   testID,
 }: AuthPrimaryButtonProps): React.JSX.Element {
   const isDisabled = disabled || loading;
   const accessibilityLabel = loading ? (loadingLabel ?? label) : label;
+  const primaryFill = accentTone === 'auth' ? colors.authAccent : colors.accent;
 
   return (
     <Pressable
@@ -36,7 +45,9 @@ export function AuthPrimaryButton({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.button,
-        variant === 'secondary' ? styles.secondary : styles.primary,
+        variant === 'secondary'
+          ? styles.secondary
+          : [styles.primary, { backgroundColor: primaryFill }],
         pressed && !isDisabled ? styles.pressed : null,
         isDisabled ? styles.disabled : null,
       ]}
@@ -45,7 +56,7 @@ export function AuthPrimaryButton({
         <ActivityIndicator
           accessibilityElementsHidden
           importantForAccessibility="no"
-          color={variant === 'secondary' ? colors.navy : colors.cardWhite}
+          color={variant === 'secondary' ? colors.textPrimary : colors.surface}
         />
       ) : (
         <Text
@@ -71,7 +82,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   primary: {
-    backgroundColor: colors.accentRed,
     ...shadows.card,
   },
   secondary: {
@@ -80,11 +90,11 @@ const styles = StyleSheet.create({
   },
   primaryLabel: {
     ...typography.title,
-    color: colors.cardWhite,
+    color: colors.surface,
   },
   secondaryLabel: {
     ...typography.title,
-    color: colors.navy,
+    color: colors.textPrimary,
   },
   label: {
     textAlign: 'center',

@@ -161,7 +161,7 @@ export function ConsentPendingScreen(): React.JSX.Element {
   const deliveryFailed = session.snapshot?.noticeDeliveryStatus === 'failed_transient';
 
   return (
-    <AuthScreenLayout onBack={handleBack}>
+    <AuthScreenLayout canvas="brand" onBack={handleBack}>
       <View style={styles.header}>
         <Text
           accessibilityRole="header"
@@ -192,6 +192,7 @@ export function ConsentPendingScreen(): React.JSX.Element {
       <View style={styles.actions}>
         <AuthPrimaryButton
           testID="consent-pending-check-again"
+          accentTone="auth"
           label={parentalConsentCopy.pending.checkAgain}
           loadingLabel={parentalConsentCopy.pending.checking}
           onPress={() => {
@@ -213,6 +214,7 @@ export function ConsentPendingScreen(): React.JSX.Element {
         />
         <AuthTextLink
           testID="consent-pending-change-email"
+          tone="authAccent"
           label={parentalConsentCopy.pending.changeEmail}
           disabled={checking || resending}
           onPress={() => navigation.navigate('ConsentChangeEmail')}
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   },
   formError: {
     ...typography.hint,
-    color: colors.practicingRed,
+    color: colors.danger,
     marginBottom: spacing.md,
   },
   actions: {

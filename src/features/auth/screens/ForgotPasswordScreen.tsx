@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '../../../shared/theme';
+import { colors, radius, spacing, typography } from '../../../shared/theme';
 import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
 import { AuthTextField } from '../components/AuthTextField';
@@ -61,13 +61,14 @@ export function ForgotPasswordScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout onBack={() => navigation.goBack()}>
+    <AuthScreenLayout canvas="brand" onBack={() => navigation.goBack()}>
       <View style={styles.header}>
         <Text style={styles.title}>{authCopy.forgotPassword.title}</Text>
         <Text style={styles.supporting}>{authCopy.forgotPassword.supporting}</Text>
       </View>
       <View style={styles.form}>
         <AuthTextField
+          appearance="system"
           label={authCopy.fields.email}
           value={email}
           onChangeText={handleEmailChange}
@@ -89,12 +90,16 @@ export function ForgotPasswordScreen(): React.JSX.Element {
           </Text>
         ) : null}
         {succeeded ? (
-          <Text accessibilityLiveRegion="polite" style={styles.success}>
-            {authCopy.forgotPassword.success}
-          </Text>
+          <View
+            accessibilityLiveRegion="polite"
+            style={styles.successBanner}
+          >
+            <Text style={styles.success}>{authCopy.forgotPassword.success}</Text>
+          </View>
         ) : null}
         <AuthPrimaryButton
           testID="auth-forgot-password-submit"
+          accentTone="auth"
           label={authCopy.forgotPassword.submit}
           loadingLabel={authCopy.forgotPassword.submitting}
           onPress={handleSubmit}
@@ -103,6 +108,7 @@ export function ForgotPasswordScreen(): React.JSX.Element {
         />
         <AuthTextLink
           testID="auth-forgot-password-back-to-sign-in"
+          tone="authAccent"
           label={authCopy.forgotPassword.backToSignIn}
           disabled={submitting}
           onPress={() => navigation.goBack()}
@@ -118,20 +124,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   title: {
-    ...typography.verseReference,
+    ...typography.screenTitle,
   },
   supporting: {
-    ...typography.brandTagline,
+    ...typography.bodySecondary,
   },
   form: {
-    gap: spacing.md,
+    gap: spacing.formFieldGap,
   },
   formError: {
-    ...typography.hint,
-    color: colors.practicingRed,
+    ...typography.error,
+  },
+  successBanner: {
+    backgroundColor: colors.successSoft,
+    borderRadius: radius.control,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   success: {
-    ...typography.hint,
-    color: colors.navy,
+    ...typography.helper,
+    color: colors.success,
   },
 });

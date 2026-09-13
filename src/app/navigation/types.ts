@@ -1,10 +1,11 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import type { ProfileStackParamList } from '../../features/profile/navigation/types';
+import type { StudyStackParamList } from '../../features/study/navigation/types';
 
 export type MainTabParamList = {
   Home: undefined;
-  Study: undefined;
+  Study: NavigatorScreenParams<StudyStackParamList> | undefined;
   Practice: undefined;
   Profile: NavigatorScreenParams<ProfileStackParamList> | undefined;
 };

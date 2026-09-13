@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import type { TextInput } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '../../../shared/theme';
+import { spacing, typography } from '../../../shared/theme';
 import { useAuth } from '../../auth';
 import { AuthPasswordField } from '../../auth/components/AuthPasswordField';
 import { AuthPrimaryButton } from '../../auth/components/AuthPrimaryButton';
@@ -65,7 +65,7 @@ export function ChangePasswordScreen(): React.JSX.Element {
 
   if (succeeded) {
     return (
-      <AuthScreenLayout edges={['bottom']}>
+      <AuthScreenLayout canvas="system" edges={['bottom']}>
         <View style={styles.header}>
           <Text
             accessibilityRole="header"
@@ -77,6 +77,7 @@ export function ChangePasswordScreen(): React.JSX.Element {
           <Text style={styles.supporting}>{quizzerProfileCopy.changePassword.successBody}</Text>
         </View>
         <AuthPrimaryButton
+          accentTone="product"
           label={quizzerProfileCopy.changePassword.done}
           onPress={() => navigation.goBack()}
           testID="change-password-done"
@@ -86,12 +87,15 @@ export function ChangePasswordScreen(): React.JSX.Element {
   }
 
   return (
-    <AuthScreenLayout keyboardAvoiding edges={['bottom']}>
+    <AuthScreenLayout canvas="system" keyboardAvoiding edges={['bottom']}>
       <View style={styles.header}>
-        <Text style={styles.supporting}>{quizzerProfileCopy.changePassword.supporting}</Text>
+        <Text style={styles.supporting} testID="change-password-supporting">
+          {quizzerProfileCopy.changePassword.supporting}
+        </Text>
       </View>
       <View style={styles.form}>
         <AuthPasswordField
+          appearance="system"
           label={quizzerProfileCopy.changePassword.currentPassword}
           value={currentPassword}
           onChangeText={(value) => {
@@ -107,6 +111,7 @@ export function ChangePasswordScreen(): React.JSX.Element {
         />
         <AuthPasswordField
           ref={newPasswordRef}
+          appearance="system"
           label={quizzerProfileCopy.changePassword.newPassword}
           value={newPassword}
           onChangeText={(value) => {
@@ -126,6 +131,7 @@ export function ChangePasswordScreen(): React.JSX.Element {
         />
         <AuthPasswordField
           ref={confirmRef}
+          appearance="system"
           label={quizzerProfileCopy.changePassword.confirmPassword}
           value={confirmPassword}
           onChangeText={(value) => {
@@ -150,6 +156,7 @@ export function ChangePasswordScreen(): React.JSX.Element {
         {errorMessage ? (
           <Text
             style={styles.error}
+            accessibilityRole="alert"
             accessibilityLiveRegion="polite"
             testID="change-password-error"
           >
@@ -157,6 +164,7 @@ export function ChangePasswordScreen(): React.JSX.Element {
           </Text>
         ) : null}
         <AuthPrimaryButton
+          accentTone="product"
           label={
             submitting
               ? quizzerProfileCopy.changePassword.submitting
@@ -177,21 +185,19 @@ export function ChangePasswordScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   header: {
     gap: spacing.sm,
-    marginBottom: spacing.lg,
+    paddingTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   title: {
-    ...typography.title,
-    color: colors.navy,
+    ...typography.sectionTitle,
   },
   supporting: {
-    ...typography.valueBody,
-    color: colors.textSecondary,
+    ...typography.bodySecondary,
   },
   form: {
-    gap: spacing.md,
+    gap: spacing.formFieldGap,
   },
   error: {
-    ...typography.hint,
-    color: colors.accentRed,
+    ...typography.error,
   },
 });

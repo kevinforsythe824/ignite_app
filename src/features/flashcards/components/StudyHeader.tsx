@@ -35,15 +35,19 @@ export const StudyHeader: React.FC<StudyHeaderProps> = React.memo(({
 }) => (
   <View style={[styles.container, style]}>
     <View style={styles.navRow}>
-      <Pressable
-        onPress={onBackPress}
-        hitSlop={spacing.sm}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        style={styles.iconButton}
-      >
-        <Ionicons name="chevron-back" size={ICON_SIZE} color={colors.navy} />
-      </Pressable>
+      {onBackPress ? (
+        <Pressable
+          onPress={onBackPress}
+          hitSlop={spacing.sm}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={styles.iconButton}
+        >
+          <Ionicons name="chevron-back" size={ICON_SIZE} color={colors.navy} />
+        </Pressable>
+      ) : (
+        <View style={styles.iconButton} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      )}
 
       <Text style={styles.title} numberOfLines={1}>
         {title}
@@ -82,7 +86,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   iconButton: {
-    width: ICON_SIZE + spacing.sm,
+    minWidth: spacing.minTouchTarget,
+    minHeight: spacing.minTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
   },

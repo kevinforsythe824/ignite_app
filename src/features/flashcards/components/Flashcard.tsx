@@ -14,8 +14,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { colors, radius, shadows, spacing } from '../../../shared/theme';
-import type { CardSide } from '../types/settings';
 import type { Card } from '../domain/card';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import type { CardSide } from '../types/settings';
 import type { VerseSegment } from '../types/verse';
 import FlashcardBack from './FlashcardBack';
 import FlashcardFront from './FlashcardFront';
@@ -60,6 +61,7 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   onSwipeNeedsWork,
   style,
 }) => {
+  const reducedMotion = useReducedMotion();
   const rotation = useSharedValue(rotationForSide(defaultSide));
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -82,18 +84,22 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     translateX.value = 0;
     translateY.value = 0;
     rotation.value = rotationForSide(defaultSide);
-    cardOpacity.value = withTiming(1, { duration: FADE_IN_DURATION });
-  }, [card.cardId, defaultSide, cardOpacity, rotation, translateX, translateY]);
+    const fadeMs = reducedMotion ? 0 : FADE_IN_DURATION;
+    cardOpacity.value = withTiming(1, { duration: fadeMs });
+  }, [card.cardId, defaultSide, cardOpacity, reducedMotion, rotation, translateX, translateY]);
 
   // A tap only wins while the finger stays inside the pan's activation radius,
   // so a short press flips and anything more horizontal becomes a swipe.
   const gesture = useMemo(() => {
+    const flipMs = reducedMotion ? 0 : FLIP_DURATION;
+    const flyMs = reducedMotion ? 0 : FLY_OFF_DURATION;
+
     const tap = Gesture.Tap()
       .maxDistance(PAN_ACTIVATION_DISTANCE)
       .onEnd(() => {
         const isShowingLocate = rotation.value < 90;
         rotation.value = withTiming(isShowingLocate ? 180 : 0, {
-          duration: FLIP_DURATION,
+          duration: flipMs,
           easing: Easing.inOut(Easing.cubic),
         });
       });
@@ -106,8 +112,13 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
       })
       .onEnd(() => {
         if (Math.abs(translateX.value) < SWIPE_THRESHOLD) {
-          translateX.value = withSpring(0);
-          translateY.value = withSpring(0);
+          if (reducedMotion) {
+            translateX.value = 0;
+            translateY.value = 0;
+          } else {
+            translateX.value = withSpring(0);
+            translateY.value = withSpring(0);
+          }
           return;
         }
 
@@ -116,7 +127,7 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
 
         translateX.value = withTiming(
           target,
-          { duration: FLY_OFF_DURATION, easing: Easing.out(Easing.quad) },
+          { duration: flyMs, easing: Easing.out(Easing.quad) },
           (finished) => {
             if (finished === true) {
               cardOpacity.value = 0;
@@ -127,7 +138,7 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
       });
 
     return Gesture.Exclusive(pan, tap);
-  }, [commitSwipe, cardOpacity, rotation, translateX, translateY]);
+  }, [commitSwipe, cardOpacity, reducedMotion, rotation, translateX, translateY]);
 
   const containerStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
@@ -190,10 +201,12 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
 
         <Animated.View
           pointerEvents="none"
+          importantForAccessibility="no"
           style={[styles.overlay, styles.correctOverlay, correctOverlayStyle]}
         />
         <Animated.View
           pointerEvents="none"
+          importantForAccessibility="no"
           style={[styles.overlay, styles.needsWorkOverlay, needsWorkOverlayStyle]}
         />
       </Animated.View>
@@ -201,21 +214,19 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   );
 });
 
-/** Speaker / favourite affordances. Audio playback itself is not wired yet. */
+/** Decorative chrome only — audio / favourite are not wired yet. */
 const CardChrome = React.memo(function CardChrome() {
   return (
-    <View style={styles.chromeRow}>
-      <Ionicons
-        name="volume-high"
-        size={CHROME_ICON_SIZE}
-        color={colors.accentRed}
-        accessibilityLabel="Play verse audio"
-      />
+    <View
+      style={styles.chromeRow}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      <Ionicons name="volume-high" size={CHROME_ICON_SIZE} color={colors.accentRed} />
       <Ionicons name="star-outline" size={CHROME_ICON_SIZE} color={colors.accentRed} />
     </View>
   );
 });
-
 const ABSOLUTE_FILL = {
   position: 'absolute',
   top: 0,

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -6,7 +7,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '../../../shared/theme';
 import { AuthenticationError, useAuth } from '../../auth';
 import { AuthPrimaryButton } from '../../auth/components/AuthPrimaryButton';
-import { SettingsRow } from '../components/SettingsRow';
+import { SettingsRow, settingsRowLayout } from '../components/SettingsRow';
+import { SettingsSection } from '../components/SettingsSection';
 import { quizzerProfileCopy } from '../copy/quizzerProfileCopy';
 import type { ProfileStackParamList } from '../navigation/types';
 
@@ -72,41 +74,57 @@ export function SettingsScreen(): React.JSX.Element {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      testID="settings-scroll"
     >
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>{quizzerProfileCopy.settings.emailLabel}</Text>
-        <View style={styles.emailCard} testID="settings-email">
-          <Text style={styles.emailValue}>{identity?.email ?? '—'}</Text>
+      <SettingsSection
+        title={quizzerProfileCopy.settings.personalInformation}
+        testID="settings-section-personal"
+      >
+        <View style={styles.emailRow} testID="settings-email">
+          <Ionicons
+            name="at-outline"
+            size={settingsRowLayout.iconSize}
+            color={colors.textPrimary}
+          />
+          <View style={styles.emailBlock}>
+            <Text style={styles.emailLabel}>{quizzerProfileCopy.settings.emailLabel}</Text>
+            <Text style={styles.emailValue}>{identity?.email ?? '—'}</Text>
+          </View>
         </View>
-      </View>
-
-      <View style={styles.section}>
         <SettingsRow
+          icon="person-outline"
           label={quizzerProfileCopy.settings.editName}
           onPress={() => navigation.navigate('EditName')}
           testID="settings-edit-name"
         />
         <SettingsRow
+          icon="mail-outline"
           label={quizzerProfileCopy.settings.changeEmail}
           onPress={() => navigation.navigate('ChangeEmail')}
           testID="settings-change-email"
         />
         <SettingsRow
+          icon="lock-closed-outline"
           label={quizzerProfileCopy.settings.changePassword}
           onPress={() => navigation.navigate('ChangePassword')}
           testID="settings-change-password"
         />
+      </SettingsSection>
+
+      <SettingsSection title={quizzerProfileCopy.settings.support} testID="settings-section-support">
         <SettingsRow
+          icon="help-circle-outline"
           label={quizzerProfileCopy.settings.helpAndFeedback}
           onPress={() => navigation.navigate('HelpAndFeedback')}
           testID="settings-help-feedback"
         />
         <SettingsRow
+          icon="information-circle-outline"
           label={quizzerProfileCopy.settings.about}
           onPress={() => navigation.navigate('About')}
           testID="settings-about"
         />
-      </View>
+      </SettingsSection>
 
       {signOutError ? (
         <Text
@@ -119,20 +137,22 @@ export function SettingsScreen(): React.JSX.Element {
         </Text>
       ) : null}
 
-      <AuthPrimaryButton
-        label={
-          signingOut
-            ? quizzerProfileCopy.settings.signingOut
-            : quizzerProfileCopy.settings.signOut
-        }
-        onPress={() => {
-          void handleSignOut();
-        }}
-        loading={signingOut}
-        loadingLabel={quizzerProfileCopy.settings.signingOut}
-        variant="secondary"
-        testID="settings-sign-out"
-      />
+      <View style={styles.signOutBlock}>
+        <AuthPrimaryButton
+          label={
+            signingOut
+              ? quizzerProfileCopy.settings.signingOut
+              : quizzerProfileCopy.settings.signOut
+          }
+          onPress={() => {
+            void handleSignOut();
+          }}
+          loading={signingOut}
+          loadingLabel={quizzerProfileCopy.settings.signingOut}
+          variant="secondary"
+          testID="settings-sign-out"
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -143,34 +163,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingVertical: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
     paddingHorizontal: spacing.screenPaddingH,
-    gap: spacing.xl,
+    gap: spacing.lg,
   },
-  section: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: colors.cardWhite,
+  emailRow: {
+    minHeight: spacing.minTouchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: settingsRowLayout.paddingVertical,
+    paddingHorizontal: settingsRowLayout.paddingHorizontal,
+    gap: settingsRowLayout.gap,
   },
-  sectionLabel: {
-    ...typography.hint,
+  emailBlock: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  emailLabel: {
+    ...typography.label,
     color: colors.textSecondary,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
-  },
-  emailCard: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    minHeight: 44,
-    justifyContent: 'center',
   },
   emailValue: {
-    ...typography.valueBody,
-    color: colors.navy,
+    ...typography.cardTitle,
+    color: colors.textPrimary,
   },
   signOutError: {
-    ...typography.hint,
-    color: colors.accentRed,
+    ...typography.error,
+    color: colors.danger,
+  },
+  signOutBlock: {
+    marginTop: spacing.sm,
   },
 });

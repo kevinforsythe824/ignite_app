@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '../../../shared/theme';
 import { AUTH_MIN_TOUCH_TARGET } from './authLayout';
 
+export type AuthTextLinkTone = 'navy' | 'accent' | 'authAccent';
+
 export interface AuthTextLinkProps {
   label: string;
   onPress: () => void;
@@ -11,6 +13,11 @@ export interface AuthTextLinkProps {
   disabled?: boolean;
   testID?: string;
   accessibilityLabel?: string;
+  /**
+   * Link color tone. Default `navy` preserves legacy look for out-of-batch screens.
+   * `accent` is product coral; Auth Brand surfaces use `authAccent`.
+   */
+  tone?: AuthTextLinkTone;
 }
 
 /**
@@ -24,8 +31,15 @@ export function AuthTextLink({
   disabled = false,
   testID,
   accessibilityLabel,
+  tone = 'navy',
 }: AuthTextLinkProps): React.JSX.Element {
   const a11yLabel = accessibilityLabel ?? (prompt ? `${prompt} ${label}` : label);
+  const linkColor =
+    tone === 'authAccent'
+      ? colors.authAccent
+      : tone === 'accent'
+        ? colors.accent
+        : colors.navy;
 
   return (
     <Pressable
@@ -44,7 +58,7 @@ export function AuthTextLink({
     >
       <View style={styles.textRow}>
         {prompt ? <Text style={styles.prompt}>{prompt} </Text> : null}
-        <Text style={styles.link}>{label}</Text>
+        <Text style={[styles.link, { color: linkColor }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -73,7 +87,6 @@ const styles = StyleSheet.create({
     ...typography.title,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.navy,
   },
   pressed: {
     opacity: 0.7,

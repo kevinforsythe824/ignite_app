@@ -68,7 +68,7 @@ export function QuizzerNameScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout>
+    <AuthScreenLayout canvas="brand">
       <View style={styles.header}>
         <Text accessibilityRole="header" style={styles.title} testID="quizzer-name-title">
           {quizzerProfileCopy.name.title}
@@ -77,6 +77,7 @@ export function QuizzerNameScreen(): React.JSX.Element {
       </View>
       <View style={styles.form}>
         <AuthTextField
+          appearance="system"
           label={quizzerProfileCopy.name.firstName}
           value={firstName}
           onChangeText={(value) => {
@@ -98,6 +99,7 @@ export function QuizzerNameScreen(): React.JSX.Element {
           testID="quizzer-name-first"
         />
         <AuthTextField
+          appearance="system"
           label={quizzerProfileCopy.name.lastName}
           value={lastName}
           onChangeText={(value) => {
@@ -128,6 +130,7 @@ export function QuizzerNameScreen(): React.JSX.Element {
         ) : null}
         <AuthPrimaryButton
           testID="quizzer-name-submit"
+          accentTone="auth"
           label={quizzerProfileCopy.name.submit}
           loadingLabel={quizzerProfileCopy.name.submitting}
           onPress={() => {
@@ -138,6 +141,7 @@ export function QuizzerNameScreen(): React.JSX.Element {
         />
         <AuthTextLink
           testID="quizzer-name-sign-out"
+          tone="authAccent"
           label={quizzerProfileCopy.actions.signOut}
           disabled={submitting || signingOut}
           onPress={() => {
@@ -165,6 +169,6 @@ const styles = StyleSheet.create({
   },
   formError: {
     ...typography.hint,
-    color: colors.practicingRed,
+    color: colors.danger,
   },
 });

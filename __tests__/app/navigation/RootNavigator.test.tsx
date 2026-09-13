@@ -1,6 +1,5 @@
 import { act, fireEvent, render, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
-import { AccessibilityInfo } from 'react-native';
 
 import type { FutureLifecycleSeam } from '../../../src/app/lifecycle';
 import { RootNavigator } from '../../../src/app/navigation/RootNavigator';
@@ -62,7 +61,9 @@ describe('RootNavigator auth session switch', () => {
     const repository = createAuthRepositoryFake({ emitOnSubscribe: false });
     const screen = await renderRoot(repository);
 
-    expect(screen.getByLabelText(authCopy.brand.accessibilityLabel)).toBeTruthy();
+    expect(screen.getByTestId('ignite-entry')).toBeTruthy();
+    expect(screen.queryByLabelText(authCopy.brand.accessibilityLabel)).toBeNull();
+    expect(screen.queryByText(authCopy.brand.name)).toBeNull();
     expect(screen.queryByTestId('auth-welcome-create-account')).toBeNull();
     expect(screen.queryByText('Luke 2:1')).toBeNull();
   });
@@ -950,21 +951,12 @@ describe('RootNavigator account lifecycle', () => {
   });
 });
 
-describe('IgniteEntryScreen reduced motion', () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it('still presents the brand when Reduce Motion is enabled', async () => {
-    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
-    jest.spyOn(AccessibilityInfo, 'addEventListener').mockReturnValue({
-      remove: jest.fn(),
-    } as unknown as ReturnType<typeof AccessibilityInfo.addEventListener>);
-
+describe('IgniteEntryScreen', () => {
+  it('renders a brand-free warm cover', async () => {
     const screen = await render(<IgniteEntryScreen />);
 
-    await waitFor(() => {
-      expect(screen.getByText(authCopy.brand.name)).toBeTruthy();
-    });
+    expect(screen.getByTestId('ignite-entry')).toBeTruthy();
+    expect(screen.queryByLabelText(authCopy.brand.accessibilityLabel)).toBeNull();
+    expect(screen.queryByText(authCopy.brand.name)).toBeNull();
   });
 });

@@ -24,7 +24,7 @@ export function ParentConsentIntroScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout onBack={handleBack}>
+    <AuthScreenLayout canvas="brand" onBack={handleBack}>
       <View style={styles.header}>
         <Text
           accessibilityRole="header"
@@ -37,6 +37,7 @@ export function ParentConsentIntroScreen(): React.JSX.Element {
       </View>
       <AuthPrimaryButton
         testID="consent-intro-continue"
+        accentTone="auth"
         label={parentalConsentCopy.intro.continue}
         onPress={() => navigation.navigate('ParentEmail')}
       />

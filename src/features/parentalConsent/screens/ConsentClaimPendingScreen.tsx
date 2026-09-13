@@ -120,7 +120,7 @@ export function ConsentClaimPendingScreen(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout>
+    <AuthScreenLayout canvas="brand">
       <View style={styles.header}>
         <Text
           accessibilityRole="header"
@@ -144,6 +144,7 @@ export function ConsentClaimPendingScreen(): React.JSX.Element {
         {!terminal ? (
           <AuthPrimaryButton
             testID="consent-claim-pending-retry"
+            accentTone="auth"
             label={parentalConsentCopy.claimPending.retry}
             onPress={() => {
               void runClaim();
@@ -154,6 +155,7 @@ export function ConsentClaimPendingScreen(): React.JSX.Element {
         ) : null}
         <AuthPrimaryButton
           testID="consent-claim-pending-sign-out"
+          accentTone="auth"
           label={parentalConsentCopy.claimPending.signingOut}
           variant={terminal ? 'primary' : 'secondary'}
           onPress={() => {
@@ -181,7 +183,7 @@ const styles = StyleSheet.create({
   },
   formError: {
     ...typography.hint,
-    color: colors.practicingRed,
+    color: colors.danger,
     marginBottom: spacing.md,
   },
   actions: {
