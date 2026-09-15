@@ -69,21 +69,25 @@ ignite_app/
 
 ```text
 AppProviders
-  └─ AuthProvider (app-wide auth session; does not gate routing in Phase 1)
-       └─ RootNavigator (native stack)
-            └─ MainTabs (bottom tabs, initial = Study)
-                 └─ FlashcardStudyRoute
-                      ├─ useFlashcardCurriculum(test-season, firestoreCurriculumRepository)
-                      ├─ FlashcardSessionProvider   ← feature-local state
-                      └─ FlashcardStudyScreen       ← thin: hooks + components
-                           ├─ useFlashcards()
-                           │    ├─ session state + actions (context)
-                           │    ├─ deriveFlashcardSession()   (counts, progress, flags)
-                           │    └─ getVerseSegments()         (cached parse)
-                           ├─ StudyHeader
-                           └─ FlashcardStudyActive / SessionComplete
-                                └─ Flashcard → Front (Locate) / Back (Quote + RichVerseText)
+  └─ AuthProvider (app-wide auth session; authenticated/unauthenticated participates in lifecycle resolution)
+       └─ ParentalConsentProvider (claim/capability; claim-required participates in routing)
+            └─ QuizzerProfileProvider (profile state participates in routing)
+                 └─ RootNavigator (native stack; owns account lifecycle routing — ADR-011)
+                      └─ MainTabs (bottom tabs, initial = Study) when lifecycle destination is the shell
+                           └─ FlashcardStudyRoute
+                                ├─ useFlashcardCurriculum(test-season, firestoreCurriculumRepository)
+                                ├─ FlashcardSessionProvider   ← feature-local state
+                                └─ FlashcardStudyScreen       ← thin: hooks + components
+                                     ├─ useFlashcards()
+                                     │    ├─ session state + actions (context)
+                                     │    ├─ deriveFlashcardSession()   (counts, progress, flags)
+                                     │    └─ getVerseSegments()         (cached parse)
+                                     ├─ StudyHeader
+                                     └─ FlashcardStudyActive / SessionComplete
+                                          └─ Flashcard → Front (Locate) / Back (Quote + RichVerseText)
 ```
+
+`RootNavigator` owns routing. Authenticated/unauthenticated session, parental-consent claim state, and QuizzerProfile state all participate in that resolution. Phase 1 did not gate root routing on auth; that is no longer current (see §7).
 
 User swipe → `markCorrect` / `markNeedsWork` → reducer updates `statusById` + index → hook derives view → UI re-renders. **Parsing never runs inside UI components.** Session grades are Correct / Needs Work. Mastered is reserved for the Sprint 7 Mastery domain.
 

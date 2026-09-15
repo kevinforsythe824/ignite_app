@@ -31,15 +31,19 @@ Phases 6.5A/6.5B delivered server-authoritative parental consent (Firestore + ca
 - Hydrate while Auth is `initializing`: **never** clear `awaitingClaim` and never conclude there is no authenticated user; hold unresolved claim-recovery state until Auth resolves.
 - Hydrate / Auth resolve authenticated + `awaitingClaim` → promote to `pendingClaimUid`.
 - Auth resolve unauthenticated + `awaitingClaim`: keep claim intent (do not unlock Create Account); prefer Sign In / recovery. Only explicit `cancelPostSignupClaim` clears generic claim intent after a known signup failure.
-- Claim / RootNavigator gate uses **`pendingClaimUid === currentUid` only** — never a lingering generic `awaitingClaim` after unrelated Sign In.
+- RootNavigator claim gate (`isClaimRequired`) is true when authenticated **and** (`pendingClaimUid === authenticatedUid` **or** (`awaitingClaim === true` **and** active consent capability)). Bare `awaitingClaim` without active capability does not gate unrelated Sign In.
 - Explicit Start over with `pendingClaimUid` present clears dead request tokens only and keeps the recovery UID + `needsFreshConsent` (existing-account path → Sign In → claim; never a second Auth account).
 
 ### Create Account gate
 
-- Unlock Create Account only when `getStatus` returns `approved` + `bindingState: unbound`, and there is no `pendingClaimUid` / `needsFreshConsent` / `awaitingClaim` blocking new signup.
+- Unlock Create Account only when `getStatus` returns `approved` + `bindingState: unbound`, and there is no `pendingClaimUid` / `needsFreshConsent` / pre-existing `awaitingClaim` blocking new signup.
 - `approved` + `bound` never creates another Auth account from that request.
 - Claim pending always calls `claimParentalConsent` (same-UID bound is server-idempotent; different UID → `already-exists` → fresh-consent recovery).
 - 13+ remains unchanged when no active under-13 capability.
+- `CreateAccountScreen` uses a local, non-persisted in-flight ownership marker (`freshSignupInFlightRef`) during a fresh approved under-13 signup. Set it synchronously before `beginPostSignupClaim` so the focus gate does not treat this screen's own `awaitingClaim` as prior-attempt Sign In recovery.
+- The marker does **not** survive remount/restart. A genuinely pre-existing `awaitingClaim` still follows recovery: when `awaitingClaim` is true and the marker is false, focused Create Account redirects unauthenticated users to Sign In.
+- When this screen just created `awaitingClaim` (marker true), it does not bounce to Sign In.
+- When already authenticated, `RootNavigator` remains the authoritative lifecycle router for the claim gate.
 
 ### Active under-13 privacy path
 

@@ -2,7 +2,7 @@
 
 How completed sprint work and release candidates move through DEV, STAGING, and PROD.
 
-**Status:** Active — pre-Sprint-2 operational guide.
+**Status:** Active — reusable sprint promotion and release process.
 
 **Sources:** [PRD](../product/PRD.md), [Development Playbook](../development/Ignite_Development_Playbook.md) (§§5, 14, 17), [ENVIRONMENTS.md](ENVIRONMENTS.md), [RELEASE_RUNBOOK.md](RELEASE_RUNBOOK.md), [CONTENT_PUBLISHING_RUNBOOK.md](CONTENT_PUBLISHING_RUNBOOK.md), [BUG_TRIAGE_RUNBOOK.md](BUG_TRIAGE_RUNBOOK.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md).
 
