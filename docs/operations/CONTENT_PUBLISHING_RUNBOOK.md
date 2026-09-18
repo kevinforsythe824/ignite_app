@@ -2,7 +2,7 @@
 
 Intended workflow for importing and publishing **official season content** into Ignite.
 
-**Status:** Planning skeleton — import tooling and lifecycle automation are **future Sprint 3 work**.
+**Status:** Planning skeleton — Phase 0 documents the settled authoring → generate → validate → promote contract. Spreadsheet schema, converters, import CLI, and lifecycle automation remain **Sprint 3 Phase 2** (after Phase 1 domain contracts).
 
 **Sources:** [PRD](../product/PRD.md) (§§5–7, 50), [Development Playbook](../development/Ignite_Development_Playbook.md) (§9), [ADR-002](../architecture/decisions/ADR-002-season-isolation-and-card-identity.md), [ENVIRONMENTS.md](ENVIRONMENTS.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md).
 
@@ -21,41 +21,60 @@ Related runbooks: [SEASON_TRANSITION_RUNBOOK.md](SEASON_TRANSITION_RUNBOOK.md), 
 
 Each season is a **new authoritative content environment**, not an update to the previous season (PRD §§3.4, 7; ADR-002).
 
+Each season has **five independent division MaterialSets** (Cadet, Beginner, Junior, Intermediate, Experienced). Do **not** assume one MaterialSet is a subset of another (PRD §§12.3, 37; ADR-002).
+
+### Authoring source vs generated package (settled direction)
+
+Ignite’s official season material uses a **controlled deterministic content pipeline**:
+
+| Role | What it is |
+|------|------------|
+| **Authoritative human-maintained authoring source** | Standardized, human-readable **spreadsheet/template** per division MaterialSet |
+| **App-ready JSON / content package** | **Generated artifact** — derived output, not a manually maintained authoritative source |
+
+**Corrections** should normally be made in the authoritative spreadsheet/template and **regenerated**, not by manually patching generated JSON or Firebase.
+
+**Determinism:** the same validated source input should produce the same logical generated output.
+
+**Provenance:** the generated package should ultimately carry a stable package identity / fingerprint / hash (or equivalent) so Ignite can confirm that the exact package tested and approved in DEV/STAGING is the package promoted to PROD. Exact hashing/algorithm design is **not** Phase 0 work.
+
+**AI:** may assist humans in preparation outside the authoritative pipeline if intentionally used later, but AI must **not** be responsible for authoritative Scripture conversion, interpretation, validation, or publishing.
+
+Exact spreadsheet columns, workbook format, JSON schema, CLI commands, package layout, and hashing implementation remain **Phase 2** design work (after Phase 1 domain contracts). See [ADR Open Decisions](../architecture/decisions/README.md).
+
 ---
 
 ## Intended lifecycle flow
 
 ```text
-Bible Quizzing Board creates material
+Committee-approved material
         ↓
-Bible Quizzing Board committee approves authoritative material
+Standardized MaterialSet authoring spreadsheets/templates
         ↓
-Developer receives approved material
+Human content review
         ↓
-Structured import source/package          ← Sprint 3: format TBD (ADR Open Decisions)
+Automated schema / business validation
         ↓
-Schema + business-rule validation
+Deterministic app-ready package / JSON generation
         ↓
-Dry-run import report (when tooling exists)
+Generated-package validation and source reconciliation
         ↓
-DEV import (wpf-bible-qizzing)
+Dry-run import (when tooling exists)
         ↓
-Developer / product review
+DEV import and QA (wpf-bible-qizzing)
         ↓
-STAGING import (ignite-staging-01)
+Promote the exact validated package to STAGING (ignite-staging-01)
         ↓
-Final verification (synthetic personas, Security Rules as applicable)
+Committee / product approval
         ↓
-PROD import (ignite-prod-01) — explicit production target only
+Publish the same approved package to PROD (ignite-prod-01) — explicit production target only
         ↓
-Published
-        ↓
-Active / Locked (by configured season status/dates)
+Active / Locked MaterialSets (by configured season status/dates)
 ```
 
-**Environment rules:** See [ENVIRONMENTS.md](ENVIRONMENTS.md). Content is **promoted through the import workflow**, not by copying Firestore databases between projects. General seed scripts must not target Production.
+**Environment rules:** See [ENVIRONMENTS.md](ENVIRONMENTS.md). Content is **promoted through the import workflow** as the **exact validated package**, not by copying Firestore databases between projects. General seed scripts must not target Production.
 
-**Season status alignment (PRD §5.3):** Draft → Committee Validated → Published → Active / Locked → Archived. This runbook focuses on the **import and publish** path into Firebase; committee approval happens **before** developer import.
+**Season status alignment (PRD §5.3):** Draft → Committee Validated → Published → Active / Locked → Archived. This runbook focuses on the **import and publish** path into Firebase; committee approval of material happens **before** developer import; committee/product approval of the validated package happens before PROD publish.
 
 ---
 
@@ -65,7 +84,7 @@ Invalid content must **fail before publication** (PRD §50). When import tooling
 
 | Area | Examples |
 |------|----------|
-| **Card identity** | Unique card numbers within a season; season/card identity (ADR-002) |
+| **Card identity** | Unique card numbers within a MaterialSet; identity is `seasonId + materialSetId + cardId` (ADR-002) |
 | **Scripture** | Required reference and text |
 | **Divisions** | Division assignments and requirements |
 | **Annotations** | Structure and required fields |
@@ -75,7 +94,9 @@ Invalid content must **fail before publication** (PRD §50). When import tooling
 
 The tooling should produce a **readable import summary** and require an **explicit target environment**. Production import requires an **additional safeguard** beyond DEV/STAGING (playbook §9).
 
-**UNRESOLVED:** Concrete import file/package format and toolchain — see [ADR Open Decisions](../architecture/decisions/README.md).
+**Phase ownership (Sprint 3):** Phase 0 documents this contract only. **Phase 1 — Domain Model & Business Rules** establishes the domain/content contracts imported material must satisfy. **Phase 2 — Official Content Persistence, Import & Validation** owns spreadsheet/schema design, source validation, deterministic conversion, generated package schema, reconciliation, readable reports, dry-run, DEV import, package provenance/fingerprinting, STAGING promotion foundations, and production safeguards. Do not move those implementations into Phase 0. Later final integration/security verification should confirm production controls before release.
+
+Exact columns/schema/CLI remain open for Phase 2 — see [ADR Open Decisions](../architecture/decisions/README.md).
 
 ---
 
@@ -109,6 +130,7 @@ Use before each environment promotion:
 
 - [ ] Material is **committee-approved** and matches the intended `seasonId`.
 - [ ] Target environment is **explicit** (DEV → STAGING → PROD).
+- [ ] Promotion uses the **exact validated package** (same provenance/fingerprint when tooling exists) — not a divergent rebuild or Firestore copy.
 - [ ] Validation report shows **no blocking errors**.
 - [ ] Synthetic review uses [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md) where applicable.
 - [ ] `firestore.rules` in git is reconciled before any rules deploy ([ENVIRONMENTS.md](ENVIRONMENTS.md)).
@@ -118,9 +140,12 @@ Use before each environment promotion:
 
 ## Implementation placeholders
 
-| Sprint | Expected work |
-|--------|----------------|
-| **Sprint 3** | Import/validation tooling, season lifecycle configuration, locked-content enforcement, staging-before-production publishing process, synthetic season fixtures |
+| Sprint / phase | Expected work |
+|----------------|----------------|
+| **Sprint 3 Phase 0** | Documentation / contract only (this runbook + playbook alignment) — no spreadsheet, schema, converter, or import implementation |
+| **Sprint 3 Phase 1** | Domain model & business rules — content contracts imported material must satisfy |
+| **Sprint 3 Phase 2** | Spreadsheet/template authoring source, validation, deterministic generation, package provenance, dry-run/DEV import, STAGING promotion foundations, production safeguards |
+| **Sprint 3 (broader)** | Season lifecycle configuration, locked-content enforcement, synthetic season fixtures |
 | **Sprint 4+** | Entitlement-gated access to published seasons (purchase before full access) |
 | **Post-MVP** | Controlled in-season correction workflow (if ever required) |
 

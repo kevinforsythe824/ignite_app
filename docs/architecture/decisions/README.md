@@ -53,6 +53,8 @@ If the PRD already states the decision, prefer citing the PRD. Add an ADR when t
 
 Do not mark a decision **Accepted** when the PRD still leaves it open. Unresolved items belong in [Open Decisions](#open-decisions), not in fake Accepted ADRs.
 
+**Accepted** ADRs may be **amended** in place when a later sprint refines (does not replace) the decision. Keep the original Decision text and record the change in an Amendment section. Use **Superseded** only when a later ADR replaces the decision.
+
 ## How the sources relate
 
 Order of authority (playbook §1):
@@ -80,8 +82,8 @@ Folder layout remains in [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 | ADR | Title | Status |
 |-----|-------|--------|
 | [ADR-001](ADR-001-persistence-domain-and-repository.md) | Persistence, domain ownership, and repository boundary | Accepted |
-| [ADR-002](ADR-002-season-isolation-and-card-identity.md) | Season isolation and card identity | Accepted |
-| [ADR-003](ADR-003-learning-state-and-recall-history.md) | Learning-state ownership and recall history | Accepted |
+| [ADR-002](ADR-002-season-isolation-and-card-identity.md) | Season isolation and card identity | Accepted (amended 2026-09-15) |
+| [ADR-003](ADR-003-learning-state-and-recall-history.md) | Learning-state ownership and recall history | Accepted (amended 2026-09-15) |
 | [ADR-004](ADR-004-practice-as-separate-domain.md) | Practice is a separate domain | Accepted |
 | [ADR-005](ADR-005-ai-advisory-and-provider-isolation.md) | AI is optional, advisory, and provider-isolated | Accepted |
 | [ADR-006](ADR-006-privacy-by-design.md) | Privacy-by-design and minimum personal data | Accepted |
@@ -99,9 +101,9 @@ These items are **not Accepted**. Do not implement a guessed rule as if the PRD 
 | Topic | What is settled | What remains open | Where |
 |-------|-----------------|-------------------|-------|
 | Authentication methods | An account is required. Auth is Firebase Authentication and stays independent of Quizzer domain data. | Which sign-in methods (Apple, Google, email, etc.) and credential-recovery details | PRD §42, §56; playbook Sprint 2 guardrails |
-| Experienced / Senior eligibility | Divisions exist; user selects within age eligibility; division is season-scoped and does not change mid-season in V1. Intermediate includes first-year Quizzers 15–18. Experienced/Senior is “advanced” Quizzers 12–18. | The exact rule that distinguishes first-year vs advanced / Experienced vs Senior | PRD §8, §56 |
+| Exceptional Experienced placement | Official user-facing division name is `Experienced`. Divisions exist; user selects within age eligibility; division is season-scoped and does not change mid-season in V1. Standard MVP/self-service eligibility is defined by the PRD: ages 15–18 are Intermediate when first-year and Experienced otherwise (along with the other PRD age→division bands). | Exceptional placements outside the standard self-service rules (e.g. authorized younger Quizzer into Experienced) are not implemented in MVP onboarding and remain a future controlled/admin/coach concern | PRD §8, §56 |
 | Account deletion | Privacy-by-design and minimum data collection are required. Phase 7 lifecycle routing does **not** implement deletion (ADR-011). Sprint 2 Phase 9 establishes the inventory + future-feature contract in [`ACCOUNT_DELETION_RUNBOOK.md`](../../operations/ACCOUNT_DELETION_RUNBOOK.md); final Delete Account UI/callable is still absent. After a future deletion the resolver would see no Auth session. | Exact deletion, retention, recovery behavior, and parental-consent **server** retention | Not specified in the PRD; playbook §§10, 18 and MVP-before-release still require full destructive implementation; runbook + this row |
-| Production content import format | Committee provides official material. Import must validate identity, numbering, Scripture, divisions, annotations, quiz metadata, and tournament/rules config. Invalid content fails before publication. | Concrete production file/package format and toolchain | PRD §50; playbook Sprint 3 |
+| Production content import format | Committee provides official material. Authoring direction is settled: standardized human-readable spreadsheet/template per independent division MaterialSet is the authoritative source; app-ready JSON/packages are generated artifacts; conversion must be deterministic; packages need provenance/fingerprint for exact DEV→STAGING→PROD promotion. Import must validate identity, numbering, Scripture, divisions, annotations, quiz metadata, and tournament/rules config. Invalid content fails before publication. | Exact spreadsheet columns/workbook format, JSON/package schema, CLI/toolchain, hashing algorithm, and production automation — Sprint 3 Phase 2 after Phase 1 domain contracts | PRD §50; playbook §9 / Sprint 3; CONTENT_PUBLISHING_RUNBOOK.md |
 | Store-product mapping | One season purchase grants core season access. AI is a separate optional entitlement. Restore/access recovery is required. | Store SKUs, product IDs, and provider mapping | PRD §9, §26.4; playbook Sprint 4 |
 | Backend environments | Three Firebase projects: `dev` → `wpf-bible-qizzing`, `staging` → `ignite-staging-01`, `prod` → `ignite-prod-01`. See [`docs/operations/ENVIRONMENTS.md`](../../operations/ENVIRONMENTS.md). | Native iOS/Android app registration per environment; capturing existing remote Firestore rules before any first deploy | ENVIRONMENTS.md |
 

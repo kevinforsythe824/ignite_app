@@ -213,32 +213,44 @@ Use named synthetic personas so manual testing is repeatable.
 
 Do not build a large admin UI for the MVP unless the product requires it.
 
+Official season material uses a **controlled deterministic content pipeline**. The human-maintained authoritative authoring source for each division MaterialSet is a standardized spreadsheet/template. App-ready JSON/content packages are **generated artifacts**, not manually maintained source files. There are five independent MaterialSets (Cadet, Beginner, Junior, Intermediate, Experienced); do not assume one is a subset of another. See [`CONTENT_PUBLISHING_RUNBOOK.md`](../operations/CONTENT_PUBLISHING_RUNBOOK.md).
+
 Recommended workflow:
 
 ```text
-Committee-approved source material
+Committee-approved material
         ↓
-Structured source package/template
+Standardized MaterialSet authoring spreadsheets/templates
         ↓
-Schema + business-rule validation
+Human content review
+        ↓
+Automated schema / business validation
+        ↓
+Deterministic app-ready package / JSON generation
+        ↓
+Generated-package validation and source reconciliation
         ↓
 Dry-run import report
         ↓
-Development import/testing
+DEV import and QA
         ↓
-Staging import/review
+Promote the exact validated package to STAGING
         ↓
 Committee/product approval
         ↓
-Production publish
+Publish the same approved package to PROD
         ↓
-Active / locked season
+Active / Locked MaterialSets
 ```
+
+Routine content corrections should be made in the authoritative spreadsheet/template and regenerated — not by manually patching generated JSON or Firebase. Generation should be deterministic (same validated input → same logical output). Generated packages should carry stable provenance/fingerprint identity so DEV/STAGING/PROD promote the exact same package; hashing algorithm details are Phase 2 work.
+
+AI may assist preparation outside the authoritative pipeline if intentionally used later, but must not own authoritative Scripture conversion, interpretation, validation, or publishing.
 
 ### Import requirements
 - Validate required fields.
-- Validate unique card numbers within a season.
-- Validate season/card identity.
+- Validate unique card numbers within a MaterialSet.
+- Validate season/material-set/card identity (`seasonId + materialSetId + cardId`).
 - Validate division assignments.
 - Validate annotations and quiz metadata.
 - Validate tournament/rule configuration when provided.
@@ -249,7 +261,7 @@ Active / locked season
 
 After a season becomes Active/Locked, ordinary tooling must not silently edit authoritative content.
 
-Corrections, if ever required, follow a separate controlled correction runbook with an audit record.
+Corrections, if ever required during an Active/Locked season, follow a separate controlled correction runbook with an audit record.
 
 ## 10. Account lifecycle principle
 
@@ -489,12 +501,14 @@ Explicitly plan:
 Explicitly plan:
 - Season lifecycle/configuration.
 - Season-scoped division participation.
-- Import/validation tooling.
+- Import/validation tooling (Phase ownership below).
 - Active-season selection boundary.
 - Locked content enforcement.
-- Staging-before-production publishing process.
+- Staging-before-production publishing process (exact validated package promotion).
 - Synthetic season fixtures for test coverage.
 - Update [`ACCOUNT_DELETION_RUNBOOK.md`](../operations/ACCOUNT_DELETION_RUNBOOK.md) when adding user-owned season participation or related persistent data.
+
+**Content-pipeline phase ownership:** Phase 1 (Domain Model & Business Rules) establishes the domain/content contracts imported material must satisfy. Phase 2 (Official Content Persistence, Import & Validation) owns spreadsheet/template schema, source validation, deterministic conversion, generated JSON/package schema, reconciliation, readable reports, dry-run, DEV import, package provenance/fingerprinting, STAGING promotion foundations, and production safeguards. Phase 0 documents the contract only — do not implement Phase 2 tooling in Phase 0. Later final integration/security verification should confirm production controls before release. Details: [`CONTENT_PUBLISHING_RUNBOOK.md`](../operations/CONTENT_PUBLISHING_RUNBOOK.md).
 
 ### Sprint 4 — Purchase & Access
 Explicitly plan:

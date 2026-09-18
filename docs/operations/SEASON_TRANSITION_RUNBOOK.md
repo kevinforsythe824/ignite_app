@@ -94,8 +94,8 @@ Sprint 4 owns entitlement domain, sandbox testing, and backend access enforcemen
 Per ADR-002 and PRD §§3.3, 7:
 
 - Previous-season learning state must **never** participate in current-season calculations.
-- Card identity is **`seasonId + cardId`** — no cross-season progress copy.
-- Overlapping Scripture references across seasons are **independent curriculum entities**.
+- Card identity is **`seasonId + materialSetId + cardId`** — no cross-season or cross-MaterialSet progress copy.
+- Overlapping Scripture references across seasons or MaterialSets are **independent curriculum entities**.
 
 Archived seasons remain available as **historical/read-only** learning context where product rules allow; they do not become the active season automatically.
 
@@ -105,7 +105,7 @@ Archived seasons remain available as **historical/read-only** learning context w
 
 - Division is **season-scoped** (PRD §8). A Quizzer’s division does **not** change mid-season in V1; it may change when the **next** season is established.
 - Returning users need explicit **new-season setup** (age/eligibility, division selection) per playbook §10 and Sprint 2 personas (e.g. `s2-returning-authenticated-001`).
-- **UNRESOLVED:** Experienced/Senior vs first-year 15–18 eligibility — do not automate division outcomes until product decides ([TEST_PERSONAS.md](../testing/TEST_PERSONAS.md), ADR Open Decisions).
+- Standard MVP/self-service eligibility is defined by the PRD: ages 15–18 are Intermediate when first-year and Experienced otherwise. Exceptional placements outside the standard self-service rules are not implemented in MVP onboarding and remain a future controlled/admin/coach concern ([ADR Open Decisions](../architecture/decisions/README.md)).
 
 ---
 

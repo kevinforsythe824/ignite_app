@@ -29,7 +29,7 @@ Canonical sources (read them; do not duplicate them here):
 
 - Respect strict Season isolation: seasons do not share curriculum or learning state (PRD §§5, 7).
 - Respect active-season content immutability once a season is Active/Locked (PRD §6).
-- Learning state is owned by Quizzer + Season + Card, not by Deck (PRD §§13.4, 15).
+- Learning state is owned by Quizzer + Season + MaterialSet + Card, not by Deck (PRD §§13.4, 15).
 
 ## Configuration vs literals
 

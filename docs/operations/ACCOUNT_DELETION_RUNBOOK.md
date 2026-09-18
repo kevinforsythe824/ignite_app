@@ -142,7 +142,7 @@ Playbook §18 Sprint 2–4 guardrails point here. Prefer updating this file in t
 |-------------|----------------------|-----------------|-------|
 | Season participation / region / division / track | User- or season-scoped docs TBD | Sprint 3 | Must remain deletable without touching global curriculum |
 | Entitlements / purchases | Entitlement records + store linkage TBD | Sprint 4 | Store billing history may outlive Ignite deletion |
-| Progress / activity | Learning-state docs TBD | Sprint 6 | Owned by Quizzer + Season + Card (PRD), not Deck |
+| Progress / activity | Learning-state docs TBD | Sprint 6 | Owned by Quizzer + Season + MaterialSet + Card (PRD), not Deck |
 | Mastery | Mastery records TBD | Sprint 7 | |
 | Practice history | Practice session docs TBD | Sprint 8 | |
 | Analytics user records | Analytics store TBD | Sprint 9 | Prefer aggregate / non-PII; if user-keyed, inventory here |
