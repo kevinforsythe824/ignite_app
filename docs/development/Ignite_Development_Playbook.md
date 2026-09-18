@@ -237,8 +237,8 @@ Active / locked season
 
 ### Import requirements
 - Validate required fields.
-- Validate unique card numbers within a season.
-- Validate season/card identity.
+- Validate unique card numbers within a MaterialSet.
+- Validate season/material-set/card identity (`seasonId + materialSetId + cardId`).
 - Validate division assignments.
 - Validate annotations and quiz metadata.
 - Validate tournament/rule configuration when provided.

@@ -1,8 +1,9 @@
 # ADR-003: Learning-state ownership and recall history
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-09-15)
 - **Date:** 2026-08-17
-- **Related PRD:** §§13.3–13.4, 15–17, 32–35, 56
+- **Amended:** 2026-09-15
+- **Related PRD:** §§13.3–13.4, 15–17, 32–35, 37, 56, 63
 
 ## Context
 
@@ -32,3 +33,25 @@ Deck-owned mastery would fork state whenever a card appears in multiple decks. E
 - Mastery owned by deck membership — rejected in PRD §§13.4, 56.
 - Recalculating full history on every Flashcard open — rejected in PRD §17.
 - Last-write-wins device sync — rejected in PRD §33.
+
+## Amendment (2026-09-15)
+
+Sprint 3 requires MaterialSet-aware learning ownership. The 2026-08-17 decision remains in force for **deck-independent mastery**, **RecallEvents as authoritative history**, **materialized Progress / Mastery snapshots**, **server authority after processing**, and **not last-write-wins**. The ownership clause above is refined; it is no longer the canonical learning key.
+
+This is an in-place amendment, not a replacement ADR. This document does not implement Progress, RecallEvent, Mastery, or Study activity/history (Sprints 6–7). It records the ownership boundary so later systems do not treat Cards from different MaterialSets as the same learning object.
+
+### Previous ownership (pre-MaterialSet)
+
+Learning state was owned by **Quizzer + Season + Card**. RecallEvent identity fields were described as `eventId`, `userId`, `seasonId`, `cardId`, plus result, timestamp, and related session/device metadata.
+
+### Why Sprint 3 requires this refinement
+
+Card identity is now **`seasonId + materialSetId + cardId`** (ADR-002 amendment; PRD §§12.3, 15, 37, 63). The same Scripture reference in two MaterialSets is two independent Cards. Learning records keyed only by Quizzer + Season + Card would merge those Cards.
+
+### Canonical ownership (in force)
+
+- Learning state (Progress, RecallEvent, Mastery, and Study activity/history) is owned by **Quizzer + Season + MaterialSet + Card**, not by Quizzer + Deck + Card, and not by Quizzer + Season + Card alone.
+- Decks still hold membership references only. They do not copy Cards and do not own mastery.
+- Future RecallEvents, Progress snapshots, and Mastery records must include MaterialSet in their identity/authorization boundary so Cards from different MaterialSets cannot collide.
+
+Persist and authorize future learning records by quizzer, season, material set, and card.

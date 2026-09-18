@@ -65,7 +65,7 @@ Invalid content must **fail before publication** (PRD §50). When import tooling
 
 | Area | Examples |
 |------|----------|
-| **Card identity** | Unique card numbers within a season; season/card identity (ADR-002) |
+| **Card identity** | Unique card numbers within a MaterialSet; identity is `seasonId + materialSetId + cardId` (ADR-002) |
 | **Scripture** | Required reference and text |
 | **Divisions** | Division assignments and requirements |
 | **Annotations** | Structure and required fields |
