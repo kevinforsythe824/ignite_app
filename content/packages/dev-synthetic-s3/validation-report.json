@@ -1,0 +1,49 @@
+{
+  "errors": [],
+  "reconciliation": {
+    "counts": {
+      "annotationsPerMaterialSet": {
+        "beginner": 2,
+        "cadet": 2,
+        "experienced": 3,
+        "intermediate": 4,
+        "junior": 3
+      },
+      "annotationsPerType": {
+        "crossReference": 1,
+        "frequency": 2,
+        "highlight": 4,
+        "keyword": 2,
+        "underline": 3,
+        "uniqueBeginning": 1,
+        "uniqueEnding": 1
+      },
+      "cardsPerMaterialSet": {
+        "beginner": 3,
+        "cadet": 3,
+        "experienced": 3,
+        "intermediate": 3,
+        "junior": 3
+      },
+      "cardsPerSection": {
+        "beginner:unit-a": 2,
+        "beginner:unit-b": 1,
+        "cadet:unit-1": 2,
+        "cadet:unit-2": 1,
+        "experienced:set-a": 2,
+        "experienced:set-b": 1,
+        "intermediate:block-1": 2,
+        "intermediate:block-2": 1,
+        "junior:part-1": 3
+      },
+      "generatedCardCount": 15,
+      "sourceCardCount": 15
+    },
+    "mismatches": [],
+    "unmappedSourceValues": []
+  },
+  "schemaVersion": "1.0.0",
+  "seasonId": "dev-synthetic-s3",
+  "status": "passed",
+  "warnings": []
+}

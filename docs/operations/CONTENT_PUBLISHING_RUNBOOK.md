@@ -2,7 +2,7 @@
 
 Intended workflow for importing and publishing **official season content** into Ignite.
 
-**Status:** Planning skeleton — Phase 0 documents the settled authoring → generate → validate → promote contract. Spreadsheet schema, converters, import CLI, and lifecycle automation remain **Sprint 3 Phase 2** (after Phase 1 domain contracts).
+**Status:** Phase 2A.1 complete for authoring → validate → deterministic package. Dry-run/DEV import, STAGING promotion, and production publish remain **Phase 2A.2 / later**. Official committee source mapping remains **Phase 2B**.
 
 **Sources:** [PRD](../product/PRD.md) (§§5–7, 50), [Development Playbook](../development/Ignite_Development_Playbook.md) (§9), [ADR-002](../architecture/decisions/ADR-002-season-isolation-and-card-identity.md), [ENVIRONMENTS.md](ENVIRONMENTS.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md).
 
@@ -36,11 +36,44 @@ Ignite’s official season material uses a **controlled deterministic content pi
 
 **Determinism:** the same validated source input should produce the same logical generated output.
 
-**Provenance:** the generated package should ultimately carry a stable package identity / fingerprint / hash (or equivalent) so Ignite can confirm that the exact package tested and approved in DEV/STAGING is the package promoted to PROD. Exact hashing/algorithm design is **not** Phase 0 work.
+**Provenance:** the generated package carries a SHA-256 fingerprint of canonical `content.json` (sorted keys, stable array order). `manifest.json` may include `generatedAt`; that timestamp must not change the fingerprint. See [ADR-013](../architecture/decisions/ADR-013-content-package-and-authoring-source-boundary.md).
 
 **AI:** may assist humans in preparation outside the authoritative pipeline if intentionally used later, but AI must **not** be responsible for authoritative Scripture conversion, interpretation, validation, or publishing.
 
-Exact spreadsheet columns, workbook format, JSON schema, CLI commands, package layout, and hashing implementation remain **Phase 2** design work (after Phase 1 domain contracts). See [ADR Open Decisions](../architecture/decisions/README.md).
+### Phase 2A.1 implemented contract
+
+Human workflow (no Google Sheets API, no credentials, no network):
+
+```text
+Ignite standardized workbook template
+        ↓
+Google Sheets or compatible spreadsheet editor
+        ↓
+Export / download as .xlsx
+        ↓
+Local Ignite content tooling
+        ↓
+Source validation → IR → package validation → reconciliation
+        ↓
+content/packages/{seasonId}/{content,manifest,validation-report}.json
+```
+
+| Piece | Location |
+|-------|----------|
+| Tooling | [`scripts/content-pipeline/`](../../scripts/content-pipeline/) |
+| Template | [`content/authoring/templates/ignite-materialset-workbook-v1.xlsx`](../../content/authoring/templates/ignite-materialset-workbook-v1.xlsx) |
+| Synthetic DEV workbooks | [`content/authoring/synthetic/`](../../content/authoring/synthetic/) — **NOT official material** |
+| Authoring guide | [`content/authoring/README.md`](../../content/authoring/README.md) |
+
+Workbook sheets: `README`, `Package`, `MaterialSet`, `Sections`, `Cards`, `Annotations`, `QuizMetadata`, `CrossReferences`.
+
+Developer commands: `npm run content:validate-source`, `content:generate-package`, `content:validate-package`. These never write Firebase and have no STAGING/PROD publish path.
+
+Identifier policy (synthetic/DEV): humans enter season/material/division identity, card numbers, Scripture, section slugs, and annotation targeting. `cardId` is optional and otherwise derived as `c{cardNumber}`. `annotationId` is derived. Official ID mapping is Phase 2B.
+
+Annotation targeting (provisional): Phase 2A.1 supports `phraseOccurrence` + 1-based `occurrenceIndex` only. Unresolved or ambiguous targets fail. Official committee mapping is Phase 2B.
+
+`scripts/firestore-seed/` is unchanged and is not a publisher.
 
 ---
 
@@ -94,9 +127,7 @@ Invalid content must **fail before publication** (PRD §50). When import tooling
 
 The tooling should produce a **readable import summary** and require an **explicit target environment**. Production import requires an **additional safeguard** beyond DEV/STAGING (playbook §9).
 
-**Phase ownership (Sprint 3):** Phase 0 documents this contract only. **Phase 1 — Domain Model & Business Rules** establishes the domain/content contracts imported material must satisfy. **Phase 2 — Official Content Persistence, Import & Validation** owns spreadsheet/schema design, source validation, deterministic conversion, generated package schema, reconciliation, readable reports, dry-run, DEV import, package provenance/fingerprinting, STAGING promotion foundations, and production safeguards. Do not move those implementations into Phase 0. Later final integration/security verification should confirm production controls before release.
-
-Exact columns/schema/CLI remain open for Phase 2 — see [ADR Open Decisions](../architecture/decisions/README.md).
+**Phase ownership (Sprint 3):** Phase 0 documented the contract. Phase 1 established domain contracts. **Phase 2A.1** implemented workbook schema, source validation, deterministic conversion, generated package schema, reconciliation, readable reports, and SHA-256 fingerprinting against synthetic DEV material. **Phase 2A.2** owns dry-run, DEV import, and seed replacement. **Phase 2B** owns official committee source mapping. STAGING promotion foundations and production safeguards remain later. See [ADR Open Decisions](../architecture/decisions/README.md).
 
 ---
 
@@ -144,7 +175,9 @@ Use before each environment promotion:
 |----------------|----------------|
 | **Sprint 3 Phase 0** | Documentation / contract only (this runbook + playbook alignment) — no spreadsheet, schema, converter, or import implementation |
 | **Sprint 3 Phase 1** | Domain model & business rules — content contracts imported material must satisfy |
-| **Sprint 3 Phase 2** | Spreadsheet/template authoring source, validation, deterministic generation, package provenance, dry-run/DEV import, STAGING promotion foundations, production safeguards |
+| **Sprint 3 Phase 2A.1** | Spreadsheet/template authoring source, validation, deterministic generation, package provenance/fingerprinting (complete) |
+| **Sprint 3 Phase 2A.2** | Dry-run importer, DEV import, seed replacement — not implemented here |
+| **Sprint 3 Phase 2B** | Official committee source mapping and official annotation targeting |
 | **Sprint 3 (broader)** | Season lifecycle configuration, locked-content enforcement, synthetic season fixtures |
 | **Sprint 4+** | Entitlement-gated access to published seasons (purchase before full access) |
 | **Post-MVP** | Controlled in-season correction workflow (if ever required) |
@@ -156,6 +189,7 @@ Use before each environment promotion:
 | Document | Role |
 |----------|------|
 | [PRD §50](../product/PRD.md) | Content import requirements |
+| [ADR-013](../architecture/decisions/ADR-013-content-package-and-authoring-source-boundary.md) | Authoring source vs generated package boundary |
 | [Playbook §9](../development/Ignite_Development_Playbook.md) | Recommended import workflow |
 | [ENVIRONMENTS.md](ENVIRONMENTS.md) | DEV / STAGING / PROD promotion rules |
 | [SEASON_TRANSITION_RUNBOOK.md](SEASON_TRANSITION_RUNBOOK.md) | Moving from one season to the next |

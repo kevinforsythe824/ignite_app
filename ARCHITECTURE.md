@@ -24,8 +24,13 @@ ignite_app/
 ├── firestore.rules              # Curriculum + user profile ownership rules
 ├── firestore.indexes.json
 ├── __tests__/                   # Jest business-logic & smoke tests
+│   ├── content-pipeline/        # Sprint 3 Phase 2A.1 workbook/package tooling tests
 │   └── firestore-rules/         # Real rules unit tests (npm run test:firestore-rules)
+├── content/                     # Authoring workbooks + generated packages (not app runtime)
+│   ├── authoring/               # Versioned xlsx template + SYNTHETIC / DEV workbooks
+│   └── packages/                # Derived content.json / manifest / validation-report
 ├── scripts/                     # Developer tooling (not shipped in the app)
+│   ├── content-pipeline/        # Local/CI content validation + package generation (no Firebase)
 │   └── firestore-seed/          # Admin SDK import of the JSON test curriculum
 ├── .cursor/rules/               # AI coding rules (incl. project-philosophy)
 ├── src/

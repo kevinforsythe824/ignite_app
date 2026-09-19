@@ -1,0 +1,61 @@
+{
+  "cardCounts": {
+    "byMaterialSet": {
+      "beginner": 3,
+      "cadet": 3,
+      "experienced": 3,
+      "intermediate": 3,
+      "junior": 3
+    },
+    "total": 15
+  },
+  "converterVersion": "1.0.0",
+  "fingerprint": "c6f8b311eb3865ec8bf9c89d0a4275a1aaa64f6267d219722f19ee6e01d91223",
+  "generatedAt": "2026-09-19T03:27:00.572Z",
+  "materialSets": [
+    {
+      "annotationCount": 2,
+      "cardCount": 3,
+      "displayName": "Cadet — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "cadet",
+      "materialSetId": "cadet",
+      "sectionCount": 2
+    },
+    {
+      "annotationCount": 2,
+      "cardCount": 3,
+      "displayName": "Beginner — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "beginner",
+      "materialSetId": "beginner",
+      "sectionCount": 2
+    },
+    {
+      "annotationCount": 3,
+      "cardCount": 3,
+      "displayName": "Junior — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "junior",
+      "materialSetId": "junior",
+      "sectionCount": 1
+    },
+    {
+      "annotationCount": 4,
+      "cardCount": 3,
+      "displayName": "Intermediate — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "intermediate",
+      "materialSetId": "intermediate",
+      "sectionCount": 2
+    },
+    {
+      "annotationCount": 3,
+      "cardCount": 3,
+      "displayName": "Experienced — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "experienced",
+      "materialSetId": "experienced",
+      "sectionCount": 2
+    }
+  ],
+  "schemaVersion": "1.0.0",
+  "seasonId": "dev-synthetic-s3",
+  "sourceVersion": "synthetic-1.0.0",
+  "validationStatus": "passed"
+}

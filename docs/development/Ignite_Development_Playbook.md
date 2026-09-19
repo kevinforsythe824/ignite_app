@@ -243,7 +243,7 @@ Publish the same approved package to PROD
 Active / Locked MaterialSets
 ```
 
-Routine content corrections should be made in the authoritative spreadsheet/template and regenerated — not by manually patching generated JSON or Firebase. Generation should be deterministic (same validated input → same logical output). Generated packages should carry stable provenance/fingerprint identity so DEV/STAGING/PROD promote the exact same package; hashing algorithm details are Phase 2 work.
+Routine content corrections should be made in the authoritative spreadsheet/template and regenerated — not by manually patching generated JSON or Firebase. Generation should be deterministic (same validated input → same logical output). Generated packages carry a SHA-256 fingerprint of canonical logical content (ADR-013). Official committee source mapping remains Phase 2B.
 
 AI may assist preparation outside the authoritative pipeline if intentionally used later, but must not own authoritative Scripture conversion, interpretation, validation, or publishing.
 

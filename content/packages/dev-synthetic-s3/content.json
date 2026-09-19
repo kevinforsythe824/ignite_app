@@ -1,0 +1,587 @@
+{
+  "materialSets": [
+    {
+      "cards": [
+        {
+          "annotations": [
+            {
+              "annotationId": "c1__keyword__bb2314d2cb6c",
+              "cardId": "c1",
+              "notes": "SYNTHETIC keyword",
+              "resolvedTarget": {
+                "end": 5,
+                "start": 0
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "Light",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "keyword"
+            }
+          ],
+          "cardId": "c1",
+          "cardNumber": 1,
+          "crossReferences": [],
+          "materialSetId": "cadet",
+          "reference": "SynTest 1:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-1",
+          "tags": [
+            "shared-ref",
+            "short"
+          ],
+          "verseText": "Light shines."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c2__highlight__3ca8c1699ac1",
+              "cardId": "c2",
+              "notes": "Second occurrence of a repeated phrase",
+              "resolvedTarget": {
+                "end": 32,
+                "start": 24
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 2,
+                "phrase": "the word",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "highlight"
+            }
+          ],
+          "cardId": "c2",
+          "cardNumber": 2,
+          "crossReferences": [],
+          "materialSetId": "cadet",
+          "reference": "SynTest 1:2",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-1",
+          "tags": [
+            "repeated"
+          ],
+          "verseText": "the word was spoken and the word was heard and the word remained."
+        },
+        {
+          "annotations": [],
+          "cardId": "c3",
+          "cardNumber": 3,
+          "crossReferences": [],
+          "materialSetId": "cadet",
+          "reference": "SynTest 1:3",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-2",
+          "tags": [],
+          "verseText": "Hope grows in quiet fields where hope is planted and hope is watered."
+        }
+      ],
+      "displayName": "Cadet — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "cadet",
+      "materialSetId": "cadet",
+      "seasonId": "dev-synthetic-s3",
+      "sections": [
+        {
+          "cardIds": [
+            "c1",
+            "c2"
+          ],
+          "description": "Opening synthetic unit",
+          "displayOrder": 1,
+          "materialSetId": "cadet",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-1",
+          "title": "Unit 1"
+        },
+        {
+          "cardIds": [
+            "c3"
+          ],
+          "displayOrder": 2,
+          "materialSetId": "cadet",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-2",
+          "title": "Unit 2"
+        }
+      ]
+    },
+    {
+      "cards": [
+        {
+          "annotations": [
+            {
+              "annotationId": "c1__underline__8bada408c5d2",
+              "cardId": "c1",
+              "resolvedTarget": {
+                "end": 12,
+                "start": 6
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "shines",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "underline"
+            }
+          ],
+          "cardId": "c1",
+          "cardNumber": 10,
+          "crossReferences": [],
+          "materialSetId": "beginner",
+          "reference": "SynTest 1:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-a",
+          "tags": [
+            "shared-ref"
+          ],
+          "verseText": "Light shines."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c2__highlight__1db106d92593",
+              "cardId": "c2",
+              "resolvedTarget": {
+                "end": 8,
+                "start": 0
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "the word",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "highlight"
+            }
+          ],
+          "cardId": "c2",
+          "cardNumber": 11,
+          "crossReferences": [],
+          "materialSetId": "beginner",
+          "reference": "SynTest 1:2",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-a",
+          "tags": [],
+          "verseText": "the word was spoken and the word was heard and the word remained."
+        },
+        {
+          "annotations": [],
+          "cardId": "c4",
+          "cardNumber": 12,
+          "crossReferences": [],
+          "materialSetId": "beginner",
+          "quizMetadata": {
+            "pointValue": 10,
+            "questionHint": "SYNTHETIC long-verse practice hint"
+          },
+          "reference": "SynTest 2:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-b",
+          "tags": [
+            "long"
+          ],
+          "verseText": "A long fabricated study line remains here so the pipeline can store extended Scripture without treating it as official material. Peace covers the valley and peace covers the hill and peace remains overnight."
+        }
+      ],
+      "displayName": "Beginner — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "beginner",
+      "materialSetId": "beginner",
+      "seasonId": "dev-synthetic-s3",
+      "sections": [
+        {
+          "cardIds": [
+            "c1",
+            "c2"
+          ],
+          "displayOrder": 1,
+          "materialSetId": "beginner",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-a",
+          "title": "Unit A"
+        },
+        {
+          "cardIds": [
+            "c4"
+          ],
+          "displayOrder": 2,
+          "materialSetId": "beginner",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "unit-b",
+          "title": "Unit B"
+        }
+      ]
+    },
+    {
+      "cards": [
+        {
+          "annotations": [
+            {
+              "annotationId": "c1__crossReference__2907d727cfb7",
+              "cardId": "c1",
+              "resolvedTarget": {
+                "end": 5,
+                "start": 0
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "Light",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "crossReference"
+            }
+          ],
+          "cardId": "c1",
+          "cardNumber": 5,
+          "crossReferences": [
+            {
+              "fromCardId": "c1",
+              "notes": "SYNTHETIC cross-reference",
+              "toCardId": "c10",
+              "toReference": "SynTest 3:1"
+            }
+          ],
+          "materialSetId": "junior",
+          "quizMetadata": {
+            "questionHint": "SYNTHETIC junior hint"
+          },
+          "reference": "SynTest 1:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "part-1",
+          "tags": [],
+          "verseText": "Light shines."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c10__uniqueBeginning__c8ff6b928470",
+              "cardId": "c10",
+              "notes": "SYNTHETIC unique beginning — not official notation",
+              "resolvedTarget": {
+                "end": 12,
+                "start": 0
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "Alpha begins",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "uniqueBeginning"
+            }
+          ],
+          "cardId": "c10",
+          "cardNumber": 6,
+          "crossReferences": [],
+          "materialSetId": "junior",
+          "reference": "SynTest 3:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "part-1",
+          "tags": [],
+          "verseText": "Alpha begins the saying."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c11__uniqueEnding__dc2f267ef76b",
+              "cardId": "c11",
+              "notes": "SYNTHETIC unique ending — not official notation",
+              "resolvedTarget": {
+                "end": 25,
+                "start": 11
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "finishes omega",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "uniqueEnding"
+            }
+          ],
+          "cardId": "c11",
+          "cardNumber": 7,
+          "crossReferences": [],
+          "materialSetId": "junior",
+          "reference": "SynTest 3:2",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "part-1",
+          "tags": [],
+          "verseText": "The saying finishes omega."
+        }
+      ],
+      "displayName": "Junior — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "junior",
+      "materialSetId": "junior",
+      "seasonId": "dev-synthetic-s3",
+      "sections": [
+        {
+          "cardIds": [
+            "c1",
+            "c10",
+            "c11"
+          ],
+          "displayOrder": 1,
+          "materialSetId": "junior",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "part-1",
+          "title": "Part 1"
+        }
+      ]
+    },
+    {
+      "cards": [
+        {
+          "annotations": [],
+          "cardId": "c1",
+          "cardNumber": 20,
+          "crossReferences": [],
+          "materialSetId": "intermediate",
+          "reference": "SynTest 1:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "block-1",
+          "tags": [],
+          "verseText": "Light shines."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c20__frequency__a2a2ef2ae01d",
+              "cardId": "c20",
+              "notes": "SYNTHETIC frequency placeholder",
+              "resolvedTarget": {
+                "end": 15,
+                "start": 0
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "count the stars",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "frequency"
+            },
+            {
+              "annotationId": "c20__frequency__e80de2e71aed",
+              "cardId": "c20",
+              "resolvedTarget": {
+                "end": 32,
+                "start": 17
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 2,
+                "phrase": "count the stars",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "frequency"
+            }
+          ],
+          "cardId": "c20",
+          "cardNumber": 21,
+          "crossReferences": [],
+          "materialSetId": "intermediate",
+          "reference": "SynTest 4:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "block-1",
+          "tags": [],
+          "verseText": "count the stars, count the stars, then rest."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c21__highlight__0fc683f59aed",
+              "cardId": "c21",
+              "resolvedTarget": {
+                "end": 55,
+                "start": 47
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 3,
+                "phrase": "the word",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "highlight"
+            },
+            {
+              "annotationId": "c21__underline__869e1d6edea9",
+              "cardId": "c21",
+              "resolvedTarget": {
+                "end": 19,
+                "start": 13
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "spoken",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "underline"
+            }
+          ],
+          "cardId": "c21",
+          "cardNumber": 22,
+          "crossReferences": [],
+          "materialSetId": "intermediate",
+          "reference": "SynTest 1:2",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "block-2",
+          "tags": [],
+          "verseText": "the word was spoken and the word was heard and the word remained."
+        }
+      ],
+      "displayName": "Intermediate — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "intermediate",
+      "materialSetId": "intermediate",
+      "seasonId": "dev-synthetic-s3",
+      "sections": [
+        {
+          "cardIds": [
+            "c1",
+            "c20"
+          ],
+          "displayOrder": 1,
+          "materialSetId": "intermediate",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "block-1",
+          "title": "Block 1"
+        },
+        {
+          "cardIds": [
+            "c21"
+          ],
+          "displayOrder": 2,
+          "materialSetId": "intermediate",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "block-2",
+          "title": "Block 2"
+        }
+      ]
+    },
+    {
+      "cards": [
+        {
+          "annotations": [],
+          "cardId": "c1",
+          "cardNumber": 100,
+          "crossReferences": [
+            {
+              "fromCardId": "c1",
+              "notes": "SYNTHETIC experienced cross-ref",
+              "toCardId": "c30",
+              "toReference": "SynTest 2:1"
+            }
+          ],
+          "indexCode": "SYN-A",
+          "materialSetId": "experienced",
+          "reference": "SynTest 1:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "set-a",
+          "tags": [],
+          "verseText": "Light shines."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c30__highlight__e68f611727ef",
+              "cardId": "c30",
+              "resolvedTarget": {
+                "end": 134,
+                "start": 129
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "Peace",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "highlight"
+            },
+            {
+              "annotationId": "c30__underline__457a83949445",
+              "cardId": "c30",
+              "resolvedTarget": {
+                "end": 162,
+                "start": 157
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "peace",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "underline"
+            }
+          ],
+          "cardId": "c30",
+          "cardNumber": 101,
+          "crossReferences": [],
+          "materialSetId": "experienced",
+          "quizMetadata": {
+            "pointValue": 20,
+            "questionHint": "SYNTHETIC experienced hint"
+          },
+          "reference": "SynTest 2:1",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "set-a",
+          "tags": [],
+          "verseText": "A long fabricated study line remains here so the pipeline can store extended Scripture without treating it as official material. Peace covers the valley and peace covers the hill and peace remains overnight."
+        },
+        {
+          "annotations": [
+            {
+              "annotationId": "c31__keyword__0e4bb7c6b335",
+              "cardId": "c31",
+              "resolvedTarget": {
+                "end": 4,
+                "start": 0
+              },
+              "sourceTarget": {
+                "occurrenceIndex": 1,
+                "phrase": "Hope",
+                "strategy": "phraseOccurrence"
+              },
+              "type": "keyword"
+            }
+          ],
+          "cardId": "c31",
+          "cardNumber": 102,
+          "crossReferences": [],
+          "materialSetId": "experienced",
+          "reference": "SynTest 1:3",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "set-b",
+          "tags": [],
+          "verseText": "Hope grows in quiet fields where hope is planted and hope is watered."
+        }
+      ],
+      "displayName": "Experienced — SYNTHETIC / DEV / NOT OFFICIAL MATERIAL",
+      "divisionId": "experienced",
+      "materialSetId": "experienced",
+      "seasonId": "dev-synthetic-s3",
+      "sections": [
+        {
+          "cardIds": [
+            "c1",
+            "c30"
+          ],
+          "displayOrder": 1,
+          "materialSetId": "experienced",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "set-a",
+          "title": "Set A"
+        },
+        {
+          "cardIds": [
+            "c31"
+          ],
+          "displayOrder": 2,
+          "materialSetId": "experienced",
+          "seasonId": "dev-synthetic-s3",
+          "sectionId": "set-b",
+          "title": "Set B"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": "1.0.0",
+  "season": {
+    "endDate": "2099-12-31",
+    "name": "DEV Synthetic Sprint 3 — NOT OFFICIAL MATERIAL",
+    "seasonId": "dev-synthetic-s3",
+    "startDate": "2099-01-01",
+    "status": "draft"
+  },
+  "sourceVersion": "synthetic-1.0.0"
+}
