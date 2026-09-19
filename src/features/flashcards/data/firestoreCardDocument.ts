@@ -1,8 +1,9 @@
 /**
- * Persistence shape of a Card at:
+ * Persistence shape of a Card at the Phase 1 flat path:
  *   seasons/{seasonId}/cards/{cardId}
  *
- * Identity lives in the path (seasonId, cardId) — not duplicated on the document.
+ * Path identity is still (seasonId, cardId). Domain Cards also receive a
+ * caller-supplied materialSetId stamp until Phase 2 nests materialSets.
  * This is not the application Card domain model.
  */
 export interface FirestoreMatchedRule {

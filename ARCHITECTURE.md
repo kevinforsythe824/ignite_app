@@ -46,6 +46,8 @@ ignite_app/
 │   │   │   ├── components/      # QuizzerAvatar, SettingsRow
 │   │   │   └── utils/           # Presentation helpers (deriveInitials; getAppVersion re-export)
 │   │   ├── feedback/            # Help & Feedback (callable → feedbackSubmissions; no UID stored)
+│   │   ├── season/              # Season / Division / MaterialSet / eligibility domain (Sprint 3)
+│   │   │   └── domain/          # Pure types + policy; no UI, no Firebase
 │   │   └── flashcards/          # Full Study/Flashcards feature
 │   │       ├── components/      # Presentation UI
 │   │       ├── data/            # JSON + Firestore persistence DTOs → Card mappers
@@ -75,7 +77,7 @@ AppProviders
                  └─ RootNavigator (native stack; owns account lifecycle routing — ADR-011)
                       └─ MainTabs (bottom tabs, initial = Study) when lifecycle destination is the shell
                            └─ FlashcardStudyRoute
-                                ├─ useFlashcardCurriculum(test-season, firestoreCurriculumRepository)
+                                ├─ useFlashcardCurriculum(test-season, test-material-set, firestoreCurriculumRepository)
                                 ├─ FlashcardSessionProvider   ← feature-local state
                                 └─ FlashcardStudyScreen       ← thin: hooks + components
                                      ├─ useFlashcards()

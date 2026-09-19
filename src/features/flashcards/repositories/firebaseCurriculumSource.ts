@@ -10,6 +10,7 @@ const CARDS_COLLECTION = 'cards';
 /**
  * Production Firestore reads for curriculum.
  * Uses Phase 1 `getFirebaseFirestore()`; does not initialize Firebase itself.
+ * Path remains seasons/{seasonId}/cards — nested materialSets are Phase 2.
  */
 export function createFirebaseCurriculumSource(
   getDb: () => ReturnType<typeof getFirebaseFirestore> = getFirebaseFirestore,

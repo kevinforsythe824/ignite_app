@@ -1,7 +1,7 @@
 import type { FixtureCardRecord } from '../../src/features/flashcards/data/fixtureCardRecord';
 import type { FirestoreCardDocument } from '../../src/features/flashcards/data/firestoreCardDocument';
 import { InvalidCurriculumDocumentError } from '../../src/features/flashcards/data/mapFirestoreToCard';
-import { TEST_SEASON_ID } from '../../src/features/flashcards/domain/testSeason';
+import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../../src/features/flashcards/domain/testSeason';
 import mockVerseData from '../../src/data/mock-verse-data.json';
 import {
   CurriculumPersistenceError,
@@ -50,14 +50,17 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    const curriculum = await repository.getCurriculum(TEST_SEASON_ID);
+    const curriculum = await repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID);
 
     expect(curriculum).toEqual({
       seasonId: TEST_SEASON_ID,
+      materialSetId: TEST_MATERIAL_SET_ID,
       title: 'Luke 2:1-9',
+      sections: [],
       cards: [
         expect.objectContaining({
           seasonId: TEST_SEASON_ID,
+          materialSetId: TEST_MATERIAL_SET_ID,
           cardId: 'v1',
           cardNumber: 1,
           reference: 'Luke 2:1',
@@ -84,10 +87,12 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    const curriculum = await repository.getCurriculum('season-b');
+    const curriculum = await repository.getCurriculum('season-b', TEST_MATERIAL_SET_ID);
 
     expect(curriculum.seasonId).toBe('season-b');
+    expect(curriculum.materialSetId).toBe(TEST_MATERIAL_SET_ID);
     expect(curriculum.cards[0].seasonId).toBe('season-b');
+    expect(curriculum.cards[0].materialSetId).toBe(TEST_MATERIAL_SET_ID);
     expect(curriculum.cards[0].cardId).toBe('v1');
   });
 
@@ -101,7 +106,7 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    const curriculum = await repository.getCurriculum(TEST_SEASON_ID);
+    const curriculum = await repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID);
 
     expect(curriculum.cards.map((card) => card.cardId)).toEqual(['later-id', 'earlier-id']);
     expect(curriculum.cards.map((card) => card.cardNumber)).toEqual([1, 2]);
@@ -116,7 +121,7 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    const card = (await repository.getCurriculum(TEST_SEASON_ID)).cards[0];
+    const card = (await repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID)).cards[0];
 
     expect(card).not.toHaveProperty('verse_text');
     expect(card).not.toHaveProperty('card_number');
@@ -136,12 +141,12 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    await expect(repository.getCurriculum('missing-season')).rejects.toBeInstanceOf(
-      UnknownSeasonError,
-    );
-    await expect(repository.getCurriculum('missing-season')).rejects.toThrow(
-      'No curriculum available for season "missing-season"',
-    );
+    await expect(
+      repository.getCurriculum('missing-season', TEST_MATERIAL_SET_ID),
+    ).rejects.toBeInstanceOf(UnknownSeasonError);
+    await expect(
+      repository.getCurriculum('missing-season', TEST_MATERIAL_SET_ID),
+    ).rejects.toThrow('No curriculum available for season "missing-season"');
     expect(source.listCardsOrderedByNumber).not.toHaveBeenCalled();
   });
 
@@ -152,10 +157,14 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    await expect(repository.getCurriculum(TEST_SEASON_ID)).resolves.toEqual({
+    await expect(
+      repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID),
+    ).resolves.toEqual({
       seasonId: TEST_SEASON_ID,
+      materialSetId: TEST_MATERIAL_SET_ID,
       title: 'Empty season',
       cards: [],
+      sections: [],
     });
   });
 
@@ -168,7 +177,7 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    await expect(repository.getCurriculum(TEST_SEASON_ID)).rejects.toBeInstanceOf(
+    await expect(repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID)).rejects.toBeInstanceOf(
       InvalidCurriculumDocumentError,
     );
   });
@@ -182,7 +191,7 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    await expect(repository.getCurriculum(TEST_SEASON_ID)).rejects.toMatchObject({
+    await expect(repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID)).rejects.toMatchObject({
       name: 'CurriculumPersistenceError',
       code: 'permission-denied',
       message: 'You do not have permission to load this curriculum.',
@@ -199,10 +208,10 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    await expect(repository.getCurriculum(TEST_SEASON_ID)).rejects.toBeInstanceOf(
+    await expect(repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID)).rejects.toBeInstanceOf(
       CurriculumPersistenceError,
     );
-    await expect(repository.getCurriculum(TEST_SEASON_ID)).rejects.toMatchObject({
+    await expect(repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID)).rejects.toMatchObject({
       code: 'unavailable',
       message: 'Curriculum is temporarily unavailable. Check your connection and try again.',
     });
@@ -214,7 +223,7 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    await expect(repository.getCurriculum(TEST_SEASON_ID)).rejects.toMatchObject({
+    await expect(repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID)).rejects.toMatchObject({
       name: 'CurriculumPersistenceError',
       code: 'unexpected',
       message: 'Unable to load curriculum.',
@@ -232,7 +241,7 @@ describe('FirestoreCurriculumRepository', () => {
     });
     const repository = new FirestoreCurriculumRepository(source);
 
-    await expect(repository.getCurriculum(TEST_SEASON_ID)).rejects.toMatchObject({
+    await expect(repository.getCurriculum(TEST_SEASON_ID, TEST_MATERIAL_SET_ID)).rejects.toMatchObject({
       name: 'CurriculumPersistenceError',
       code: 'unexpected',
       message: 'Unable to load curriculum.',

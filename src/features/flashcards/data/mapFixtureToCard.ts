@@ -17,10 +17,12 @@ function mapMatchedRule(rule: FixtureMatchedRule): CardMatchedRule {
 export function mapFixtureToCard(
   record: FixtureCardRecord,
   seasonId: string,
+  materialSetId: string,
   cardNumber: number,
 ): Card {
   return {
     seasonId,
+    materialSetId,
     cardId: record.id,
     cardNumber,
     reference: record.reference,
@@ -35,8 +37,11 @@ export function mapFixtureToCard(
 export function mapFixturesToCards(
   records: readonly FixtureCardRecord[],
   seasonId: string,
+  materialSetId: string,
 ): Card[] {
-  return records.map((record, index) => mapFixtureToCard(record, seasonId, index + 1));
+  return records.map((record, index) =>
+    mapFixtureToCard(record, seasonId, materialSetId, index + 1),
+  );
 }
 
 function matchedRulesToParseInput(rules: readonly CardMatchedRule[]): Verse['matched_rules'] {

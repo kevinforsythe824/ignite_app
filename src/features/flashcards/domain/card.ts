@@ -1,6 +1,6 @@
 /**
  * Canonical Flashcard study unit (PRD §12).
- * Identity is seasonId + cardId — never a global verse reference.
+ * Identity is seasonId + materialSetId + cardId — never a global verse reference.
  */
 export interface CardMatchedRule {
   ruleName: string;
@@ -10,6 +10,7 @@ export interface CardMatchedRule {
 
 export interface Card {
   seasonId: string;
+  materialSetId: string;
   cardId: string;
   cardNumber: number;
   reference: string;
@@ -19,7 +20,21 @@ export interface Card {
   tags: string[];
 }
 
-/** Stable composite key for Quizzer + Season + Card scoped state. */
-export function makeCardKey(seasonId: string, cardId: string): string {
-  return `${seasonId}:${cardId}`;
+/**
+ * Future Progress / RecallEvent identity (Sprint 6–7).
+ * Type only — no persistence in Phase 1 (ADR-003).
+ */
+export type LearningCardRef = {
+  seasonId: string;
+  materialSetId: string;
+  cardId: string;
+};
+
+/** Stable composite key for Quizzer + Season + MaterialSet + Card scoped state. */
+export function makeCardKey(
+  seasonId: string,
+  materialSetId: string,
+  cardId: string,
+): string {
+  return `${seasonId}:${materialSetId}:${cardId}`;
 }

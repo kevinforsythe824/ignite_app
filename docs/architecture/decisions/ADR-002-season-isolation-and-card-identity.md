@@ -58,3 +58,7 @@ Keeping `seasonId + cardId` as the canonical key would let those independent Car
 - **MaterialSets are independent curriculum boundaries** inside a Season. Cards must not accidentally collide across MaterialSets.
 
 Season isolation is unchanged: curriculum and learning state are never shared or transferred across seasons. MaterialSet isolation is additional: Cards from different MaterialSets in the same Season are distinct objects even when the Scripture reference matches.
+
+### Phase 1 runtime note (2026-09-18)
+
+Canonical stored/cache identity is `seasonId + materialSetId + cardId` (`makeCardKey`). A live Flashcard session still keys `statusById` and `activeCardIds` by `cardId` only, because curriculum load always supplies exactly one MaterialSet. That session-local shortcut is valid only while that invariant holds. Do not treat cardId as a cross-MaterialSet key.

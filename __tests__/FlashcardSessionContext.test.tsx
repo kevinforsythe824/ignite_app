@@ -2,7 +2,7 @@ import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 import type { Card } from '../src/features/flashcards/domain/card';
-import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
+import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import useFlashcards, {
   type UseFlashcardsResult,
 } from '../src/features/flashcards/hooks/useFlashcards';
@@ -11,6 +11,7 @@ import { FlashcardSessionProvider } from '../src/features/flashcards/state/Flash
 const testCards: Card[] = [
   {
     seasonId: TEST_SEASON_ID,
+    materialSetId: TEST_MATERIAL_SET_ID,
     cardId: 't1',
     cardNumber: 1,
     reference: 'Test 1:1',
@@ -21,6 +22,7 @@ const testCards: Card[] = [
   },
   {
     seasonId: TEST_SEASON_ID,
+    materialSetId: TEST_MATERIAL_SET_ID,
     cardId: 't2',
     cardNumber: 2,
     reference: 'Test 1:2',
@@ -31,6 +33,7 @@ const testCards: Card[] = [
   },
   {
     seasonId: TEST_SEASON_ID,
+    materialSetId: TEST_MATERIAL_SET_ID,
     cardId: 't3',
     cardNumber: 3,
     reference: 'Test 1:3',

@@ -1,5 +1,5 @@
 import type { Card } from '../src/features/flashcards/domain/card';
-import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
+import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import {
   countAnsweredStatuses,
   deriveFlashcardSession,
@@ -9,6 +9,7 @@ import { DEFAULT_FLASHCARD_SETTINGS } from '../src/features/flashcards/types/set
 const cards: Card[] = [
   {
     seasonId: TEST_SEASON_ID,
+    materialSetId: TEST_MATERIAL_SET_ID,
     cardId: 'v1',
     cardNumber: 1,
     reference: 'Test 1:1',
@@ -19,6 +20,7 @@ const cards: Card[] = [
   },
   {
     seasonId: TEST_SEASON_ID,
+    materialSetId: TEST_MATERIAL_SET_ID,
     cardId: 'v2',
     cardNumber: 2,
     reference: 'Test 1:2',
@@ -29,6 +31,7 @@ const cards: Card[] = [
   },
   {
     seasonId: TEST_SEASON_ID,
+    materialSetId: TEST_MATERIAL_SET_ID,
     cardId: 'v3',
     cardNumber: 3,
     reference: 'Test 1:3',

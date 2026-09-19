@@ -2,6 +2,7 @@ import { FirebaseNotConfiguredError } from '../../../services/firebase';
 import type { FirestoreCardSnapshot } from '../data/mapFirestoreToCard';
 import { InvalidCurriculumDocumentError, mapFirestoreCardsToDomain } from '../data/mapFirestoreToCard';
 import {
+  UnknownMaterialSetError,
   UnknownSeasonError,
   type CurriculumRepository,
   type StudyCurriculum,
@@ -52,6 +53,7 @@ function firestoreErrorCode(error: unknown): string | undefined {
 function translateCurriculumError(error: unknown, seasonId: string): never {
   if (
     error instanceof UnknownSeasonError ||
+    error instanceof UnknownMaterialSetError ||
     error instanceof InvalidCurriculumDocumentError ||
     error instanceof CurriculumPersistenceError
   ) {
@@ -97,7 +99,7 @@ function readSeasonTitle(data: unknown, seasonId: string): string {
 export class FirestoreCurriculumRepository implements CurriculumRepository {
   constructor(private readonly source: CurriculumFirestoreSource) {}
 
-  async getCurriculum(seasonId: string): Promise<StudyCurriculum> {
+  async getCurriculum(seasonId: string, materialSetId: string): Promise<StudyCurriculum> {
     try {
       const season = await this.source.getSeason(seasonId);
       if (!season.exists) {
@@ -105,10 +107,11 @@ export class FirestoreCurriculumRepository implements CurriculumRepository {
       }
 
       const title = readSeasonTitle(season.data, seasonId);
+      // Flat seasons/{seasonId}/cards until Phase 2; stamp caller materialSetId.
       const snapshots = await this.source.listCardsOrderedByNumber(seasonId);
-      const cards = mapFirestoreCardsToDomain(snapshots, seasonId);
+      const cards = mapFirestoreCardsToDomain(snapshots, seasonId, materialSetId);
 
-      return { seasonId, title, cards };
+      return { seasonId, materialSetId, title, cards, sections: [] };
     } catch (error) {
       translateCurriculumError(error, seasonId);
     }

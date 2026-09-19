@@ -2,12 +2,23 @@ import type { CardStatus } from '../types/verse';
 
 export type AnsweredStatus = Exclude<CardStatus, 'unseen'>;
 
+/**
+ * Session maps stay cardId-keyed.
+ * Safe only because a live session always loads exactly one (seasonId, materialSetId).
+ * Cross-MaterialSet identity uses makeCardKey(seasonId, materialSetId, cardId).
+ * Do not redesign flip/swipe/navigation to composite keys while that invariant holds.
+ */
 export interface FlashcardSessionState {
   currentIndex: number;
+  /**
+   * Grades keyed by cardId within the loaded MaterialSet — not makeCardKey.
+   * A session never mixes MaterialSets (curriculum load enforces one set).
+   */
   statusById: Record<string, CardStatus>;
   /**
    * Active study order (card ids). When null, callers use curriculum order.
    * Set when filters/shuffle rebuild the list; preserved across progress reset.
+   * cardId-scoped within the session's single MaterialSet.
    */
   activeCardIds: string[] | null;
 }

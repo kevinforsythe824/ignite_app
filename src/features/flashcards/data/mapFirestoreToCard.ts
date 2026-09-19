@@ -102,13 +102,20 @@ function requireMatchedRule(
 /**
  * Maps one Firestore Card document plus path identity to the domain Card.
  * `cardNumber` comes from the document, not from query order.
+ * `materialSetId` is adapter-stamped (flat seasons/{seasonId}/cards until Phase 2).
  */
 export function mapFirestoreCardToDomain(
   document: unknown,
   seasonId: string,
+  materialSetId: string,
   cardId: string,
 ): Card {
   const resolvedSeasonId = requireNonEmptyString(seasonId, 'seasonId');
+  const resolvedMaterialSetId = requireNonEmptyString(
+    materialSetId,
+    'materialSetId',
+    resolvedSeasonId,
+  );
   const resolvedCardId = requireNonEmptyString(cardId, 'cardId', resolvedSeasonId);
 
   if (document === null || typeof document !== 'object' || Array.isArray(document)) {
@@ -122,6 +129,7 @@ export function mapFirestoreCardToDomain(
 
   return {
     seasonId: resolvedSeasonId,
+    materialSetId: resolvedMaterialSetId,
     cardId: resolvedCardId,
     cardNumber: requireCardNumber(data.card_number, resolvedSeasonId, resolvedCardId),
     reference: requireNonEmptyString(
@@ -158,8 +166,9 @@ export interface FirestoreCardSnapshot {
 export function mapFirestoreCardsToDomain(
   snapshots: readonly FirestoreCardSnapshot[],
   seasonId: string,
+  materialSetId: string,
 ): Card[] {
   return snapshots.map((snapshot) =>
-    mapFirestoreCardToDomain(snapshot.data, seasonId, snapshot.cardId),
+    mapFirestoreCardToDomain(snapshot.data, seasonId, materialSetId, snapshot.cardId),
   );
 }

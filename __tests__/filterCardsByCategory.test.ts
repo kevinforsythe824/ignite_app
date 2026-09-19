@@ -1,5 +1,5 @@
 import type { Card } from '../src/features/flashcards/domain/card';
-import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
+import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import {
   filterCardsByCategory,
   cardMatchesCategory,
@@ -8,6 +8,7 @@ import {
 function card(partial: Partial<Card> & Pick<Card, 'cardId' | 'tags'>): Card {
   return {
     seasonId: TEST_SEASON_ID,
+    materialSetId: TEST_MATERIAL_SET_ID,
     cardNumber: 1,
     reference: 'Test 1:1',
     verseText: 'Sample.',

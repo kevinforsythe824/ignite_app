@@ -1,6 +1,6 @@
 import { cardToParseInput } from '../src/features/flashcards/data/mapFixtureToCard';
 import type { Card } from '../src/features/flashcards/domain/card';
-import { TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
+import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import {
   clearVerseSegmentCache,
   getVerseSegments,
@@ -9,6 +9,7 @@ import { parseVerseToSegments } from '../src/features/flashcards/utils/parseVers
 
 const card: Card = {
   seasonId: TEST_SEASON_ID,
+  materialSetId: TEST_MATERIAL_SET_ID,
   cardId: 'cache-v1',
   cardNumber: 1,
   reference: 'Cache 1:1',
@@ -47,5 +48,14 @@ describe('getVerseSegments', () => {
 
     expect(afterClear).toEqual(first);
     expect(afterClear).not.toBe(first);
+  });
+
+  it('does not collide when the same cardId exists in another MaterialSet', () => {
+    const otherSet: Card = { ...card, materialSetId: 'other-material-set' };
+    const first = getVerseSegments(card);
+    const other = getVerseSegments(otherSet);
+
+    expect(other).toEqual(first);
+    expect(other).not.toBe(first);
   });
 });

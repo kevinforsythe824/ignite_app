@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import FlashcardStudyScreen from '../../../screens/FlashcardStudyScreen';
 import { colors, spacing, typography } from '../../../shared/theme';
-import { TEST_SEASON_ID } from '../domain/testSeason';
+import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../domain/testSeason';
 import { useFlashcardCurriculum } from '../hooks/useFlashcardCurriculum';
 import { firestoreCurriculumRepository } from '../repositories';
 import { FlashcardSessionProvider } from '../state/FlashcardSessionContext';
@@ -19,6 +19,7 @@ export const studyCurriculumRepository = firestoreCurriculumRepository;
 export function FlashcardStudyRoute(): React.JSX.Element {
   const { loadState, reload } = useFlashcardCurriculum(
     TEST_SEASON_ID,
+    TEST_MATERIAL_SET_ID,
     studyCurriculumRepository,
   );
 

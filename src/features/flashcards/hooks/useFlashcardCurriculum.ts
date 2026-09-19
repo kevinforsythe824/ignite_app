@@ -26,6 +26,7 @@ function errorMessage(error: unknown): string {
  */
 export function useFlashcardCurriculum(
   seasonId: string,
+  materialSetId: string,
   repository: CurriculumRepository,
 ): UseFlashcardCurriculumResult {
   const [loadState, setLoadState] = useState<CurriculumLoadState>({ status: 'loading' });
@@ -42,7 +43,7 @@ export function useFlashcardCurriculum(
     let cancelled = false;
     setLoadState({ status: 'loading' });
 
-    repositoryRef.current.getCurriculum(seasonId).then(
+    repositoryRef.current.getCurriculum(seasonId, materialSetId).then(
       (curriculum) => {
         if (cancelled) {
           return;
@@ -64,7 +65,7 @@ export function useFlashcardCurriculum(
     return () => {
       cancelled = true;
     };
-  }, [seasonId, reloadToken]);
+  }, [seasonId, materialSetId, reloadToken]);
 
   return { loadState, reload };
 }
