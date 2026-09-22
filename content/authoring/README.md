@@ -22,7 +22,7 @@ Required human fields:
 - Sections: `sectionId`, `title`, `displayOrder`
 - Cards: `cardNumber`, `reference`, `verseText`, `sectionId`
 
-Optional human fields: section `description`, card `indexCode`, `tags`, quiz metadata, cross references, annotation `notes`.
+Optional human fields: section `description`, card `indexCode`, `tags`, quiz metadata, cross references, annotation `notes`, and annotation `occurrenceIndex` when the exact phrase occurs only once.
 
 Optional technical identifier: `cardId`. If blank, tooling derives `c{cardNumber}`. The same local `cardId` may appear in different MaterialSets. Official committee ID mapping is Phase 2B.
 
@@ -34,14 +34,20 @@ Logical content is fingerprinted with SHA-256 over canonical JSON (sorted keys, 
 
 ## Annotation targeting (provisional)
 
-Phase 2A.1 supports a synthetic strategy only:
+Phase 2A.1 supports a synthetic strategy only. On the Annotations sheet, set `strategy` to `phraseOccurrence` and type the exact phrase from the verse.
+
+`occurrenceIndex` is optional when the exact phrase occurs once in the verse. If the phrase occurs more than once, enter the 1-based occurrence number identifying the intended match (1 for the first time it appears, 2 for the second, and so on).
 
 ```text
 strategy: phraseOccurrence
-phrase: "..."
+phrase: "the word"
 occurrenceIndex: 2
 ```
 
-The converter resolves `{ start, end }` and keeps the source-target record for audit. It will not silently pick the first match when a phrase repeats.
+Leave `occurrenceIndex` blank when the phrase appears only once. You do not need to type 1. Workbooks that already contain 1 remain valid. Either way, the generated package records occurrence 1.
+
+The converter resolves `{ start, end }` and keeps that explicit occurrence for audit. It will not guess when a phrase repeats. If the phrase is not in the verse, or the number you enter does not match one of the occurrences, validation fails.
+
+Matching is exact. Capitalization, punctuation, spacing, and quote characters must match the verse. The tool does not normalize or fuzzy-match the phrase.
 
 Synthetic types (`highlight`, `underline`, `keyword`, `uniqueBeginning`, `uniqueEnding`, `frequency`, `crossReference`) are **test vocabulary**. Official committee annotation mapping remains Phase 2B.

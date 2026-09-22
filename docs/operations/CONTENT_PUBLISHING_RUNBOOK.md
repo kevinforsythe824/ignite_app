@@ -71,7 +71,7 @@ Developer commands: `npm run content:validate-source`, `content:generate-package
 
 Identifier policy (synthetic/DEV): humans enter season/material/division identity, card numbers, Scripture, section slugs, and annotation targeting. `cardId` is optional and otherwise derived as `c{cardNumber}`. `annotationId` is derived. Official ID mapping is Phase 2B.
 
-Annotation targeting (provisional): Phase 2A.1 supports `phraseOccurrence` + 1-based `occurrenceIndex` only. Unresolved or ambiguous targets fail. Official committee mapping is Phase 2B.
+Annotation targeting (provisional): Phase 2A.1 supports `phraseOccurrence`. `occurrenceIndex` is optional when the exact phrase occurs once in the verse. If the phrase occurs more than once, enter the 1-based occurrence number that identifies the intended match. The pipeline does not guess among repeated phrases. Unresolved or ambiguous targets fail. Official committee mapping is Phase 2B.
 
 `scripts/firestore-seed/` is unchanged and is not a publisher.
 

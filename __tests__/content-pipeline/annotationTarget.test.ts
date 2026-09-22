@@ -50,13 +50,29 @@ describe('annotation target resolution', () => {
     expect(resolved.error?.reason).toMatch(/does not appear/);
   });
 
+  it('resolves a unique phrase with a blank occurrenceIndex as occurrence 1', () => {
+    const uniqueVerse = SYNTHETIC_VERSES.short.verseText;
+    const matches = findPhraseOccurrences(uniqueVerse, 'Light');
+    const resolved = resolveAnnotationTarget({
+      verseText: uniqueVerse,
+      sourceTarget: {
+        strategy: 'phraseOccurrence',
+        phrase: 'Light',
+      },
+    });
+
+    expect(matches).toHaveLength(1);
+    expect(resolved.error).toBeUndefined();
+    expect(resolved.occurrenceIndex).toBe(1);
+    expect(resolved.resolved).toEqual(matches[0]);
+  });
+
   it('does not silently pick the first match when the phrase repeats', () => {
     const missingIndex = resolveAnnotationTarget({
       verseText: verse,
       sourceTarget: {
         strategy: 'phraseOccurrence',
         phrase: 'the word',
-        occurrenceIndex: Number.NaN,
       },
     });
     const outOfRange = resolveAnnotationTarget({
@@ -69,7 +85,11 @@ describe('annotation target resolution', () => {
     });
 
     expect(missingIndex.error?.code).toBe('ambiguous_phrase_target');
+    expect(missingIndex.error?.reason).toBe(
+      'Phrase "the word" occurs 3 times. Enter occurrenceIndex 1, 2, or 3.',
+    );
     expect(outOfRange.error?.code).toBe('ambiguous_phrase_target');
+    expect(outOfRange.error?.reason).toMatch(/outside that range/);
     expect(missingIndex.resolved).toBeUndefined();
     expect(outOfRange.resolved).toBeUndefined();
   });

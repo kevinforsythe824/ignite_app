@@ -76,6 +76,36 @@ function readInteger(
   return cellToInteger(row.getCell(col).value);
 }
 
+/**
+ * Blank occurrenceIndex is omitted (undefined).
+ * A provided non-whole-number cell is NaN so it is not treated as blank.
+ * 0 and negative whole numbers are preserved for later range checks.
+ */
+function readOccurrenceIndex(
+  row: ExcelJS.Row,
+  columns: Map<string, number>,
+): number | undefined {
+  const col = columns.get('occurrenceIndex');
+  if (col === undefined) {
+    return undefined;
+  }
+  const raw = cellToRaw(row.getCell(col).value);
+  if (raw === undefined || raw === null || raw === '') {
+    return undefined;
+  }
+  if (typeof raw === 'number') {
+    return Number.isInteger(raw) ? raw : Number.NaN;
+  }
+  const text = String(raw).trim();
+  if (text.length === 0) {
+    return undefined;
+  }
+  if (!/^-?\d+$/.test(text)) {
+    return Number.NaN;
+  }
+  return Number.parseInt(text, 10);
+}
+
 function rowValues(row: ExcelJS.Row, columns: Map<string, number>): unknown[] {
   return [...columns.values()].map((col) => cellToRaw(row.getCell(col).value));
 }
@@ -133,7 +163,7 @@ function addReadmeSheet(workbook: ExcelJS.Workbook, options: { synthetic: boolea
     ['Cards columns (optional / technical)', 'cardId (optional explicit ID), indexCode, tags'],
     [
       'Annotations',
-      'Required: type, strategy, and a card locator (cardNumber or cardId). Phase 2A.1 strategy is phraseOccurrence with phrase + 1-based occurrenceIndex. Types listed below are SYNTHETIC/DEV vocabulary, not official committee notation. Official mapping is Phase 2B.',
+      'Required: type, strategy, and a card locator (cardNumber or cardId). For phraseOccurrence, type the exact phrase from the verse. occurrenceIndex is optional when that exact phrase occurs once — leave it blank. If the phrase occurs more than once, enter the 1-based occurrence number (1, 2, 3, …) for the match you mean. The tool will not guess. Types listed below are SYNTHETIC/DEV vocabulary, not official committee notation. Official mapping is Phase 2B.',
     ],
     [
       'Synthetic annotation types',
@@ -152,7 +182,7 @@ function addReadmeSheet(workbook: ExcelJS.Workbook, options: { synthetic: boolea
     row.getCell(1).font = { bold: true };
     row.getCell(2).value = body;
     row.getCell(2).alignment = { wrapText: true, vertical: 'top' };
-    row.height = 36;
+    row.height = title === 'Annotations' ? 72 : 36;
     row.commit();
   });
 }
@@ -351,7 +381,7 @@ function parseLoadedWorkbook(
     columns: ANNOTATION_COLUMNS,
     readRow: (row, columns, rowNumber) => {
       const cardNumber = readInteger(row, columns, 'cardNumber');
-      const occurrenceIndex = readInteger(row, columns, 'occurrenceIndex');
+      const occurrenceIndex = readOccurrenceIndex(row, columns);
       if (cardNumber !== undefined && Number.isNaN(cardNumber)) {
         errors.push(
           issue({
@@ -372,7 +402,8 @@ function parseLoadedWorkbook(
             sheet: 'Annotations',
             row: rowNumber,
             field: 'occurrenceIndex',
-            reason: 'occurrenceIndex must be an integer when provided.',
+            reason:
+              'occurrenceIndex must be a whole number when provided. Leave it blank only when the phrase occurs once.',
           }),
         );
       }
@@ -382,10 +413,7 @@ function parseLoadedWorkbook(
         type: readString(row, columns, 'type') ?? '',
         strategy: readString(row, columns, 'strategy') ?? '',
         phrase: readString(row, columns, 'phrase'),
-        occurrenceIndex:
-          occurrenceIndex !== undefined && !Number.isNaN(occurrenceIndex)
-            ? occurrenceIndex
-            : undefined,
+        occurrenceIndex,
         notes: readString(row, columns, 'notes'),
       };
     },

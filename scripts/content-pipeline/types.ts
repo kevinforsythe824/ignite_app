@@ -54,6 +54,11 @@ export interface AnnotationRow {
   type: string;
   strategy: string;
   phrase?: string;
+  /**
+   * 1-based occurrence of phrase in the verse.
+   * Optional when the exact phrase occurs once. Required when it occurs more than once.
+   * A blank cell is omitted, not malformed.
+   */
   occurrenceIndex?: number;
   notes?: string;
 }
@@ -100,7 +105,11 @@ export interface ValidationIssue {
 export interface PhraseOccurrenceTarget {
   strategy: 'phraseOccurrence';
   phrase: string;
-  /** 1-based index among non-overlapping exact matches. */
+  /**
+   * 1-based index among non-overlapping exact matches.
+   * Normalized packages always store this explicitly, including 1 when the
+   * author left a unique phrase's occurrenceIndex blank.
+   */
   occurrenceIndex: number;
 }
 

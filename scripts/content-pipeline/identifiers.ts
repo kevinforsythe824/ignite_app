@@ -43,6 +43,11 @@ export function deriveAnnotationId(input: {
   return `${sanitizeIdPart(input.cardId)}__${sanitizeIdPart(input.type)}__${digest}`;
 }
 
+/**
+ * Targeting payload for a resolved phrase occurrence.
+ * Pass the normalized 1-based index. A blank authoring cell for a unique
+ * phrase is already normalized to 1 before this is called.
+ */
 export function targetingPayloadForPhraseOccurrence(
   phrase: string,
   occurrenceIndex: number,

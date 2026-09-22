@@ -6,6 +6,7 @@ import {
 } from './constants';
 import { issue } from './errors';
 import { deriveCardId } from './identifiers';
+import { resolveAnnotationTarget } from './resolveAnnotationTarget';
 import type { AuthoringWorkbookData, ValidationIssue } from './types';
 import { isDivisionId } from '../../src/features/season/domain/division';
 import { SEASON_STATUSES } from '../../src/features/season/domain/season';
@@ -194,6 +195,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
   const cardIds = new Set<string>();
   const cardsByNumber = new Map<number, string>();
   const cardsById = new Map<string, number>();
+  const verseByCardId = new Map<string, string>();
 
   data.cards.forEach((card, index) => {
     const row = index + 2;
@@ -290,13 +292,14 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
         cardIds.add(resolvedId);
         cardsByNumber.set(card.cardNumber, resolvedId);
         cardsById.set(resolvedId, card.cardNumber);
+        verseByCardId.set(resolvedId, card.verseText);
       }
     }
   });
 
   data.annotations.forEach((annotation, index) => {
     const row = index + 2;
-    resolveLocator({
+    const locatedCardId = resolveLocator({
       cardId: annotation.cardId,
       cardNumber: annotation.cardNumber,
       cardsById,
@@ -367,19 +370,24 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
             reason: 'phrase is required for phraseOccurrence targeting.',
           }),
         );
-      }
-      if (annotation.occurrenceIndex === undefined) {
-        errors.push(
-          issue({
-            code: 'ambiguous_phrase_target',
+      } else if (locatedCardId) {
+        const verseText = verseByCardId.get(locatedCardId);
+        if (verseText !== undefined) {
+          const resolved = resolveAnnotationTarget({
+            verseText,
+            sourceTarget: {
+              strategy: PHRASE_OCCURRENCE_STRATEGY,
+              phrase: annotation.phrase,
+              occurrenceIndex: annotation.occurrenceIndex,
+            },
             workbook,
             sheet: 'Annotations',
             row,
-            field: 'occurrenceIndex',
-            reason:
-              'occurrenceIndex is required for phraseOccurrence targeting. The pipeline will not silently select the first match.',
-          }),
-        );
+          });
+          if (resolved.error) {
+            errors.push(resolved.error);
+          }
+        }
       }
     }
   });

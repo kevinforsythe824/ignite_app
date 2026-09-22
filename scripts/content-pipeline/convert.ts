@@ -57,11 +57,15 @@ function locateCardId(
   return undefined;
 }
 
-function annotationSourceTarget(row: AnnotationRow): PhraseOccurrenceTarget {
+function annotationSourceTarget(row: AnnotationRow): {
+  strategy: typeof PHRASE_OCCURRENCE_STRATEGY;
+  phrase: string;
+  occurrenceIndex?: number;
+} {
   return {
     strategy: PHRASE_OCCURRENCE_STRATEGY,
     phrase: row.phrase ?? '',
-    occurrenceIndex: row.occurrenceIndex ?? Number.NaN,
+    occurrenceIndex: row.occurrenceIndex,
   };
 }
 
@@ -177,10 +181,10 @@ function convertWorkbook(
       return;
     }
 
-    const sourceTarget = annotationSourceTarget(annotation);
+    const authoredTarget = annotationSourceTarget(annotation);
     const resolved = resolveAnnotationTarget({
       verseText: card.verseText,
-      sourceTarget,
+      sourceTarget: authoredTarget,
       workbook: workbook.workbookName,
       sheet: 'Annotations',
       row,
@@ -189,9 +193,16 @@ function convertWorkbook(
       errors.push(resolved.error);
       return;
     }
-    if (!resolved.resolved) {
+    if (!resolved.resolved || resolved.occurrenceIndex === undefined) {
       return;
     }
+
+    // Blank unique phrases are stored as explicit occurrence 1.
+    const sourceTarget: PhraseOccurrenceTarget = {
+      strategy: PHRASE_OCCURRENCE_STRATEGY,
+      phrase: authoredTarget.phrase,
+      occurrenceIndex: resolved.occurrenceIndex,
+    };
 
     const record: ContentAnnotationRecord = {
       annotationId: deriveAnnotationId({

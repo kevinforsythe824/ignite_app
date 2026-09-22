@@ -69,10 +69,18 @@ describe('source validation', () => {
     expect(errors.some((item) => item.code === 'unsupported_annotation_strategy')).toBe(true);
   });
 
-  it('treats a missing occurrenceIndex as an ambiguous phrase target', () => {
+  it('accepts a blank occurrenceIndex when the phrase occurs once', () => {
+    const workbook = cloneWorkbook(cadetSource());
+    workbook.annotations[0] = { ...workbook.annotations[0]!, occurrenceIndex: undefined };
+    expect(validateSourceWorkbook(workbook)).toEqual([]);
+  });
+
+  it('rejects a blank occurrenceIndex when the phrase occurs more than once', () => {
     const workbook = cloneWorkbook(cadetSource());
     workbook.annotations[1] = { ...workbook.annotations[1]!, occurrenceIndex: undefined };
-    expect(validateSourceWorkbook(workbook).some((item) => item.code === 'ambiguous_phrase_target')).toBe(
+    const errors = validateSourceWorkbook(workbook);
+    expect(errors.some((item) => item.code === 'ambiguous_phrase_target')).toBe(true);
+    expect(errors.some((item) => item.reason.includes('Enter occurrenceIndex 1, 2, or 3'))).toBe(
       true,
     );
   });

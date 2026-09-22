@@ -1,19 +1,48 @@
 import { PHRASE_OCCURRENCE_STRATEGY } from './constants';
 import { issue } from './errors';
-import type {
-  AnnotationSourceTarget,
-  ResolvedAnnotationSpan,
-  ValidationIssue,
-} from './types';
+import type { ResolvedAnnotationSpan, ValidationIssue } from './types';
 
 export interface AnnotationTargetResolution {
   resolved?: ResolvedAnnotationSpan;
+  /**
+   * Explicit 1-based occurrence used for this match.
+   * Set when resolution succeeds. A blank authoring cell for a unique phrase
+   * is normalized to 1 so generated packages stay deterministic.
+   */
+  occurrenceIndex?: number;
   error?: ValidationIssue;
+}
+
+/** Spreadsheet input. occurrenceIndex is omitted when the author left the cell blank. */
+export interface PhraseOccurrenceResolutionInput {
+  strategy: string;
+  phrase: string;
+  occurrenceIndex?: number;
+}
+
+function formatOccurrenceChoices(count: number): string {
+  const numbers = Array.from({ length: count }, (_, index) => String(index + 1));
+  if (numbers.length <= 1) {
+    return numbers[0] ?? '1';
+  }
+  if (numbers.length === 2) {
+    return `${numbers[0]} or ${numbers[1]}`;
+  }
+  return `${numbers.slice(0, -1).join(', ')}, or ${numbers[numbers.length - 1]}`;
+}
+
+function invalidOccurrenceReason(value: number): string {
+  if (Number.isNaN(value)) {
+    return 'occurrenceIndex must be a whole number of 1 or greater.';
+  }
+  return `occurrenceIndex must be a whole number of 1 or greater. "${value}" is not valid.`;
 }
 
 /**
  * Finds non-overlapping exact (case-sensitive) occurrences of phrase in verseText.
- * Does not silently pick the first match when the phrase appears more than once.
+ * Matching is exact: capitalization, punctuation, Unicode, quotes, and whitespace
+ * are significant. A blank occurrenceIndex resolves only when there is one match.
+ * Repeated phrases are never guessed.
  */
 export function findPhraseOccurrences(
   verseText: string,
@@ -39,7 +68,7 @@ export function findPhraseOccurrences(
 
 export function resolveAnnotationTarget(input: {
   verseText: string;
-  sourceTarget: AnnotationSourceTarget;
+  sourceTarget: PhraseOccurrenceResolutionInput;
   workbook?: string;
   sheet?: string;
   row?: number;
@@ -76,40 +105,46 @@ export function resolveAnnotationTarget(input: {
     };
   }
 
-  if (!Number.isInteger(occurrenceIndex) || occurrenceIndex < 1) {
+  if (occurrenceIndex === undefined) {
+    const onlyMatch = matches[0];
+    if (matches.length === 1 && onlyMatch) {
+      return { resolved: onlyMatch, occurrenceIndex: 1 };
+    }
     return {
       error: issue({
-        code:
-          matches.length > 1
-            ? 'ambiguous_phrase_target'
-            : 'invalid_occurrence_index',
+        code: 'ambiguous_phrase_target',
         workbook: input.workbook,
         sheet: input.sheet,
         row: input.row,
         field: 'occurrenceIndex',
-        reason:
-          matches.length > 1
-            ? `Ambiguous phrase target — "${phrase}" occurs ${matches.length} times; occurrenceIndex must select exactly one match (1-based).`
-            : 'occurrenceIndex must be a 1-based integer.',
+        reason: `Phrase "${phrase}" occurs ${matches.length} times. Enter occurrenceIndex ${formatOccurrenceChoices(matches.length)}.`,
+      }),
+    };
+  }
+
+  if (!Number.isInteger(occurrenceIndex) || occurrenceIndex < 1) {
+    return {
+      error: issue({
+        code: 'invalid_occurrence_index',
+        workbook: input.workbook,
+        sheet: input.sheet,
+        row: input.row,
+        field: 'occurrenceIndex',
+        reason: invalidOccurrenceReason(occurrenceIndex),
       }),
     };
   }
 
   if (occurrenceIndex > matches.length) {
+    const timesLabel = matches.length === 1 ? 'time' : 'times';
     return {
       error: issue({
-        code:
-          matches.length > 1
-            ? 'ambiguous_phrase_target'
-            : 'unresolved_phrase_target',
+        code: matches.length > 1 ? 'ambiguous_phrase_target' : 'unresolved_phrase_target',
         workbook: input.workbook,
         sheet: input.sheet,
         row: input.row,
         field: 'occurrenceIndex',
-        reason:
-          matches.length > 1
-            ? `Ambiguous phrase target — "${phrase}" occurs ${matches.length} times; occurrenceIndex ${occurrenceIndex} is out of range.`
-            : `Unresolved phrase target — "${phrase}" occurs ${matches.length} time(s); occurrenceIndex ${occurrenceIndex} is out of range.`,
+        reason: `Phrase "${phrase}" occurs ${matches.length} ${timesLabel}. occurrenceIndex ${occurrenceIndex} is outside that range. Enter occurrenceIndex ${formatOccurrenceChoices(matches.length)}.`,
       }),
     };
   }
@@ -128,5 +163,5 @@ export function resolveAnnotationTarget(input: {
     };
   }
 
-  return { resolved };
+  return { resolved, occurrenceIndex };
 }
