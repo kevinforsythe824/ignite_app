@@ -55,6 +55,19 @@ export function targetingPayloadForPhraseOccurrence(
   return `phraseOccurrence:${phrase}:${occurrenceIndex}`;
 }
 
+/**
+ * Identity of one phrase-occurrence annotation on a card.
+ * Phrase and occurrence are exact — notes are not part of the identity.
+ */
+export function annotationLogicalKey(input: {
+  type: string;
+  strategy: string;
+  phrase: string;
+  occurrenceIndex: number;
+}): string {
+  return [input.type, input.strategy, input.phrase, String(input.occurrenceIndex)].join('\u001f');
+}
+
 function sanitizeIdPart(value: string): string {
   const cleaned = value.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
   return cleaned.length > 0 ? cleaned : 'id';

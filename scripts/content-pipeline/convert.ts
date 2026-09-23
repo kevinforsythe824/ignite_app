@@ -4,8 +4,15 @@ import {
   PHRASE_OCCURRENCE_STRATEGY,
   isSyntheticAnnotationType,
 } from './constants';
-import { deriveAnnotationId, deriveCardId, targetingPayloadForPhraseOccurrence } from './identifiers';
+import {
+  annotationLogicalKey,
+  deriveAnnotationId,
+  deriveCardId,
+  targetingPayloadForPhraseOccurrence,
+} from './identifiers';
+import { isRejectedOccurrenceIndex } from './occurrenceIndex';
 import { resolveAnnotationTarget } from './resolveAnnotationTarget';
+import { toolingSourceRow } from './sourceRow';
 import { issue } from './errors';
 import type {
   AnnotationRow,
@@ -174,10 +181,13 @@ function convertWorkbook(
   const cardsById = new Map(cardRecords.map((card) => [card.cardId, card]));
 
   workbook.annotations.forEach((annotation, index) => {
-    const row = index + 2;
+    const row = toolingSourceRow(annotation.sourceRow, index);
     const cardId = locateCardId(annotation, cardsByNumber);
     const card = cardId ? cardsById.get(cardId) : undefined;
     if (!card || !cardId || !isSyntheticAnnotationType(annotation.type)) {
+      return;
+    }
+    if (isRejectedOccurrenceIndex(annotation)) {
       return;
     }
 
@@ -221,6 +231,53 @@ function convertWorkbook(
     };
     if (annotation.notes) {
       record.notes = annotation.notes;
+    }
+
+    const logicalKey = annotationLogicalKey({
+      type: record.type,
+      strategy: sourceTarget.strategy,
+      phrase: sourceTarget.phrase,
+      occurrenceIndex: sourceTarget.occurrenceIndex,
+    });
+    const duplicateLogical = card.annotations.some(
+      (existing) =>
+        annotationLogicalKey({
+          type: existing.type,
+          strategy: existing.sourceTarget.strategy,
+          phrase: existing.sourceTarget.phrase,
+          occurrenceIndex: existing.sourceTarget.occurrenceIndex,
+        }) === logicalKey,
+    );
+    const duplicateId = card.annotations.some(
+      (existing) => existing.annotationId === record.annotationId,
+    );
+    if (duplicateLogical || duplicateId) {
+      const detail = `type "${record.type}", strategy "${sourceTarget.strategy}", phrase "${sourceTarget.phrase}", occurrenceIndex ${sourceTarget.occurrenceIndex} (annotationId "${record.annotationId}")`;
+      if (duplicateLogical) {
+        errors.push(
+          issue({
+            code: 'duplicate_annotation',
+            workbook: workbook.workbookName,
+            sheet: 'Annotations',
+            row,
+            field: 'phrase',
+            reason: `Duplicate annotation on card "${cardId}": ${detail}.`,
+          }),
+        );
+      }
+      if (duplicateId) {
+        errors.push(
+          issue({
+            code: 'duplicate_annotation_id',
+            workbook: workbook.workbookName,
+            sheet: 'Annotations',
+            row,
+            field: 'annotationId',
+            reason: `Duplicate annotationId "${record.annotationId}" on card "${cardId}": ${detail}.`,
+          }),
+        );
+      }
+      return;
     }
     card.annotations.push(record);
   });

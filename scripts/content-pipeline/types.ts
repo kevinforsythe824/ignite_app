@@ -18,6 +18,8 @@ export interface PackageRow {
   schemaVersion: string;
   sourceMaterialReleaseDate?: string;
   igniteAvailabilityDate?: string;
+  /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
+  sourceRow?: number;
 }
 
 /** Human-authored MaterialSet sheet row. */
@@ -26,6 +28,8 @@ export interface MaterialSetRow {
   materialSetId: string;
   divisionId: string;
   displayName: string;
+  /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
+  sourceRow?: number;
 }
 
 /** Human-authored Sections sheet row. */
@@ -34,6 +38,8 @@ export interface SectionRow {
   title: string;
   displayOrder: number;
   description?: string;
+  /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
+  sourceRow?: number;
 }
 
 /** Human-authored Cards sheet row. */
@@ -45,6 +51,8 @@ export interface CardRow {
   cardId?: string;
   indexCode?: string;
   tags?: string;
+  /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
+  sourceRow?: number;
 }
 
 /** Human-authored Annotations sheet row. */
@@ -60,7 +68,15 @@ export interface AnnotationRow {
    * A blank cell is omitted, not malformed.
    */
   occurrenceIndex?: number;
+  /**
+   * True when the cell was present but not a whole number.
+   * The parser records invalid_occurrence_index. Later stages must not
+   * treat the value as blank or report a second error for the same cell.
+   */
+  occurrenceIndexMalformed?: boolean;
   notes?: string;
+  /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
+  sourceRow?: number;
 }
 
 /** Human-authored QuizMetadata sheet row. */
@@ -69,6 +85,8 @@ export interface QuizMetadataRow {
   cardId?: string;
   pointValue?: number;
   questionHint?: string;
+  /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
+  sourceRow?: number;
 }
 
 /** Human-authored CrossReferences sheet row. */
@@ -79,6 +97,8 @@ export interface CrossReferenceRow {
   toCardNumber?: number;
   toCardId?: string;
   notes?: string;
+  /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
+  sourceRow?: number;
 }
 
 export interface AuthoringWorkbookData {

@@ -51,3 +51,16 @@ The converter resolves `{ start, end }` and keeps that explicit occurrence for a
 Matching is exact. Capitalization, punctuation, spacing, and quote characters must match the verse. The tool does not normalize or fuzzy-match the phrase.
 
 Synthetic types (`highlight`, `underline`, `keyword`, `uniqueBeginning`, `uniqueEnding`, `frequency`, `crossReference`) are **test vocabulary**. Official committee annotation mapping remains Phase 2B.
+
+## What is committed
+
+The spreadsheet is the human source. A generated package is derived from it. Do not hand-edit `content.json` and treat that as the correction.
+
+| Path | Version control |
+|------|-----------------|
+| `templates/` and `synthetic/` | Tracked. Synthetic fixtures are **not** official material. |
+| `local/` | Not committed. This is where user-maintained official or in-progress workbooks live. |
+| `content/packages/dev-synthetic-s3/` | Tracked synthetic package. |
+| `content/packages/{real season}/` | Local derived output during this phase. Not committed. |
+
+Official promotion and version-control policy for production content is still a later decision. This tooling does not publish to STAGING or PROD.

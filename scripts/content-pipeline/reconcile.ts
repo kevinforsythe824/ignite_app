@@ -1,4 +1,5 @@
 import { deriveCardId } from './identifiers';
+import { isRejectedOccurrenceIndex } from './occurrenceIndex';
 import { issue } from './errors';
 import type {
   AuthoringWorkbookData,
@@ -106,7 +107,9 @@ export function reconcileSourceToPackage(
       }
     }
 
-    const sourceAnnotationCount = workbook.annotations.length;
+    const sourceAnnotationCount = workbook.annotations.filter(
+      (annotation) => !isRejectedOccurrenceIndex(annotation),
+    ).length;
     const generatedAnnotationCount = generated.cards.reduce(
       (sum, card) => sum + card.annotations.length,
       0,

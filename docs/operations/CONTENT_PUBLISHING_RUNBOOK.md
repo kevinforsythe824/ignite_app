@@ -75,6 +75,8 @@ Annotation targeting (provisional): Phase 2A.1 supports `phraseOccurrence`. `occ
 
 `scripts/firestore-seed/` is unchanged and is not a publisher.
 
+Local authoring workbooks under `content/authoring/local/` are intentionally not committed. Generated real-season packages under `content/packages/` (other than the tracked synthetic `dev-synthetic-s3` fixture) are local derived artifacts during this phase. Templates and synthetic fixtures stay in version control. The spreadsheet remains the human source; the generated package remains derived. Official promotion and version-control policy for production content is still a later decision. STAGING and PROD publishing are not implemented.
+
 ---
 
 ## Intended lifecycle flow

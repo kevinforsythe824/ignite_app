@@ -285,7 +285,7 @@ function parseLoadedWorkbook(
     workbookName,
     sheetName: 'Package',
     columns: PACKAGE_COLUMNS,
-    readRow: (row, columns) => ({
+    readRow: (row, columns, rowNumber) => ({
       seasonId: readString(row, columns, 'seasonId') ?? '',
       name: readString(row, columns, 'name') ?? '',
       startDate: readString(row, columns, 'startDate') ?? '',
@@ -295,6 +295,7 @@ function parseLoadedWorkbook(
       schemaVersion: readString(row, columns, 'schemaVersion') ?? '',
       sourceMaterialReleaseDate: readString(row, columns, 'sourceMaterialReleaseDate'),
       igniteAvailabilityDate: readString(row, columns, 'igniteAvailabilityDate'),
+      sourceRow: rowNumber,
     }),
   });
   errors.push(...packageResult.errors);
@@ -304,11 +305,12 @@ function parseLoadedWorkbook(
     workbookName,
     sheetName: 'MaterialSet',
     columns: MATERIAL_SET_COLUMNS,
-    readRow: (row, columns) => ({
+    readRow: (row, columns, rowNumber) => ({
       seasonId: readString(row, columns, 'seasonId') ?? '',
       materialSetId: readString(row, columns, 'materialSetId') ?? '',
       divisionId: readString(row, columns, 'divisionId') ?? '',
       displayName: readString(row, columns, 'displayName') ?? '',
+      sourceRow: rowNumber,
     }),
   });
   errors.push(...materialSetResult.errors);
@@ -337,6 +339,7 @@ function parseLoadedWorkbook(
         title: readString(row, columns, 'title') ?? '',
         displayOrder: displayOrder !== undefined && !Number.isNaN(displayOrder) ? displayOrder : Number.NaN,
         description: readString(row, columns, 'description'),
+        sourceRow: rowNumber,
       };
     },
   });
@@ -369,6 +372,7 @@ function parseLoadedWorkbook(
         cardId: readString(row, columns, 'cardId'),
         indexCode: readString(row, columns, 'indexCode'),
         tags: readString(row, columns, 'tags'),
+        sourceRow: rowNumber,
       };
     },
   });
@@ -382,6 +386,8 @@ function parseLoadedWorkbook(
     readRow: (row, columns, rowNumber) => {
       const cardNumber = readInteger(row, columns, 'cardNumber');
       const occurrenceIndex = readOccurrenceIndex(row, columns);
+      const occurrenceIndexMalformed =
+        occurrenceIndex !== undefined && Number.isNaN(occurrenceIndex) ? true : undefined;
       if (cardNumber !== undefined && Number.isNaN(cardNumber)) {
         errors.push(
           issue({
@@ -414,7 +420,9 @@ function parseLoadedWorkbook(
         strategy: readString(row, columns, 'strategy') ?? '',
         phrase: readString(row, columns, 'phrase'),
         occurrenceIndex,
+        ...(occurrenceIndexMalformed ? { occurrenceIndexMalformed } : {}),
         notes: readString(row, columns, 'notes'),
+        sourceRow: rowNumber,
       };
     },
   });
@@ -457,6 +465,7 @@ function parseLoadedWorkbook(
         cardId: readString(row, columns, 'cardId'),
         pointValue: pointValue !== undefined && !Number.isNaN(pointValue) ? pointValue : undefined,
         questionHint: readString(row, columns, 'questionHint'),
+        sourceRow: rowNumber,
       };
     },
   });
@@ -505,6 +514,7 @@ function parseLoadedWorkbook(
           toCardNumber !== undefined && !Number.isNaN(toCardNumber) ? toCardNumber : undefined,
         toCardId: readString(row, columns, 'toCardId'),
         notes: readString(row, columns, 'notes'),
+        sourceRow: rowNumber,
       };
     },
   });
@@ -534,11 +544,11 @@ function readSingleObjectSheet<T>(input: {
   workbookName: string;
   sheetName: string;
   columns: readonly string[];
-  readRow: (row: ExcelJS.Row, columns: Map<string, number>) => T;
+  readRow: (row: ExcelJS.Row, columns: Map<string, number>, rowNumber: number) => T;
 }): { value?: T; errors: ValidationIssue[] } {
   const list = readListSheet<T>({
     ...input,
-    readRow: (row, columns) => input.readRow(row, columns),
+    readRow: (row, columns, rowNumber) => input.readRow(row, columns, rowNumber),
   });
   if (list.values.length === 0) {
     return {

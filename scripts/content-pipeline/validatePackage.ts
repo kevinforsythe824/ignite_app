@@ -12,7 +12,9 @@ import {
   PHRASE_OCCURRENCE_STRATEGY,
 } from './constants';
 import { issue } from './errors';
+import { annotationLogicalKey } from './identifiers';
 import { resolveAnnotationTarget } from './resolveAnnotationTarget';
+import { seasonIdSegmentIssue } from './seasonIdPath';
 import type { ContentPackage, ValidationIssue } from './types';
 
 /**
@@ -51,6 +53,11 @@ export function validateContentPackage(content: ContentPackage): ValidationIssue
         reason: 'Season ID is required.',
       }),
     );
+  } else {
+    const unsafeSeasonId = seasonIdSegmentIssue(season.seasonId);
+    if (unsafeSeasonId) {
+      errors.push(unsafeSeasonId);
+    }
   }
   if (!season.name) {
     errors.push(
@@ -242,7 +249,41 @@ export function validateContentPackage(content: ContentPackage): ValidationIssue
         );
       }
 
+      const seenAnnotationIds = new Set<string>();
+      const seenLogicalAnnotations = new Set<string>();
       for (const annotation of card.annotations) {
+        if (seenAnnotationIds.has(annotation.annotationId)) {
+          errors.push(
+            issue({
+              code: 'duplicate_annotation_id',
+              field: 'annotationId',
+              reason: `Card "${card.cardId}" has duplicate annotationId "${annotation.annotationId}".`,
+            }),
+          );
+        } else {
+          seenAnnotationIds.add(annotation.annotationId);
+        }
+
+        if (annotation.sourceTarget.strategy === PHRASE_OCCURRENCE_STRATEGY) {
+          const logicalKey = annotationLogicalKey({
+            type: annotation.type,
+            strategy: annotation.sourceTarget.strategy,
+            phrase: annotation.sourceTarget.phrase,
+            occurrenceIndex: annotation.sourceTarget.occurrenceIndex,
+          });
+          if (seenLogicalAnnotations.has(logicalKey)) {
+            errors.push(
+              issue({
+                code: 'duplicate_annotation',
+                field: 'phrase',
+                reason: `Card "${card.cardId}" has a duplicate ${annotation.type} annotation for phrase "${annotation.sourceTarget.phrase}" at occurrence ${annotation.sourceTarget.occurrenceIndex}.`,
+              }),
+            );
+          } else {
+            seenLogicalAnnotations.add(logicalKey);
+          }
+        }
+
         if (!isSyntheticAnnotationType(annotation.type)) {
           errors.push(
             issue({

@@ -1,12 +1,18 @@
 import {
+  MATERIAL_SET_COLUMNS,
+  PACKAGE_COLUMNS,
   PHRASE_OCCURRENCE_STRATEGY,
+  REQUIRED_PACKAGE_COLUMNS,
   isSupportedAnnotationStrategy,
   isSupportedContentSchemaVersion,
   isSyntheticAnnotationType,
 } from './constants';
 import { issue } from './errors';
 import { deriveCardId } from './identifiers';
+import { isRejectedOccurrenceIndex } from './occurrenceIndex';
 import { resolveAnnotationTarget } from './resolveAnnotationTarget';
+import { seasonIdSegmentIssue } from './seasonIdPath';
+import { toolingSourceRow } from './sourceRow';
 import type { AuthoringWorkbookData, ValidationIssue } from './types';
 import { isDivisionId } from '../../src/features/season/domain/division';
 import { SEASON_STATUSES } from '../../src/features/season/domain/season';
@@ -37,7 +43,8 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
   const workbook = data.workbookName;
 
   const pkg = data.package;
-  const packageFields: Array<[keyof typeof pkg, string]> = [
+  const packageRow = toolingSourceRow(pkg.sourceRow, 0);
+  const packageFields: Array<[(typeof REQUIRED_PACKAGE_COLUMNS)[number], string]> = [
     ['seasonId', 'Season ID is required.'],
     ['name', 'Season name is required.'],
     ['startDate', 'Season startDate is required.'],
@@ -47,7 +54,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
     ['schemaVersion', 'schemaVersion is required.'],
   ];
   for (const [field, reason] of packageFields) {
-    const missing = requireText(pkg[field], field, { workbook, sheet: 'Package', row: 2 }, reason);
+    const missing = requireText(pkg[field], field, { workbook, sheet: 'Package', row: packageRow }, reason);
     if (missing) {
       errors.push(missing);
     }
@@ -59,7 +66,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
         code: 'unsupported_schema_version',
         workbook,
         sheet: 'Package',
-        row: 2,
+        row: packageRow,
         field: 'schemaVersion',
         reason: `Unsupported schemaVersion "${pkg.schemaVersion}".`,
       }),
@@ -72,22 +79,33 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
         code: 'invalid_season_status',
         workbook,
         sheet: 'Package',
-        row: 2,
+        row: packageRow,
         field: 'status',
         reason: `Unknown season status "${pkg.status}".`,
       }),
     );
   }
 
+  if (pkg.seasonId.length > 0) {
+    const unsafeSeasonId = seasonIdSegmentIssue(pkg.seasonId, {
+      workbook,
+      sheet: 'Package',
+      row: packageRow,
+    });
+    if (unsafeSeasonId) {
+      errors.push(unsafeSeasonId);
+    }
+  }
+
   for (const field of ['startDate', 'endDate', 'sourceMaterialReleaseDate', 'igniteAvailabilityDate'] as const) {
-    const value = pkg[field];
+    const value = normalizedPackageMetadataValue(field, pkg[field]);
     if (value && !ISO_DATE.test(value)) {
       errors.push(
         issue({
           code: 'invalid_date',
           workbook,
           sheet: 'Package',
-          row: 2,
+          row: packageRow,
           field,
           reason: `${field} must be an ISO date (YYYY-MM-DD) when provided.`,
         }),
@@ -96,14 +114,20 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
   }
 
   const ms = data.materialSet;
-  const msFields: Array<[keyof typeof ms, string]> = [
+  const materialSetRow = toolingSourceRow(ms.sourceRow, 0);
+  const msFields: Array<[(typeof MATERIAL_SET_COLUMNS)[number], string]> = [
     ['seasonId', 'Season ID is required.'],
     ['materialSetId', 'MaterialSet ID is required.'],
     ['divisionId', 'Division ID is required.'],
     ['displayName', 'MaterialSet displayName is required.'],
   ];
   for (const [field, reason] of msFields) {
-    const missing = requireText(ms[field], field, { workbook, sheet: 'MaterialSet', row: 2 }, reason);
+    const missing = requireText(
+      ms[field],
+      field,
+      { workbook, sheet: 'MaterialSet', row: materialSetRow },
+      reason,
+    );
     if (missing) {
       errors.push(missing);
     }
@@ -115,7 +139,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
         code: 'invalid_division_id',
         workbook,
         sheet: 'MaterialSet',
-        row: 2,
+        row: materialSetRow,
         field: 'divisionId',
         reason: `Division ID "${ms.divisionId}" is not an official division.`,
       }),
@@ -128,7 +152,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
         code: 'season_id_mismatch',
         workbook,
         sheet: 'MaterialSet',
-        row: 2,
+        row: materialSetRow,
         field: 'seasonId',
         reason: `MaterialSet seasonId "${ms.seasonId}" does not match Package seasonId "${pkg.seasonId}".`,
       }),
@@ -137,7 +161,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
 
   const sectionIds = new Set<string>();
   data.sections.forEach((section, index) => {
-    const row = index + 2;
+    const row = toolingSourceRow(section.sourceRow, index);
     if (!section.sectionId) {
       errors.push(
         issue({
@@ -198,7 +222,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
   const verseByCardId = new Map<string, string>();
 
   data.cards.forEach((card, index) => {
-    const row = index + 2;
+    const row = toolingSourceRow(card.sourceRow, index);
     if (!Number.isInteger(card.cardNumber)) {
       errors.push(
         issue({
@@ -298,7 +322,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
   });
 
   data.annotations.forEach((annotation, index) => {
-    const row = index + 2;
+    const row = toolingSourceRow(annotation.sourceRow, index);
     const locatedCardId = resolveLocator({
       cardId: annotation.cardId,
       cardNumber: annotation.cardNumber,
@@ -370,6 +394,20 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
             reason: 'phrase is required for phraseOccurrence targeting.',
           }),
         );
+      } else if (isRejectedOccurrenceIndex(annotation)) {
+        if (!annotation.occurrenceIndexMalformed) {
+          errors.push(
+            issue({
+              code: 'invalid_occurrence_index',
+              workbook,
+              sheet: 'Annotations',
+              row,
+              field: 'occurrenceIndex',
+              reason:
+                'occurrenceIndex must be a whole number when provided. Leave it blank only when the phrase occurs once.',
+            }),
+          );
+        }
       } else if (locatedCardId) {
         const verseText = verseByCardId.get(locatedCardId);
         if (verseText !== undefined) {
@@ -393,7 +431,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
   });
 
   data.quizMetadata.forEach((rowData, index) => {
-    const row = index + 2;
+    const row = toolingSourceRow(rowData.sourceRow, index);
     resolveLocator({
       cardId: rowData.cardId,
       cardNumber: rowData.cardNumber,
@@ -423,7 +461,7 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
   });
 
   data.crossReferences.forEach((rowData, index) => {
-    const row = index + 2;
+    const row = toolingSourceRow(rowData.sourceRow, index);
     resolveLocator({
       cardId: rowData.fromCardId,
       cardNumber: rowData.fromCardNumber,
@@ -569,15 +607,7 @@ export function validateSourceCollection(
     return errors;
   }
 
-  const seasonIds = new Set(workbooks.map((item) => item.package.seasonId));
-  if (seasonIds.size > 1) {
-    errors.push(
-      issue({
-        code: 'season_id_mismatch',
-        reason: `Workbooks disagree on seasonId: ${[...seasonIds].sort().join(', ')}.`,
-      }),
-    );
-  }
+  errors.push(...validatePackageMetadataAgreement(workbooks));
 
   const materialSetIds = new Map<string, string>();
   const divisionIds = new Map<string, string>();
@@ -612,5 +642,97 @@ export function validateSourceCollection(
     }
   }
 
+  return errors;
+}
+
+const ABSENT_PACKAGE_METADATA = '(absent)';
+
+function isOptionalPackageField(field: (typeof PACKAGE_COLUMNS)[number]): boolean {
+  return !(REQUIRED_PACKAGE_COLUMNS as readonly string[]).includes(field);
+}
+
+/** Optional package fields treat undefined, empty, and whitespace-only as absent. */
+export function normalizedPackageMetadataValue(
+  field: (typeof PACKAGE_COLUMNS)[number],
+  value: string | undefined,
+): string | undefined {
+  if (!isOptionalPackageField(field)) {
+    return value;
+  }
+  if (value === undefined) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}
+
+function displayPackageMetadataValue(value: string | undefined): string {
+  return value === undefined ? ABSENT_PACKAGE_METADATA : `"${value}"`;
+}
+
+function metadataComparisonKey(value: string | undefined): string {
+  return value === undefined ? '\u0000' : `v:${value}`;
+}
+
+function commonPackageMetadataValue(
+  workbooks: readonly AuthoringWorkbookData[],
+  field: (typeof PACKAGE_COLUMNS)[number],
+): string | undefined {
+  const groups = new Map<string, { value: string | undefined; count: number; firstIndex: number }>();
+  workbooks.forEach((workbook, index) => {
+    const value = normalizedPackageMetadataValue(field, workbook.package[field]);
+    const key = metadataComparisonKey(value);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.count += 1;
+      return;
+    }
+    groups.set(key, { value, count: 1, firstIndex: index });
+  });
+
+  let selected: { value: string | undefined; count: number; firstIndex: number } | undefined;
+  for (const group of groups.values()) {
+    if (
+      !selected ||
+      group.count > selected.count ||
+      (group.count === selected.count && group.firstIndex < selected.firstIndex)
+    ) {
+      selected = group;
+    }
+  }
+  return selected?.value;
+}
+
+function validatePackageMetadataAgreement(
+  workbooks: readonly AuthoringWorkbookData[],
+): ValidationIssue[] {
+  const errors: ValidationIssue[] = [];
+  for (const field of PACKAGE_COLUMNS) {
+    const values = workbooks.map((workbook) =>
+      normalizedPackageMetadataValue(field, workbook.package[field]),
+    );
+    const distinct = new Set(values.map(metadataComparisonKey));
+    if (distinct.size <= 1) {
+      continue;
+    }
+
+    const expected = commonPackageMetadataValue(workbooks, field);
+    workbooks.forEach((workbook, index) => {
+      const actual = values[index];
+      if (actual === expected) {
+        return;
+      }
+      errors.push(
+        issue({
+          code: 'package_field_mismatch',
+          workbook: workbook.workbookName,
+          sheet: 'Package',
+          row: toolingSourceRow(workbook.package.sourceRow, 0),
+          field,
+          reason: `Package ${field} is ${displayPackageMetadataValue(actual)}; expected ${displayPackageMetadataValue(expected)}.`,
+        }),
+      );
+    });
+  }
   return errors;
 }

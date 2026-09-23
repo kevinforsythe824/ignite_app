@@ -17,6 +17,7 @@ import type {
   ValidationIssue,
   ValidationReport,
 } from './types';
+import { resolvePackageOutputDir } from './seasonIdPath';
 import { validateContentPackage } from './validatePackage';
 import { validateSourceCollection, validateSourceWorkbook } from './validateSource';
 import { parseWorkbookBuffer, parseWorkbookFile } from './workbookIo';
@@ -235,7 +236,19 @@ export async function generatePackageFromPath(
     return result;
   }
 
-  const outputDir = path.join(outputRoot, result.content.season.seasonId);
+  const located = resolvePackageOutputDir(outputRoot, result.content.season.seasonId);
+  if ('error' in located) {
+    return {
+      ...result,
+      status: 'failed',
+      report: {
+        ...result.report,
+        status: 'failed',
+        errors: [located.error, ...result.report.errors],
+      },
+    };
+  }
+  const outputDir = located.outputDir;
   await mkdir(outputDir, { recursive: true });
   await writeFile(path.join(outputDir, 'content.json'), stablePrettyJson(result.content), 'utf8');
   await writeFile(path.join(outputDir, 'manifest.json'), stablePrettyJson(result.manifest), 'utf8');

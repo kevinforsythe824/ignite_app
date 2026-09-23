@@ -64,3 +64,14 @@ secrets/
 # generated native folders
 /ios
 /android
+
+# User-maintained local authoring. Templates and synthetic fixtures stay tracked.
+content/authoring/local/
+
+# Locally generated real-season packages (2027, 2028, …).
+# The synthetic golden package stays tracked. A later promotion may
+# add an explicit exception or git add -f; do not do that in Phase 2A.2.
+content/packages/*
+!content/packages/README.md
+!content/packages/dev-synthetic-s3/
+!content/packages/dev-synthetic-s3/**

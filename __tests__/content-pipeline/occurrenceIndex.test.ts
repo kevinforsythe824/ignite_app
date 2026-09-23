@@ -1,13 +1,17 @@
 /**
  * @jest-environment node
  */
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { ANNOTATION_COLUMNS } from '../../scripts/content-pipeline/constants';
 import { convertWorkbooksToPackage } from '../../scripts/content-pipeline/convert';
 import { canonicalize, fingerprintContent } from '../../scripts/content-pipeline/fingerprint';
-import { runPipelineFromWorkbooks } from '../../scripts/content-pipeline/pipeline';
+import { runPipelineFromWorkbooks, validateSourcePath } from '../../scripts/content-pipeline/pipeline';
 import { findPhraseOccurrences } from '../../scripts/content-pipeline/resolveAnnotationTarget';
 import { buildAllSyntheticWorkbooks, SYNTHETIC_VERSES } from '../../scripts/content-pipeline/syntheticData';
 import { cadetSource, cloneWorkbook, workbookBufferFromData } from '../../scripts/content-pipeline/testSupport';
+import { validateSourceWorkbook } from '../../scripts/content-pipeline/validateSource';
 import type { AuthoringWorkbookData } from '../../scripts/content-pipeline/types';
 import {
   createAuthoringWorkbook,
@@ -123,9 +127,9 @@ describe('phraseOccurrence occurrenceIndex', () => {
     expect(reasons.some((reason) => reason.includes('"-2" is not valid'))).toBe(true);
   });
 
-  it('rejects decimal and malformed occurrenceIndex values', async () => {
+  it('rejects decimal and malformed occurrenceIndex values once per cell', async () => {
     const reasons = failureReasons(withOccurrence(1.5, 0));
-    expect(reasons.some((reason) => reason.includes('"1.5" is not valid'))).toBe(true);
+    expect(reasons.filter((reason) => reason.includes('"1.5" is not valid'))).toHaveLength(1);
 
     const source = cadetSource();
     const workbook = createAuthoringWorkbook(source, { synthetic: true });
@@ -145,19 +149,46 @@ describe('phraseOccurrence occurrenceIndex', () => {
       await workbookToBuffer(workbook),
       source.workbookName,
     );
-    expect(parsed.errors.filter((item) => item.code === 'invalid_occurrence_index')).toHaveLength(
-      2,
-    );
+    const parserErrors = parsed.errors.filter((item) => item.code === 'invalid_occurrence_index');
+    expect(parserErrors).toHaveLength(2);
+    expect(parserErrors.map((item) => item.row).sort()).toEqual([2, 3]);
     expect(parsed.data?.annotations[0]?.occurrenceIndex).toBeNaN();
     expect(parsed.data?.annotations[1]?.occurrenceIndex).toBeNaN();
+    expect(parsed.data?.annotations[0]?.occurrenceIndexMalformed).toBe(true);
+    expect(parsed.data?.annotations[1]?.occurrenceIndexMalformed).toBe(true);
+    expect(parsed.data?.annotations[0]?.occurrenceIndex).not.toBeUndefined();
     if (!parsed.data) {
       throw new Error('expected parsed workbook data');
     }
-    const pipeline = withCadetSeason(parsed.data);
-    expect(pipeline.status).toBe('failed');
     expect(
-      pipeline.report.errors.filter((item) => item.code === 'invalid_occurrence_index').length,
-    ).toBeGreaterThanOrEqual(2);
+      validateSourceWorkbook(parsed.data).filter((item) => item.code === 'invalid_occurrence_index'),
+    ).toEqual([]);
+
+    const parent = await mkdtemp(path.join(os.tmpdir(), 'ignite-occurrence-'));
+    try {
+      const cadetBuffer = await workbookToBuffer(workbook);
+      for (const data of buildAllSyntheticWorkbooks()) {
+        const buffer =
+          data.materialSet.materialSetId === 'cadet'
+            ? cadetBuffer
+            : await workbookBufferFromData(data, { synthetic: true });
+        await writeFile(path.join(parent, data.workbookName), buffer);
+      }
+      const result = await validateSourcePath(parent);
+      const occurrenceErrors = result.report.errors.filter(
+        (item) => item.code === 'invalid_occurrence_index',
+      );
+      expect(result.status).toBe('failed');
+      expect(occurrenceErrors).toHaveLength(2);
+      expect(occurrenceErrors.map((item) => item.row).sort()).toEqual([2, 3]);
+      expect(
+        occurrenceErrors.every((item) =>
+          item.reason.includes('must be a whole number when provided'),
+        ),
+      ).toBe(true);
+    } finally {
+      await rm(parent, { recursive: true, force: true });
+    }
   });
 
   it('keeps the synthetic dataset valid when occurrenceIndex is explicit', () => {
