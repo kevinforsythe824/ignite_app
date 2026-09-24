@@ -37,7 +37,7 @@ A durable authoring-source vs generated-package boundary keeps corrections in hu
 
 - Developers run local/CI scripts (`content:validate-source`, `content:generate-package`, `content:validate-package`) with no Google or Firebase credentials.
 - `scripts/firestore-seed/` remains a test-curriculum importer, not a publisher.
-- Phase 2A.2 may persist/import a validated package later; it must not invent a second authoring source.
+- Phase 2A.2 Slice 3 plans and diffs a validated package (ADR-014). It must not invent a second authoring source, and it does not write to Firebase.
 - Official WPF/Board file mapping, production import, and Flashcard presentation of package annotations are out of scope here.
 
 ## Alternatives considered
@@ -51,4 +51,4 @@ A durable authoring-source vs generated-package boundary keeps corrections in hu
 
 - Official committee content-source mapping and identifier policy
 - Official annotation types and targeting strategies beyond the synthetic `phraseOccurrence` strategy
-- Dry-run / DEV importer and seed replacement (Phase 2A.2)
+- DEV apply/replacement and repository cutover remain later Phase 2A.2 slices (ADR-014). Official mapping stays Phase 2B.

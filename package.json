@@ -57,7 +57,10 @@
     "content:generate-package": "tsx scripts/content-pipeline/cli/generatePackageCli.ts",
     "content:validate-package": "tsx scripts/content-pipeline/cli/validatePackageCli.ts",
     "content:write-authoring-files": "tsx scripts/content-pipeline/cli/writeAuthoringFilesCli.ts",
-    "content:typecheck": "tsc --noEmit -p scripts/content-pipeline/tsconfig.json",
+    "content:import": "tsx scripts/content-import/cli/importCli.ts",
+    "content:import:plan": "tsx scripts/content-import/cli/importCli.ts",
+    "content:import:diff": "tsx scripts/content-import/cli/importCli.ts --dev-diff",
+    "content:typecheck": "tsc --noEmit -p scripts/content-pipeline/tsconfig.json && tsc --noEmit -p scripts/content-import/tsconfig.json",
     "firebase:target": "npx -y firebase-tools@latest use",
     "firebase:use:dev": "npx -y firebase-tools@latest use dev",
     "firebase:use:staging": "npx -y firebase-tools@latest use staging"
