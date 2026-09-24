@@ -1,7 +1,8 @@
 /**
  * @jest-environment node
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { IGNITE_ENV_KEY, IGNITE_FIREBASE_PROJECTS } from '../../src/services/firebase/firebaseEnvironments';
@@ -12,6 +13,10 @@ import {
   OFFLINE_PLAN_OUTPUT_BANNER,
 } from '../../scripts/content-import/formatReport';
 import { parseContentImportArgs } from '../../scripts/content-import/parseArgs';
+import {
+  loadUnsetEnvFile,
+  shouldSkipContentImportEnvKey,
+} from '../../scripts/content-import/cli/importCli';
 
 const IMPORT_ROOT = path.join(process.cwd(), 'scripts/content-import');
 const WRITE_API = /\.(set|update|delete|create)\s*\(|\bbatch\s*\(|\.commit\s*\(|BulkWriter|recursiveDelete|WriteBatch|runTransaction/;
@@ -78,7 +83,7 @@ describe('content import CLI', () => {
     expect(output).not.toContain(OFFLINE_PLAN_OUTPUT_BANNER);
   });
 
-  it('rejects apply flags', () => {
+  it('rejects apply without a DEV confirmation token', () => {
     const parsed = parseContentImportArgs([
       'node',
       'importCli.ts',
@@ -87,6 +92,92 @@ describe('content import CLI', () => {
       '--apply',
     ]);
     expect(parsed.ok).toBe(false);
+  });
+
+  it('parses a valid apply request without enabling writes', async () => {
+    const parsed = parseContentImportArgs([
+      'node',
+      'importCli.ts',
+      '--package',
+      'content/packages/2027',
+      '--apply',
+      '--confirm-dev',
+      IGNITE_FIREBASE_PROJECTS.dev,
+    ]);
+    expect(parsed).toEqual({
+      ok: true,
+      packageDir: 'content/packages/2027',
+      mode: 'dev-apply',
+      confirmDev: IGNITE_FIREBASE_PROJECTS.dev,
+    });
+
+    const openReader = jest.fn();
+    const openWriter = jest.fn();
+    const stderr = jest.fn();
+    const code = await executeContentImport({
+      packageDir: 'content/packages/2027',
+      mode: 'dev-apply',
+      openReader,
+      openWriter,
+      stdout: jest.fn(),
+      stderr,
+    });
+    expect(code).toBe(1);
+    expect(stderr).toHaveBeenCalledWith('DEV apply is not enabled until Slice 4B');
+    expect(openReader).not.toHaveBeenCalled();
+    expect(openWriter).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown flags, equals form, stray args, duplicates, and bad confirmation', () => {
+    const base = ['node', 'importCli.ts', '--package', 'content/packages/2027'];
+    expect(parseContentImportArgs([...base, '--write']).ok).toBe(false);
+    expect(parseContentImportArgs(['node', 'importCli.ts', '--package=content/packages/2027']).ok).toBe(false);
+    expect(parseContentImportArgs([...base, 'extra']).ok).toBe(false);
+    expect(parseContentImportArgs([...base, '--package', 'other']).ok).toBe(false);
+    expect(parseContentImportArgs(['node', 'importCli.ts', '--package']).ok).toBe(false);
+    expect(parseContentImportArgs([...base, '--confirm-dev']).ok).toBe(false);
+    expect(parseContentImportArgs([...base, '--confirm-dev', IGNITE_FIREBASE_PROJECTS.dev]).ok).toBe(false);
+    expect(parseContentImportArgs([...base, '--apply', '--confirm-dev', 'not-dev']).ok).toBe(false);
+    expect(parseContentImportArgs([...base, '--apply', '--dev-diff', '--confirm-dev', IGNITE_FIREBASE_PROJECTS.dev]).ok).toBe(false);
+    expect(parseContentImportArgs([...base, '--dev-diff']).ok).toBe(true);
+    expect(parseContentImportArgs(base)).toEqual({
+      ok: true,
+      packageDir: 'content/packages/2027',
+      mode: 'offline-plan',
+    });
+  });
+});
+
+describe('content import env loading', () => {
+  it('skips credential-like keys and still loads unset public keys', () => {
+    expect(shouldSkipContentImportEnvKey('GOOGLE_APPLICATION_CREDENTIALS')).toBe(true);
+    expect(shouldSkipContentImportEnvKey('MY_PRIVATE_KEY')).toBe(true);
+    expect(shouldSkipContentImportEnvKey('SOME_SECRET')).toBe(true);
+    expect(shouldSkipContentImportEnvKey('SERVICE_ACCOUNT_JSON')).toBe(true);
+    expect(shouldSkipContentImportEnvKey('OTHER_CREDENTIAL')).toBe(true);
+    expect(shouldSkipContentImportEnvKey('EXPO_PUBLIC_FIREBASE_PROJECT_ID')).toBe(false);
+
+    const directory = mkdtempSync(path.join(tmpdir(), 'ignite-env-'));
+    const filePath = path.join(directory, 'env');
+    writeFileSync(
+      filePath,
+      [
+        'EXPO_PUBLIC_EXAMPLE=loaded',
+        'EXPO_PUBLIC_ALREADY=from-file',
+        'GOOGLE_APPLICATION_CREDENTIALS=skip-me',
+        'MY_PRIVATE_KEY=skip-me',
+        'SOME_SECRET=skip-me',
+        'SERVICE_ACCOUNT_JSON=skip-me',
+      ].join('\n'),
+    );
+    const env: Record<string, string | undefined> = { EXPO_PUBLIC_ALREADY: 'preset' };
+    loadUnsetEnvFile(filePath, env);
+    expect(env.EXPO_PUBLIC_EXAMPLE).toBe('loaded');
+    expect(env.EXPO_PUBLIC_ALREADY).toBe('preset');
+    expect(env.GOOGLE_APPLICATION_CREDENTIALS).toBeUndefined();
+    expect(env.MY_PRIVATE_KEY).toBeUndefined();
+    expect(env.SOME_SECRET).toBeUndefined();
+    expect(env.SERVICE_ACCOUNT_JSON).toBeUndefined();
   });
 });
 

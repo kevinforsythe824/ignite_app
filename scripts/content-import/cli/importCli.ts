@@ -4,7 +4,17 @@ import path from 'node:path';
 import { executeContentImport } from '../executeImport';
 import { parseContentImportArgs } from '../parseArgs';
 
-function loadUnsetEnvFile(filePath: string): void {
+const SENSITIVE_ENV_KEY = /PRIVATE|SECRET|CREDENTIAL|SERVICE_ACCOUNT/i;
+
+/** True when a dotenv key must never be copied into the process environment. */
+export function shouldSkipContentImportEnvKey(key: string): boolean {
+  return key === 'GOOGLE_APPLICATION_CREDENTIALS' || SENSITIVE_ENV_KEY.test(key);
+}
+
+export function loadUnsetEnvFile(
+  filePath: string,
+  env: Record<string, string | undefined> = process.env,
+): void {
   if (!existsSync(filePath)) {
     return;
   }
@@ -19,8 +29,11 @@ function loadUnsetEnvFile(filePath: string): void {
     }
     const key = line.slice(0, separator).trim();
     const value = line.slice(separator + 1).trim();
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
+    if (shouldSkipContentImportEnvKey(key)) {
+      continue;
+    }
+    if (env[key] === undefined) {
+      env[key] = value;
     }
   }
 }
@@ -51,4 +64,7 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+const invokedPath = process.argv[1] ?? '';
+if (invokedPath.endsWith(`${path.sep}importCli.ts`) || invokedPath.endsWith(`${path.sep}importCli.js`)) {
+  void main();
+}

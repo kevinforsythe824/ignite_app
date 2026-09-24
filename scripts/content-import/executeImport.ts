@@ -1,3 +1,4 @@
+import { DEV_APPLY_DISABLED_MESSAGE } from './constants';
 import { diffCurriculum } from './diffPlan';
 import {
   assertDevImportEnvironment,
@@ -9,9 +10,9 @@ import {
   type LoadedContentPackage,
 } from './loadPackage';
 import { planImportDocuments } from './planDocuments';
-import type { CurriculumReadPort, ImportPlan } from './types';
+import type { CurriculumReadPort, CurriculumWritePort, ImportPlan } from './types';
 
-export type ContentImportMode = 'offline-plan' | 'dev-diff';
+export type ContentImportMode = 'offline-plan' | 'dev-diff' | 'dev-apply';
 
 export interface ExecuteContentImportOptions {
   packageDir: string;
@@ -21,11 +22,18 @@ export interface ExecuteContentImportOptions {
   stderr: (line: string) => void;
   planDocuments?: (loaded: LoadedContentPackage) => ImportPlan;
   openReader?: (target: DevImportEnvironment) => CurriculumReadPort;
+  /** Injected for tests. Slice 4A never calls it. */
+  openWriter?: (target: DevImportEnvironment) => CurriculumWritePort;
 }
 
 export async function executeContentImport(
   options: ExecuteContentImportOptions,
 ): Promise<number> {
+  if (options.mode === 'dev-apply') {
+    options.stderr(DEV_APPLY_DISABLED_MESSAGE);
+    return 1;
+  }
+
   let loaded: LoadedContentPackage;
   try {
     loaded = await loadValidatedContentPackage(options.packageDir);

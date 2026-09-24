@@ -72,6 +72,9 @@ describe('DEV gate before reader initialization', () => {
     const openReader = jest.fn(() => {
       throw new Error('reader initialized');
     });
+    const openWriter = jest.fn(() => {
+      throw new Error('writer initialized');
+    });
     const stdout = jest.fn();
     const stderr = jest.fn();
 
@@ -82,10 +85,12 @@ describe('DEV gate before reader initialization', () => {
       stdout,
       stderr,
       openReader,
+      openWriter,
     });
 
     expect(code).toBe(1);
     expect(openReader).not.toHaveBeenCalled();
+    expect(openWriter).not.toHaveBeenCalled();
     expect(stdout).not.toHaveBeenCalled();
     expect(stderr).toHaveBeenCalled();
   });

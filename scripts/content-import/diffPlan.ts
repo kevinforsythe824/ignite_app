@@ -45,6 +45,15 @@ const AUTHORITATIVE_FIELDS = {
   ],
 } as const;
 
+/**
+ * Package identity that participates in season equality.
+ * Fingerprint stays on the document and in the diff outcome, but a fingerprint-only
+ * change must not classify the season as a curriculum UPDATE.
+ * converterVersion, importerVersion, environment, importedAt, and importStatus
+ * are operational and are not compared.
+ */
+const PROVENANCE_EQUALITY_FIELDS = ['schemaVersion', 'sourceVersion'] as const;
+
 function definedFields(fields: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
@@ -124,6 +133,25 @@ function projectCrossReferences(value: unknown): unknown {
   });
 }
 
+function projectProvenanceForEquality(value: unknown): Record<string, unknown> | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+  const projected: Record<string, unknown> = {};
+  for (const field of PROVENANCE_EQUALITY_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(record, field)) {
+      continue;
+    }
+    const fieldValue = record[field];
+    if (fieldValue === undefined) {
+      continue;
+    }
+    projected[field] = fieldValue;
+  }
+  return projected;
+}
+
 function projectField(field: string, value: unknown): unknown {
   if (field === 'annotations') {
     return projectAnnotations(value);
@@ -149,6 +177,12 @@ function projectAuthoritative(document: PlannedDocument): Record<string, unknown
     }
     projected[field] = projectField(field, value);
   }
+  if (document.kind === 'season') {
+    const provenance = projectProvenanceForEquality(document.data.provenance);
+    if (provenance) {
+      projected.provenance = provenance;
+    }
+  }
   return projected;
 }
 
@@ -166,6 +200,12 @@ function projectActual(
       continue;
     }
     projected[field] = projectField(field, value);
+  }
+  if (document.kind === 'season') {
+    const provenance = projectProvenanceForEquality(actual.provenance);
+    if (provenance) {
+      projected.provenance = provenance;
+    }
   }
   return projected;
 }

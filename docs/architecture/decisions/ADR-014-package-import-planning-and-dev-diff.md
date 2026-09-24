@@ -35,13 +35,24 @@ Planning from the generated package keeps authoring, validation, and persistence
 
 ## Consequences
 
-- `scripts/content-import/` plans and diffs. It does not apply, and it has no Firestore write API.
+- `scripts/content-import/` plans and diffs. Slice 4A models draft-only replacement in memory. It still has no Firestore write API, and live DEV apply stays disabled until Slice 4B.
 - Domain types stay independent of Firestore documents. This ADR does not cut the curriculum repository over to nested paths.
 - Firestore rules, Study Hub, entitlement checks, and Phase 2B annotation mapping are unchanged.
-- A later slice owns draft-only DEV apply. Until that exists, nothing in this workflow writes season content.
+- Slice 4A owns the draft-only apply model. Nothing in this workflow writes season content until Slice 4B.
 
 ## Alternatives considered
 
 - Extend `scripts/firestore-seed/` into the publisher — rejected; seed remains fixture infrastructure.
 - Treat a matching fingerprint as “already installed” without reading the tree — rejected; hand-edited DEV documents would be invisible.
 - Parse workbooks inside the importer — rejected; package validation already consumed the workbook boundary in ADR-013.
+
+## Slice 4A (2026-09-24)
+
+- The CLI is strict. Recognized flags are `--package`, `--dev-diff`, `--apply`, and `--confirm-dev`. Unknown flags, `--flag=value`, stray arguments, duplicate flags, and a confirmation token other than the configured DEV project id fail in the parser. Default mode remains the offline plan. `--dev-diff` remains read-only.
+- A draft-only gate exists. The package status must be `draft`. A missing installed season is eligible. An installed season is eligible only while its status is `draft`. The gate does not publish or transition a season, and it does not modify the package.
+- Admin access for a later writer uses a named app, `ignite-content-import`. It must not reuse the default app. A project-id mismatch on that named app fails before a reader or writer is used. The reader stays read-only.
+- Serialization is the contract Slice 4B will persist: authored dates stay strings, array order is preserved, absent optional fields stay omitted, and unexpected nulls and non-plain values are rejected. Fingerprint remains the primary installed-package identity and stays visible in the diff outcome. `schemaVersion` and `sourceVersion` participate in season equality. `environment`, `importedAt`, `importStatus`, `importerVersion`, and `converterVersion` do not by themselves classify a curriculum UPDATE.
+- Write orchestration is modeled and tested against an in-memory port: season `importing`, then material set, section, and card upserts for creates and updates, then stale card, section, and material set removal, then season `complete`. Unchanged curriculum documents are not rewritten. A failed write does not record `complete`.
+- Real DEV write capability is not enabled. A syntactically valid apply request fails closed with `DEV apply is not enabled until Slice 4B` and does not open a reader or writer.
+- Slice 4B will implement Firestore writes and emulator validation. STAGING and PROD remain unsupported.
+- A missing MaterialSet parent with orphaned subcollections cannot be discovered by the existing reader. Collection-group and recursive scans are deferred and are not part of this slice.

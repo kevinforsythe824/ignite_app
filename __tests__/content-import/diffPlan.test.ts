@@ -128,7 +128,41 @@ describe('curriculum diff', () => {
     expect(report.counts.UNCHANGED).toBe(plan.documents.length);
     expect(report.counts.UPDATE).toBe(0);
     expect(report.contentMatches).toBe(true);
+    expect(report.fingerprintMatches).toBe(false);
+    expect(report.installedFingerprint).toBe('other-fingerprint');
+    expect(report.outcome).not.toBe('already-installed');
     expect(report.outcome).toBe('differences');
+  });
+
+  it('classifies a schemaVersion or sourceVersion change as a season UPDATE', () => {
+    for (const field of ['schemaVersion', 'sourceVersion'] as const) {
+      const snapshot = snapshotFrom(plan);
+      const season = snapshot.documents.find((document) => document.path === `seasons/${plan.seasonId}`);
+      const provenance = {
+        ...(season!.data.provenance as Record<string, unknown>),
+        [field]: 'changed-value',
+      };
+      season!.data = { ...season!.data, provenance };
+      const report = classifications(plan, snapshot);
+      expect(report.entries.find((entry) => entry.kind === 'season')?.classification).toBe('UPDATE');
+      expect(report.counts.UPDATE).toBe(1);
+      expect(report.counts.UNCHANGED).toBe(plan.documents.length - 1);
+    }
+  });
+
+  it('does not classify operational provenance differences as curriculum updates', () => {
+    for (const field of ['importerVersion', 'converterVersion', 'environment', 'importedAt', 'importStatus'] as const) {
+      const snapshot = snapshotFrom(plan);
+      const season = snapshot.documents.find((document) => document.path === `seasons/${plan.seasonId}`);
+      const provenance = {
+        ...(season!.data.provenance as Record<string, unknown>),
+        [field]: 'changed-operational-value',
+      };
+      season!.data = { ...season!.data, provenance };
+      const report = classifications(plan, snapshot);
+      expect(report.counts.UPDATE).toBe(0);
+      expect(report.counts.UNCHANGED).toBe(plan.documents.length);
+    }
   });
 
   it('classifies a missing card as CREATE', () => {

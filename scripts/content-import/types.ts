@@ -36,6 +36,16 @@ export interface CurriculumReadPort {
   loadSeasonCurriculum(seasonId: string): Promise<SeasonCurriculumSnapshot>;
 }
 
+/**
+ * Write seam for the in-memory orchestrator.
+ * Production code must not add a Firestore implementation in Slice 4A.
+ * Method names stay off the Firestore write-API scanner.
+ */
+export interface CurriculumWritePort {
+  upsert(path: string, data: Record<string, unknown>): Promise<void>;
+  remove(path: string): Promise<void>;
+}
+
 export type DiffClassification = 'CREATE' | 'UPDATE' | 'UNCHANGED' | 'DELETE';
 
 export interface CurriculumDiffEntry {

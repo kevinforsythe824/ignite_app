@@ -2,7 +2,7 @@
 
 Intended workflow for importing and publishing **official season content** into Ignite.
 
-**Status:** Phase 2A.1 complete for authoring → validate → deterministic package. Phase 2A.2 Slice 3 can print an offline Firestore plan and a DEV-only read-only diff from a validated package ([ADR-014](../architecture/decisions/ADR-014-package-import-planning-and-dev-diff.md)). That slice does not write. DEV apply, STAGING promotion, and production publish are not implemented. Official committee source mapping remains **Phase 2B**.
+**Status:** Phase 2A.1 complete for authoring → validate → deterministic package. Phase 2A.2 can print an offline Firestore plan and a DEV-only read-only diff from a validated package ([ADR-014](../architecture/decisions/ADR-014-package-import-planning-and-dev-diff.md)). Slice 4A adds strict CLI checks, a draft-only gate, and an in-memory apply model. DEV apply is still disabled until Slice 4B. STAGING promotion and production publish are not implemented. Official committee source mapping remains **Phase 2B**.
 
 **Sources:** [PRD](../product/PRD.md) (§§5–7, 50), [Development Playbook](../development/Ignite_Development_Playbook.md) (§9), [ADR-002](../architecture/decisions/ADR-002-season-isolation-and-card-identity.md), [ENVIRONMENTS.md](ENVIRONMENTS.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md).
 
@@ -145,7 +145,7 @@ Invalid content must **fail before publication** (PRD §50). When import tooling
 
 The tooling should produce a **readable import summary** and require an **explicit target environment**. Production import requires an **additional safeguard** beyond DEV/STAGING (playbook §9).
 
-**Phase ownership (Sprint 3):** Phase 0 documented the contract. Phase 1 established domain contracts. **Phase 2A.1** implemented workbook schema, source validation, deterministic conversion, generated package schema, reconciliation, readable reports, and SHA-256 fingerprinting against synthetic DEV material. **Phase 2A.2 Slice 3** implemented the offline plan and DEV read-only diff (ADR-014). DEV apply, repository cutover, and seed replacement are not implemented. **Phase 2B** owns official committee source mapping. STAGING promotion foundations and production safeguards remain later. See [ADR Open Decisions](../architecture/decisions/README.md).
+**Phase ownership (Sprint 3):** Phase 0 documented the contract. Phase 1 established domain contracts. **Phase 2A.1** implemented workbook schema, source validation, deterministic conversion, generated package schema, reconciliation, readable reports, and SHA-256 fingerprinting against synthetic DEV material. **Phase 2A.2 Slice 3** implemented the offline plan and DEV read-only diff (ADR-014). **Slice 4A** adds the draft-only safety checks and an in-memory replacement model. DEV apply stays disabled until Slice 4B. Repository cutover and seed replacement are not implemented. **Phase 2B** owns official committee source mapping. STAGING promotion foundations and production safeguards remain later. See [ADR Open Decisions](../architecture/decisions/README.md).
 
 ---
 
@@ -194,7 +194,7 @@ Use before each environment promotion:
 | **Sprint 3 Phase 0** | Documentation / contract only (this runbook + playbook alignment) — no spreadsheet, schema, converter, or import implementation |
 | **Sprint 3 Phase 1** | Domain model & business rules — content contracts imported material must satisfy |
 | **Sprint 3 Phase 2A.1** | Spreadsheet/template authoring source, validation, deterministic generation, package provenance/fingerprinting (complete) |
-| **Sprint 3 Phase 2A.2** | Offline plan and DEV read-only diff (Slice 3, ADR-014). DEV apply, repository cutover, and seed replacement are not implemented |
+| **Sprint 3 Phase 2A.2** | Offline plan and DEV read-only diff (Slice 3). Slice 4A safety and in-memory apply model; live DEV apply remains disabled until Slice 4B. Repository cutover and seed replacement are not implemented |
 | **Sprint 3 Phase 2B** | Official committee source mapping and official annotation targeting |
 | **Sprint 3 (broader)** | Season lifecycle configuration, locked-content enforcement, synthetic season fixtures |
 | **Sprint 4+** | Entitlement-gated access to published seasons (purchase before full access) |
