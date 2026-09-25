@@ -37,8 +37,8 @@ export interface CurriculumReadPort {
 }
 
 /**
- * Write seam for the in-memory orchestrator.
- * Production code must not add a Firestore implementation in Slice 4A.
+ * Write seam for the orchestrator.
+ * Firestore mutation calls belong only in firestoreCurriculumWriter.ts.
  * Method names stay off the Firestore write-API scanner.
  */
 export interface CurriculumWritePort {

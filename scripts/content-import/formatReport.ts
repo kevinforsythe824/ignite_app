@@ -52,6 +52,43 @@ export function formatDevDiff(report: CurriculumDiffReport): string {
   return lines.join('\n');
 }
 
+export function formatDevApplyPreview(input: {
+  projectId: string;
+  seasonId: string;
+  fingerprint: string;
+  counts: CurriculumDiffReport['counts'];
+}): string {
+  return [
+    `DEV APPLY — CONFIRMED PROJECT ${input.projectId}`,
+    `Season: ${input.seasonId}`,
+    `Package fingerprint: ${input.fingerprint}`,
+    `CREATE: ${input.counts.CREATE}`,
+    `UPDATE: ${input.counts.UPDATE}`,
+    `UNCHANGED: ${input.counts.UNCHANGED}`,
+    `DELETE: ${input.counts.DELETE}`,
+  ].join('\n');
+}
+
+export function formatDevApplyComplete(input: {
+  fingerprint: string;
+  documentsAffected: number;
+}): string {
+  return [
+    'Import complete.',
+    `Installed fingerprint: ${input.fingerprint}`,
+    `Documents affected: ${input.documentsAffected}`,
+    'Run the read-only DEV diff again to confirm the installed tree.',
+  ].join('\n');
+}
+
+export function formatDevApplyAlreadyInstalled(): string {
+  return 'Already installed. Zero curriculum writes. Zero provenance writes.';
+}
+
+export function formatDevApplyIncomplete(): string {
+  return 'Import incomplete. The season may remain importing. Rerun the same package.';
+}
+
 export const OFFLINE_PLAN_OUTPUT_BANNER = OFFLINE_PLAN_BANNER;
 export const DEV_DIFF_OUTPUT_BANNER = DEV_DIFF_BANNER;
 export const ALREADY_INSTALLED_OUTPUT = ALREADY_INSTALLED_BANNER;

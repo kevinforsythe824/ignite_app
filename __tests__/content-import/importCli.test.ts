@@ -19,6 +19,7 @@ import {
 } from '../../scripts/content-import/cli/importCli';
 
 const IMPORT_ROOT = path.join(process.cwd(), 'scripts/content-import');
+const WRITER_FILE = path.join(IMPORT_ROOT, 'firestoreCurriculumWriter.ts');
 const WRITE_API = /\.(set|update|delete|create)\s*\(|\bbatch\s*\(|\.commit\s*\(|BulkWriter|recursiveDelete|WriteBatch|runTransaction/;
 
 function listTypeScriptFiles(directory: string): string[] {
@@ -58,6 +59,7 @@ describe('content import CLI', () => {
   });
 
   it('prints a DEV read-only diff from an injected reader', async () => {
+    const openWriter = jest.fn();
     const openReader = jest.fn(() => ({
       loadSeasonCurriculum: async () => ({ seasonId: 'dev-synthetic-s3', documents: [] }),
     }));
@@ -70,6 +72,7 @@ describe('content import CLI', () => {
         [FIREBASE_CLIENT_ENV_KEYS.projectId]: IGNITE_FIREBASE_PROJECTS.dev,
       },
       openReader,
+      openWriter,
       stdout: (line) => {
         output = line;
       },
@@ -78,6 +81,7 @@ describe('content import CLI', () => {
 
     expect(code).toBe(0);
     expect(openReader).toHaveBeenCalledTimes(1);
+    expect(openWriter).not.toHaveBeenCalled();
     expect(output.startsWith(DEV_DIFF_OUTPUT_BANNER)).toBe(true);
     expect(output).toContain('CREATE:');
     expect(output).not.toContain(OFFLINE_PLAN_OUTPUT_BANNER);
@@ -94,7 +98,7 @@ describe('content import CLI', () => {
     expect(parsed.ok).toBe(false);
   });
 
-  it('parses a valid apply request without enabling writes', async () => {
+  it('parses a valid apply request and still refuses a missing DEV environment', async () => {
     const parsed = parseContentImportArgs([
       'node',
       'importCli.ts',
@@ -113,19 +117,23 @@ describe('content import CLI', () => {
 
     const openReader = jest.fn();
     const openWriter = jest.fn();
+    const resolveApp = jest.fn();
     const stderr = jest.fn();
     const code = await executeContentImport({
-      packageDir: 'content/packages/2027',
+      packageDir: 'content/packages/dev-synthetic-s3',
       mode: 'dev-apply',
+      env: {},
       openReader,
       openWriter,
+      resolveApp,
       stdout: jest.fn(),
       stderr,
     });
     expect(code).toBe(1);
-    expect(stderr).toHaveBeenCalledWith('DEV apply is not enabled until Slice 4B');
     expect(openReader).not.toHaveBeenCalled();
     expect(openWriter).not.toHaveBeenCalled();
+    expect(resolveApp).not.toHaveBeenCalled();
+    expect(stderr).toHaveBeenCalled();
   });
 
   it('rejects unknown flags, equals form, stray args, duplicates, and bad confirmation', () => {
@@ -182,14 +190,18 @@ describe('content import env loading', () => {
 });
 
 describe('content import write boundary', () => {
-  it('has no Firestore write API in the importer sources', () => {
+  it('keeps Firestore mutation calls inside the dedicated writer', () => {
     const offenders: string[] = [];
     for (const filePath of listTypeScriptFiles(IMPORT_ROOT)) {
+      if (filePath === WRITER_FILE) {
+        continue;
+      }
       const source = readFileSync(filePath, 'utf8');
       if (WRITE_API.test(source)) {
         offenders.push(path.relative(process.cwd(), filePath));
       }
     }
     expect(offenders).toEqual([]);
+    expect(WRITE_API.test(readFileSync(WRITER_FILE, 'utf8'))).toBe(true);
   });
 });

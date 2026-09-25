@@ -46,7 +46,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (parsed.mode === 'dev-diff') {
+  if (parsed.mode === 'dev-diff' || parsed.mode === 'dev-apply') {
     loadUnsetEnvFile(path.join(process.cwd(), '.env.local'));
   }
 

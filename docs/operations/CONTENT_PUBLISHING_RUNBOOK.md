@@ -2,7 +2,7 @@
 
 Intended workflow for importing and publishing **official season content** into Ignite.
 
-**Status:** Phase 2A.1 complete for authoring → validate → deterministic package. Phase 2A.2 can print an offline Firestore plan and a DEV-only read-only diff from a validated package ([ADR-014](../architecture/decisions/ADR-014-package-import-planning-and-dev-diff.md)). Slice 4A adds strict CLI checks, a draft-only gate, and an in-memory apply model. DEV apply is still disabled until Slice 4B. STAGING promotion and production publish are not implemented. Official committee source mapping remains **Phase 2B**.
+**Status:** Phase 2A.1 complete for authoring → validate → deterministic package. Phase 2A.2 can print an offline Firestore plan and a DEV-only read-only diff from a validated package ([ADR-014](../architecture/decisions/ADR-014-package-import-planning-and-dev-diff.md)). Slice 4B adds DEV apply tooling that runs only after the draft, environment, named-app, and confirmation gates. The first live DEV apply has not been performed (Slice 4C human checkpoint). STAGING promotion and production publish are not implemented. Official committee source mapping remains **Phase 2B**.
 
 **Sources:** [PRD](../product/PRD.md) (§§5–7, 50), [Development Playbook](../development/Ignite_Development_Playbook.md) (§9), [ADR-002](../architecture/decisions/ADR-002-season-isolation-and-card-identity.md), [ENVIRONMENTS.md](ENVIRONMENTS.md), [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md).
 
@@ -89,7 +89,13 @@ npm run content:import:diff -- --package content/packages/{seasonId}
 
 `content:import:diff` is a DEV read-only dry run. It refuses a missing environment, staging, production, a missing project id, and any project other than the configured DEV project before it reads. It may then read `seasons/{seasonId}` and nested material set, section, and card documents. It does not write.
 
-Apply and Firestore writes are not implemented. STAGING and PROD import are unsupported.
+DEV apply tooling exists after those gates plus a draft-only check, a fresh diff, and confirmation of the DEV project. The live CLI refuses to run when `FIRESTORE_EMULATOR_HOST` is set. Emulator tests call the writer in-process. The first live DEV apply has **not** been performed. That command is the Slice 4C manual checkpoint, not a step to run as part of this slice:
+
+```text
+npm run content:import -- --package content/packages/{seasonId} --apply --confirm-dev wpf-bible-qizzing
+```
+
+Do not run that command until the Slice 4C human checkpoint. STAGING and PROD import are unsupported.
 
 Local authoring workbooks under `content/authoring/local/` are intentionally not committed. Generated real-season packages under `content/packages/` (other than the tracked synthetic `dev-synthetic-s3` fixture) are local derived artifacts during this phase. Templates and synthetic fixtures stay in version control. The spreadsheet remains the human source; the generated package remains derived. Official promotion and version-control policy for production content is still a later decision. STAGING and PROD publishing are not implemented.
 
@@ -110,9 +116,9 @@ Deterministic app-ready package / JSON generation
         ↓
 Generated-package validation and source reconciliation
         ↓
-Dry-run import (offline plan and DEV read-only diff — no writes yet)
+Dry-run import (offline plan and DEV read-only diff — the dry run does not write)
         ↓
-DEV import and QA (wpf-bible-qizzing)
+DEV import and QA (wpf-bible-qizzing) — tooling exists; first live DEV apply not yet performed
         ↓
 Promote the exact validated package to STAGING (ignite-staging-01)
         ↓
@@ -145,7 +151,7 @@ Invalid content must **fail before publication** (PRD §50). When import tooling
 
 The tooling should produce a **readable import summary** and require an **explicit target environment**. Production import requires an **additional safeguard** beyond DEV/STAGING (playbook §9).
 
-**Phase ownership (Sprint 3):** Phase 0 documented the contract. Phase 1 established domain contracts. **Phase 2A.1** implemented workbook schema, source validation, deterministic conversion, generated package schema, reconciliation, readable reports, and SHA-256 fingerprinting against synthetic DEV material. **Phase 2A.2 Slice 3** implemented the offline plan and DEV read-only diff (ADR-014). **Slice 4A** adds the draft-only safety checks and an in-memory replacement model. DEV apply stays disabled until Slice 4B. Repository cutover and seed replacement are not implemented. **Phase 2B** owns official committee source mapping. STAGING promotion foundations and production safeguards remain later. See [ADR Open Decisions](../architecture/decisions/README.md).
+**Phase ownership (Sprint 3):** Phase 0 documented the contract. Phase 1 established domain contracts. **Phase 2A.1** implemented workbook schema, source validation, deterministic conversion, generated package schema, reconciliation, readable reports, and SHA-256 fingerprinting against synthetic DEV material. **Phase 2A.2 Slice 3** implemented the offline plan and DEV read-only diff (ADR-014). **Slice 4A** added the draft-only safety checks and an in-memory replacement model. **Slice 4B** implements the DEV apply writer behind those gates. The first live DEV apply has not been performed. Repository cutover and seed replacement are not implemented. **Phase 2B** owns official committee source mapping. STAGING promotion foundations and production safeguards remain later. See [ADR Open Decisions](../architecture/decisions/README.md).
 
 ---
 
@@ -194,7 +200,7 @@ Use before each environment promotion:
 | **Sprint 3 Phase 0** | Documentation / contract only (this runbook + playbook alignment) — no spreadsheet, schema, converter, or import implementation |
 | **Sprint 3 Phase 1** | Domain model & business rules — content contracts imported material must satisfy |
 | **Sprint 3 Phase 2A.1** | Spreadsheet/template authoring source, validation, deterministic generation, package provenance/fingerprinting (complete) |
-| **Sprint 3 Phase 2A.2** | Offline plan and DEV read-only diff (Slice 3). Slice 4A safety and in-memory apply model; live DEV apply remains disabled until Slice 4B. Repository cutover and seed replacement are not implemented |
+| **Sprint 3 Phase 2A.2** | Offline plan and DEV read-only diff (Slice 3). Slice 4A safety and in-memory apply model. Slice 4B DEV apply tooling after the gates. The first live DEV apply is the Slice 4C human checkpoint and has not been performed. Repository cutover and seed replacement are not implemented |
 | **Sprint 3 Phase 2B** | Official committee source mapping and official annotation targeting |
 | **Sprint 3 (broader)** | Season lifecycle configuration, locked-content enforcement, synthetic season fixtures |
 | **Sprint 4+** | Entitlement-gated access to published seasons (purchase before full access) |

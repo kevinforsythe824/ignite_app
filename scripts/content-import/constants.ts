@@ -13,8 +13,11 @@ export const IMPORT_PLAN_RUNTIME_PLACEHOLDER = 'planned-at-import';
 /** Named firebase-admin app for content import. Never the default app. */
 export const CONTENT_IMPORT_ADMIN_APP_NAME = 'ignite-content-import';
 
-/** Live DEV writes stay closed until Slice 4B. */
-export const DEV_APPLY_DISABLED_MESSAGE = 'DEV apply is not enabled until Slice 4B';
+/**
+ * Operations per committed chunk. The service limit is 500.
+ * Stay under that limit so one chunk cannot fill a commit by itself.
+ */
+export const CONTENT_IMPORT_WRITE_CHUNK_SIZE = 400;
 
 export const IMPORT_STATUS_IMPORTING = 'importing';
 export const IMPORT_STATUS_COMPLETE = 'complete';

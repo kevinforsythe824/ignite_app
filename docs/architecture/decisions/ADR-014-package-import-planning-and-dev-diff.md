@@ -35,7 +35,7 @@ Planning from the generated package keeps authoring, validation, and persistence
 
 ## Consequences
 
-- `scripts/content-import/` plans and diffs. Slice 4A models draft-only replacement in memory. It still has no Firestore write API, and live DEV apply stays disabled until Slice 4B.
+- `scripts/content-import/` plans, diffs, and, as of Slice 4B, can apply a draft package to DEV after the gates below. Slice 4A modeled that replacement in memory. The first live DEV apply has not been performed.
 - Domain types stay independent of Firestore documents. This ADR does not cut the curriculum repository over to nested paths.
 - Firestore rules, Study Hub, entitlement checks, and Phase 2B annotation mapping are unchanged.
 - Slice 4A owns the draft-only apply model. Nothing in this workflow writes season content until Slice 4B.
@@ -56,3 +56,16 @@ Planning from the generated package keeps authoring, validation, and persistence
 - Real DEV write capability is not enabled. A syntactically valid apply request fails closed with `DEV apply is not enabled until Slice 4B` and does not open a reader or writer.
 - Slice 4B will implement Firestore writes and emulator validation. STAGING and PROD remain unsupported.
 - A missing MaterialSet parent with orphaned subcollections cannot be discovered by the existing reader. Collection-group and recursive scans are deferred and are not part of this slice.
+
+## Slice 4B (2026-09-24)
+
+- A dedicated Firestore writer now exists. It is the only content-import module that issues Firestore mutations. It writes documents the orchestrator has already approved. It does not parse packages, parse workbooks, or diff.
+- DEV apply runs only after strict gates, in order: package load and validation, manifest fingerprint, draft package, DEV environment and canonical DEV project, refusal when `FIRESTORE_EMULATOR_HOST` is set, named Admin app `ignite-content-import` on `wpf-bible-qizzing`, read of the exact season tree, draft-or-missing installed season, then a fresh diff. The writer opens only after those gates. `--dev-diff` stays read-only and does not open the writer. Default mode remains the offline plan.
+- Apply is draft-only. A non-draft package or a non-draft installed season never opens the writer. The gate does not publish a season.
+- The named Admin app is resolved and checked before any mutation. The writer does not select a default app.
+- Writes use chunked commits of 400 operations. The service limit is 500. One phase commits before the next phase is added. There is no database-wide delete.
+- Replacement order is unchanged: season `importing`, material set, section, and card upserts, then stale card, section, and material set removal, then season `complete`. Stale children are removed before a stale material set parent.
+- Provenance moves from `importing` to `complete` on the season document. A failure before the final season write does not record `complete`. Rerun reads a fresh snapshot and continues. Unchanged curriculum documents are not rewritten. A matching fingerprint with matching content and `complete` performs zero curriculum writes and zero provenance writes.
+- Emulator proof is required for this slice. Those tests call the writer in-process. The live CLI apply path refuses to run while `FIRESTORE_EMULATOR_HOST` is set, so a DEV apply cannot silently target the emulator.
+- A missing MaterialSet parent with orphaned subcollections still cannot be discovered. There is no collection-group scan.
+- The first live DEV apply has not been performed. That human checkpoint is Slice 4C. STAGING and PROD import remain unsupported.

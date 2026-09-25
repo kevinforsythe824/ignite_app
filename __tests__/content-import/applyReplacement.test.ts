@@ -337,4 +337,125 @@ describe('applyReplacement', () => {
     expect(diffCurriculum(plan, deleting.snapshot(plan.seasonId)).counts.DELETE).toBe(0);
     expect(deleting.docs.get('seasons/test-season')).toEqual(other);
   });
+
+  it('updates season provenance when the fingerprint changes and the curriculum matches', async () => {
+    const plan = smallPlan();
+    const port = new MemoryPort();
+    await applyTo(port, plan);
+    const nextFingerprint = 'b'.repeat(64);
+    const refreshed = structuredClone(plan);
+    refreshed.fingerprint = nextFingerprint;
+    const season = refreshed.documents.find((document) => document.kind === 'season');
+    const provenance = season?.data.provenance as Record<string, unknown>;
+    provenance.fingerprint = nextFingerprint;
+    const cardBefore = structuredClone(port.docs.get('seasons/fixture-season/materialSets/cadet/cards/c1'));
+    port.ops = [];
+
+    expect(await applyTo(port, refreshed)).toBe('applied');
+    expect(port.ops.filter((op) => op.path !== 'seasons/fixture-season')).toEqual([]);
+    const stored = port.docs.get('seasons/fixture-season')?.provenance as {
+      fingerprint: string;
+      importStatus: string;
+    };
+    expect(stored.fingerprint).toBe(nextFingerprint);
+    expect(stored.importStatus).toBe(IMPORT_STATUS_COMPLETE);
+    expect(port.docs.get('seasons/fixture-season/materialSets/cadet/cards/c1')).toEqual(cardBefore);
+    expect(diffCurriculum(refreshed, port.snapshot(refreshed.seasonId)).counts).toEqual({
+      CREATE: 0,
+      UPDATE: 0,
+      DELETE: 0,
+      UNCHANGED: refreshed.documents.length,
+    });
+  });
+
+  it('finishes an importing season without rewriting unchanged curriculum', async () => {
+    const plan = smallPlan();
+    const port = new MemoryPort();
+    await applyTo(port, plan);
+    const season = port.docs.get('seasons/fixture-season');
+    const provenance = { ...(season?.provenance as Record<string, unknown>), importStatus: IMPORT_STATUS_IMPORTING };
+    port.docs.set('seasons/fixture-season', { ...season, provenance });
+    const cardBefore = structuredClone(port.docs.get('seasons/fixture-season/materialSets/cadet/cards/c1'));
+    port.ops = [];
+
+    expect(await applyTo(port, plan)).toBe('applied');
+    expect(port.ops.filter((op) => op.path !== 'seasons/fixture-season')).toEqual([]);
+    expect(port.ops.length).toBeGreaterThan(0);
+    expect((port.docs.get('seasons/fixture-season')?.provenance as { importStatus: string }).importStatus).toBe(
+      IMPORT_STATUS_COMPLETE,
+    );
+    expect(port.docs.get('seasons/fixture-season/materialSets/cadet/cards/c1')).toEqual(cardBefore);
+  });
+
+  it('recreates only a missing card and leaves other cards untouched', async () => {
+    const plan = smallPlan();
+    const port = new MemoryPort();
+    await applyTo(port, plan);
+    const cardPath = 'seasons/fixture-season/materialSets/cadet/cards/c1';
+    port.docs.delete(cardPath);
+    port.ops = [];
+
+    expect(await applyTo(port, plan)).toBe('applied');
+    expect(port.ops.filter((op) => op.path !== 'seasons/fixture-season')).toEqual([
+      { kind: 'upsert', path: cardPath },
+    ]);
+    const report = diffCurriculum(plan, port.snapshot(plan.seasonId));
+    expect(report.counts).toEqual({ CREATE: 0, UPDATE: 0, DELETE: 0, UNCHANGED: plan.documents.length });
+  });
+
+  it('keeps authored season fields on the importing write and the complete write', async () => {
+    const plan = smallPlan();
+    const season = plan.documents.find((document) => document.kind === 'season');
+    if (!season) {
+      throw new Error('missing season');
+    }
+    season.data.name = 'Renamed fixture';
+    season.data.startDate = '2098-02-02';
+    season.data.endDate = '2098-11-30';
+    season.data.igniteAvailabilityDate = '2098-03-01';
+    const port = new MemoryPort();
+    const seasonWrites: Record<string, unknown>[] = [];
+    const upsert = port.upsert.bind(port);
+    port.upsert = async (documentPath, data) => {
+      if (documentPath === 'seasons/fixture-season') {
+        seasonWrites.push(structuredClone(data));
+      }
+      await upsert(documentPath, data);
+    };
+
+    expect(await applyTo(port, plan)).toBe('applied');
+    expect(seasonWrites).toHaveLength(2);
+    for (const write of seasonWrites) {
+      expect(write.name).toBe('Renamed fixture');
+      expect(write.startDate).toBe('2098-02-02');
+      expect(write.endDate).toBe('2098-11-30');
+      expect(write.igniteAvailabilityDate).toBe('2098-03-01');
+      expect(write.status).toBe('draft');
+    }
+    expect((seasonWrites[0].provenance as { importStatus: string }).importStatus).toBe(IMPORT_STATUS_IMPORTING);
+    expect((seasonWrites[1].provenance as { importStatus: string }).importStatus).toBe(IMPORT_STATUS_COMPLETE);
+    expect(diffCurriculum(plan, port.snapshot(plan.seasonId)).counts.UPDATE).toBe(0);
+    expect(diffCurriculum(plan, port.snapshot(plan.seasonId)).counts.CREATE).toBe(0);
+  });
+
+  it('does not read or change seasons outside the exact season path', async () => {
+    const plan = planFrom(buildShapedPackage(), 'shaped-fingerprint');
+    const port = new MemoryPort();
+    const outsiders: Record<string, Record<string, unknown>> = {
+      'seasons/2027-extra': { seasonId: '2027-extra', status: 'draft' },
+      'seasons/20270': { seasonId: '20270', status: 'draft' },
+      'seasons/test-season': { seasonId: 'test-season', status: 'draft' },
+    };
+    for (const [documentPath, data] of Object.entries(outsiders)) {
+      port.docs.set(documentPath, data);
+    }
+
+    expect(await applyTo(port, plan)).toBe('applied');
+    expect(port.ops.some((op) => op.path in outsiders)).toBe(false);
+    expect(port.ops.some((op) => op.path.startsWith('seasons/2027-extra'))).toBe(false);
+    expect(port.ops.some((op) => op.path.startsWith('seasons/20270'))).toBe(false);
+    for (const [documentPath, data] of Object.entries(outsiders)) {
+      expect(port.docs.get(documentPath)).toEqual(data);
+    }
+  });
 });
