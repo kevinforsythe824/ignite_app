@@ -346,9 +346,9 @@ Do not implement these personas in production behavior yet. Use for test plannin
 |-------|-------|
 | **Persona ID** | `s3-season-active-001` |
 | **Intended scenario** | App has one Active/Locked season configured |
-| **Season** | `status = Active/Locked`; curriculum readable per current rules |
+| **Season** | `status = Active/Locked`; curriculum readable by an authenticated client (ADR-015) |
 | **Expected routing / result** | Active season selected as study context |
-| **Security expectation** | Season-scoped reads only; client curriculum writes denied |
+| **Security expectation** | Signed-in reads of known curriculum paths; signed-out reads denied; client curriculum writes denied |
 | **Sprint** | 3 |
 | **Testing use** | Manual, automated, Security Rules |
 
@@ -396,7 +396,7 @@ Do not implement these personas in production behavior yet. Use for test plannin
 | **Intended scenario** | Synthetic curriculum covering numbering, long/short cards, annotations, keywords, cross-references (playbook §8, PRD §49) |
 | **Season** | Dev/staging test season (e.g. existing `test-season` seed) |
 | **Expected routing / result** | Curriculum loads and renders without domain identity collisions |
-| **Security expectation** | Read-only client access to official paths |
+| **Security expectation** | Authenticated read-only client access to official nested paths; signed-out reads denied |
 | **Sprint** | 3 |
 | **Testing use** | Manual, automated |
 
@@ -429,10 +429,10 @@ Do not implement these personas in production behavior yet. Use for test plannin
 | Field | Value |
 |-------|-------|
 | **Persona ID** | `s3-security-curriculum-write-001` |
-| **Intended scenario** | Client attempts create/update/delete on `seasons/{seasonId}` or `cards/{cardId}` |
-| **Authentication** | Signed in (any) |
-| **Expected routing / result** | Write denied — matches current DEV rules and ADR intent |
-| **Security expectation** | `allow write: if false` on curriculum paths until a controlled admin publish path exists |
+| **Intended scenario** | Client attempts create/update/delete on a Season, MaterialSet, Section, nested Card (including an embedded annotation), or transitional flat `seasons/{seasonId}/cards/{cardId}` |
+| **Authentication** | Signed in (any); a signed-out client is also denied |
+| **Expected routing / result** | Write denied. Signed-out reads of those paths are denied. Signed-in reads of the nested paths and the transitional flat Card path succeed (ADR-015) |
+| **Security expectation** | `allow write: if false` on known curriculum paths. Admin import bypasses client Rules. Entitlement and publication status are not enforced here |
 | **Sprint** | 3 |
 | **Testing use** | Security Rules |
 
@@ -523,7 +523,7 @@ Entitlement personas require Sprint 4 purchase/access implementation. Use for pl
 | **Intended scenario** | User attempts Flashcard/study access without entitlement |
 | **Entitlement** | None |
 | **Expected routing / result** | Blocked with No Entitlement state; no curriculum bypass |
-| **Security expectation** | **Security Rules** must deny reads beyond public curriculum policy once auth/entitlement rules ship |
+| **Security expectation** | **Security Rules** must deny study access without entitlement once Sprint 4 rules ship. Slice 5 authenticates curriculum reads and does not check entitlement (ADR-015) |
 | **Sprint** | 4 |
 | **Testing use** | Security Rules, manual |
 
@@ -541,7 +541,7 @@ Entitlement personas require Sprint 4 purchase/access implementation. Use for pl
 | `s4-security-no-entitlement-access-001` | 4 | Entitlement required for protected study paths |
 | `s4-entitlement-restored-001` | 4 | Restore does not grant cross-user access |
 
-Current DEV rules allow **public read** on `seasons` and `cards` (see [`ENVIRONMENTS.md`](../operations/ENVIRONMENTS.md)). Sprint 2 Phase 4 adds owner-scoped `users/{userId}/profile/{profileId}` rules. Run `npm run test:firestore-rules` (requires Java + Firestore emulator) for ownership/field validation. Broader entitlement-aware curriculum rules remain a later follow-up.
+Committed rules (not yet a statement about what is deployed) require a signed-in client to read Season, MaterialSet, Section, nested Card, and the transitional flat `seasons/{seasonId}/cards/{cardId}` path. Signed-out reads are denied. Client writes on those paths are denied. Unknown Season subpaths fail closed. Profile, parental consent, and feedback rules are unchanged. Run `npm run test:firestore-rules` (requires Java + Firestore emulator). Entitlement-aware curriculum rules remain Sprint 4 ([ADR-015](../architecture/decisions/ADR-015-curriculum-client-security-boundary.md), [`ENVIRONMENTS.md`](../operations/ENVIRONMENTS.md)).
 
 ---
 

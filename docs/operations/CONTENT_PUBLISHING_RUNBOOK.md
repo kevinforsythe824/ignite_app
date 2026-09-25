@@ -97,6 +97,8 @@ npm run content:import -- --package content/packages/{seasonId} --apply --confir
 
 Do not run that command until the Slice 4C human checkpoint. STAGING and PROD import are unsupported.
 
+Content import uses the Firebase Admin SDK and bypasses client Firestore Security Rules ([ADR-015](../architecture/decisions/ADR-015-curriculum-client-security-boundary.md)). Deploying `firestore.rules` is a separate operational action ([ENVIRONMENTS.md](ENVIRONMENTS.md)). Publishing or importing curriculum does not itself deploy Rules.
+
 Local authoring workbooks under `content/authoring/local/` are intentionally not committed. Generated real-season packages under `content/packages/` (other than the tracked synthetic `dev-synthetic-s3` fixture) are local derived artifacts during this phase. Templates and synthetic fixtures stay in version control. The spreadsheet remains the human source; the generated package remains derived. Official promotion and version-control policy for production content is still a later decision. STAGING and PROD publishing are not implemented.
 
 ---
@@ -188,7 +190,7 @@ Use before each environment promotion:
 - [ ] Promotion uses the **exact validated package** (same provenance/fingerprint when tooling exists) — not a divergent rebuild or Firestore copy.
 - [ ] Validation report shows **no blocking errors**.
 - [ ] Synthetic review uses [TEST_PERSONAS.md](../testing/TEST_PERSONAS.md) where applicable.
-- [ ] `firestore.rules` in git is reconciled before any rules deploy ([ENVIRONMENTS.md](ENVIRONMENTS.md)).
+- [ ] `firestore.rules` in git is reconciled before any rules deploy ([ENVIRONMENTS.md](ENVIRONMENTS.md)). A content import does not deploy Rules.
 - [ ] Production step is **intentional** — not CLI default, not seed script.
 
 ---

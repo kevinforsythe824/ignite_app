@@ -95,6 +95,7 @@ Folder layout remains in [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
 | [ADR-012](ADR-012-in-app-feedback-submission.md) | In-app feedback submission | Accepted |
 | [ADR-013](ADR-013-content-package-and-authoring-source-boundary.md) | Content package and authoring-source boundary | Accepted |
 | [ADR-014](ADR-014-package-import-planning-and-dev-diff.md) | Package import planning and DEV read-only diff | Accepted |
+| [ADR-015](ADR-015-curriculum-client-security-boundary.md) | Curriculum client security boundary | Accepted |
 
 ## Open Decisions
 

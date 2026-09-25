@@ -96,8 +96,13 @@ Do not run `firebase deploy` against `prod` as a habit. There is no npm script t
 
 `firestore.rules` in git is the source of truth for rules changes. Current coverage:
 
-- `seasons/{seasonId}` — client read allowed; writes denied
-- `seasons/{seasonId}/cards/{cardId}` — client read allowed; writes denied
+- `seasons/{seasonId}` — authenticated client read; client writes denied. Curriculum is not public.
+- `seasons/{seasonId}/materialSets/{materialSetId}` — authenticated client read; client writes denied
+- `seasons/{seasonId}/materialSets/{materialSetId}/sections/{sectionId}` — authenticated client read; client writes denied
+- `seasons/{seasonId}/materialSets/{materialSetId}/cards/{cardId}` — authenticated client read; client writes denied (embedded annotations travel with the card)
+- `seasons/{seasonId}/cards/{cardId}` — transitional legacy flat cards: authenticated client read; client writes denied
+
+The same `firestore.rules` file is promoted across DEV, STAGING, and PROD. Rules do not branch on Firebase project ID. See [ADR-015](../architecture/decisions/ADR-015-curriculum-client-security-boundary.md). Editing this file does not deploy it.
 - `users/{userId}/profile/{profileId}` — authenticated owner read/create of `main`; owner may update only `first_name` and `last_name` (Sprint 2 Phase 6 Edit Name). Deletes denied. Cross-user and unauthenticated access denied.
 - `parentalConsentRequests/{requestId}` — **deny all** client read/write (Phase 6.5A). Cloud Functions Admin SDK only.
 - `parentalConsentRateLimits/{bucketId}` — **deny all** client read/write (Phase 6.5A abuse counters). Cloud Functions Admin SDK only.

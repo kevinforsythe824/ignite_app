@@ -22,16 +22,37 @@ service cloud.firestore {
         && (data.avatar_id == null || data.avatar_id is string);
     }
 
-    // Official season curriculum (read-only from clients).
-    // Matches currently deployed DEV behavior for the Flashcard flow.
-    // Do not broaden writes here.
+    // Official season curriculum (ADR-015).
+    // Known paths require an authenticated client. All client writes are denied.
+    // Admin content tooling uses the Admin SDK and bypasses these rules.
+    // No entitlement, season-status, role, or project-id checks in this slice.
+    function canReadCurriculum() {
+      return isSignedIn();
+    }
+
     match /seasons/{seasonId} {
-      allow read: if true;
+      allow read: if canReadCurriculum();
       allow write: if false;
 
+      // Transitional flat cards until Slice 6. Same policy as nested cards.
       match /cards/{cardId} {
-        allow read: if true;
+        allow read: if canReadCurriculum();
         allow write: if false;
+      }
+
+      match /materialSets/{materialSetId} {
+        allow read: if canReadCurriculum();
+        allow write: if false;
+
+        match /sections/{sectionId} {
+          allow read: if canReadCurriculum();
+          allow write: if false;
+        }
+
+        match /cards/{cardId} {
+          allow read: if canReadCurriculum();
+          allow write: if false;
+        }
       }
     }
 

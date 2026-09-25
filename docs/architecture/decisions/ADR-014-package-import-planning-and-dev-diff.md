@@ -37,7 +37,7 @@ Planning from the generated package keeps authoring, validation, and persistence
 
 - `scripts/content-import/` plans, diffs, and, as of Slice 4B, can apply a draft package to DEV after the gates below. Slice 4A modeled that replacement in memory. The first live DEV apply has not been performed.
 - Domain types stay independent of Firestore documents. This ADR does not cut the curriculum repository over to nested paths.
-- Firestore rules, Study Hub, entitlement checks, and Phase 2B annotation mapping are unchanged.
+- Study Hub, entitlement checks, and Phase 2B annotation mapping are unchanged by this ADR. The client curriculum security boundary is [ADR-015](ADR-015-curriculum-client-security-boundary.md) (Slice 5A).
 - Slice 4A owns the draft-only apply model. Nothing in this workflow writes season content until Slice 4B.
 
 ## Alternatives considered
@@ -69,3 +69,7 @@ Planning from the generated package keeps authoring, validation, and persistence
 - Emulator proof is required for this slice. Those tests call the writer in-process. The live CLI apply path refuses to run while `FIRESTORE_EMULATOR_HOST` is set, so a DEV apply cannot silently target the emulator.
 - A missing MaterialSet parent with orphaned subcollections still cannot be discovered. There is no collection-group scan.
 - The first live DEV apply has not been performed. That human checkpoint is Slice 4C. STAGING and PROD import remain unsupported.
+
+## Slice 5A follow-up (2026-09-24)
+
+Sprint 3 Slice 5 establishes the client curriculum security boundary in [ADR-015](ADR-015-curriculum-client-security-boundary.md). Authenticated clients may read the known official curriculum paths. Normal client curriculum writes stay denied. Admin content tooling continues to bypass client Rules. This note does not change the import architecture above.
