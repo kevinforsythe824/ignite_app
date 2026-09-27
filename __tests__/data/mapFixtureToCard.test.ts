@@ -22,6 +22,8 @@ const EXPECTED_CARD_KEYS = [
   'indexCode',
   'matchedRules',
   'tags',
+  'annotations',
+  'crossReferences',
 ] as const;
 
 const SNAKE_CASE_LEAKS = ['verse_text', 'matched_rules', 'index_code', 'rule_name', 'rule_category'];
@@ -58,6 +60,8 @@ describe('mapFixtureToCard', () => {
         notes: rule.notes,
       })),
       tags: fixtures[0].tags,
+      annotations: [],
+      crossReferences: [],
     });
   });
 

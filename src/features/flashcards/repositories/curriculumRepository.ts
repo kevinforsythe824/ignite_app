@@ -7,7 +7,10 @@ export interface StudyCurriculum {
   materialSetId: string;
   title: string;
   cards: readonly Card[];
-  /** Empty for the current DEV fixture; Phase 2 import will populate. */
+  /**
+   * Nested curriculum sections. The JSON fixture returns none.
+   * Firestore assembly fills this from the requested MaterialSet.
+   */
   sections: readonly CurriculumSection[];
 }
 

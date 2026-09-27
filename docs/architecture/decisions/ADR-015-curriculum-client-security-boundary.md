@@ -29,7 +29,7 @@ Sprint 3 Slice 5 needs a durable client boundary before nested curriculum is the
 - Unknown or future Season paths fail closed. A path such as `seasons/{seasonId}/foo/{documentId}` is denied for read and write.
 - Embedded card annotations have no separate collection or rules. They travel with the nested Card document.
 - User-owned participation and learning data remain a separate security boundary. This decision does not add `users/{userId}/seasons/...` rules.
-- Legacy flat Card access remains temporarily so the current Study path can keep reading `seasons/{seasonId}/cards/{cardId}` until Slice 6. The same authenticated-read, write-denied policy applies. Slice 6 owns removal.
+- Legacy flat Card access remains temporarily. Slice 6 retired runtime reads of `seasons/{seasonId}/cards/{cardId}`. The authenticated-read, write-denied Rules match stays in place. Removing that match requires a later explicit Rules cleanup and deployment. This decision does not delete the match.
 - The same `firestore.rules` file is the source of truth for DEV, STAGING, and PROD. Rules do not branch on project ID.
 
 ### Draft curriculum in PROD (guardrail)

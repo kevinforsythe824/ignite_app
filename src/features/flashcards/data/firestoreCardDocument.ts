@@ -1,10 +1,7 @@
 /**
- * Persistence shape of a Card at the Phase 1 flat path:
+ * Legacy flat seed document used by scripts/firestore-seed.
+ * Study runtime does not read this shape.
  *   seasons/{seasonId}/cards/{cardId}
- *
- * Path identity is still (seasonId, cardId). Domain Cards also receive a
- * caller-supplied materialSetId stamp until Phase 2 nests materialSets.
- * This is not the application Card domain model.
  */
 export interface FirestoreMatchedRule {
   rule_name: string;
@@ -19,4 +16,53 @@ export interface FirestoreCardDocument {
   index_code: string;
   matched_rules: FirestoreMatchedRule[];
   tags: string[];
+}
+
+/**
+ * Canonical nested Card document:
+ *   seasons/{seasonId}/materialSets/{materialSetId}/cards/{cardId}
+ * This is not the application Card domain model.
+ */
+export interface CanonicalFirestoreCardAnnotation {
+  annotationId: string;
+  cardId?: string;
+  type: string;
+  sourceTarget: {
+    strategy: string;
+    phrase?: string;
+    occurrenceIndex?: number;
+  };
+  resolvedTarget: {
+    start: number;
+    end: number;
+  };
+  notes?: string;
+}
+
+export interface CanonicalFirestoreQuizMetadata {
+  pointValue?: number;
+  questionHint?: string;
+  cardId?: string;
+}
+
+export interface CanonicalFirestoreCrossReference {
+  fromCardId?: string;
+  toReference?: string;
+  toCardId?: string;
+  notes?: string;
+}
+
+export interface CanonicalFirestoreCardDocument {
+  seasonId: string;
+  materialSetId: string;
+  cardId: string;
+  cardNumber: number;
+  reference: string;
+  verseText: string;
+  sectionId: string;
+  tags?: string[];
+  annotations?: CanonicalFirestoreCardAnnotation[];
+  indexCode?: string;
+  quizMetadata?: CanonicalFirestoreQuizMetadata;
+  crossReferences?: CanonicalFirestoreCrossReference[];
 }

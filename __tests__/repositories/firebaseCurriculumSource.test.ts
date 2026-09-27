@@ -29,39 +29,78 @@ describe('createFirebaseCurriculumSource', () => {
     mockQuery.mockReset();
     mockOrderBy.mockReset();
     mockGetDocs.mockReset();
+    mockDoc.mockImplementation(((...args: unknown[]) => ({ kind: 'doc', args })) as never);
+    mockCollection.mockImplementation(((...args: unknown[]) => ({
+      kind: 'collection',
+      args,
+    })) as never);
+    mockOrderBy.mockImplementation(((field: string) => ({ kind: 'orderBy', field })) as never);
+    mockQuery.mockImplementation(((ref: unknown, order: unknown) => ({
+      kind: 'query',
+      ref,
+      order,
+    })) as never);
   });
 
-  it('reads seasons/{seasonId} and seasons/{seasonId}/cards ordered by card_number', async () => {
-    const seasonRef = { path: 'seasons/test-season' };
-    const cardsRef = { path: 'seasons/test-season/cards' };
-    const cardsQuery = { path: 'ordered-cards' };
-    mockDoc.mockReturnValue(seasonRef as never);
-    mockCollection.mockReturnValue(cardsRef as never);
-    mockOrderBy.mockReturnValue('card_number-order' as never);
-    mockQuery.mockReturnValue(cardsQuery as never);
-    mockGetDoc.mockResolvedValue({
-      exists: () => true,
-      data: () => ({ title: 'Luke 2:1-9' }),
-    } as never);
-    mockGetDocs.mockResolvedValue({
-      docs: [
-        { id: 'v1', data: () => ({ card_number: 1 }) },
-        { id: 'v2', data: () => ({ card_number: 2 }) },
-      ],
-    } as never);
+  it('reads the nested MaterialSet tree and orders cards by cardNumber', async () => {
+    mockGetDoc.mockImplementation((async (ref: { args?: unknown[] }) => {
+      const segments = ref.args?.slice(1) ?? [];
+      if (segments.length === 2) {
+        return { exists: () => true, data: () => ({ name: 'Synthetic Year' }) };
+      }
+      return { exists: () => true, data: () => ({ displayName: 'Alpha set' }) };
+    }) as never);
+    mockGetDocs.mockImplementation((async (ref: { kind?: string; args?: unknown[]; ref?: { args?: unknown[] } }) => {
+      const segments =
+        ref.kind === 'query' ? ref.ref?.args?.slice(1) : ref.args?.slice(1);
+      if (segments?.includes('sections')) {
+        return { docs: [{ id: 'section-1', data: () => ({ title: 'Opening' }) }] };
+      }
+      return { docs: [{ id: 'card-1', data: () => ({ cardNumber: 1 }) }] };
+    }) as never);
 
     const source = createFirebaseCurriculumSource(() => fakeDb as never);
-    const season = await source.getSeason('test-season');
-    const cards = await source.listCardsOrderedByNumber('test-season');
+    const season = await source.getSeason('season-synth');
+    const materialSet = await source.getMaterialSet('season-synth', 'set-alpha');
+    const sections = await source.listSections('season-synth', 'set-alpha');
+    const cards = await source.listCardsOrderedByNumber('season-synth', 'set-alpha');
 
-    expect(mockDoc).toHaveBeenCalledWith(fakeDb, 'seasons', 'test-season');
-    expect(season).toEqual({ exists: true, data: { title: 'Luke 2:1-9' } });
-    expect(mockCollection).toHaveBeenCalledWith(fakeDb, 'seasons', 'test-season', 'cards');
-    expect(mockOrderBy).toHaveBeenCalledWith('card_number');
-    expect(mockQuery).toHaveBeenCalledWith(cardsRef, 'card_number-order');
-    expect(cards).toEqual([
-      { cardId: 'v1', data: { card_number: 1 } },
-      { cardId: 'v2', data: { card_number: 2 } },
-    ]);
+    expect(mockDoc).toHaveBeenCalledWith(fakeDb, 'seasons', 'season-synth');
+    expect(mockDoc).toHaveBeenCalledWith(
+      fakeDb,
+      'seasons',
+      'season-synth',
+      'materialSets',
+      'set-alpha',
+    );
+    expect(season).toEqual({ exists: true, data: { name: 'Synthetic Year' } });
+    expect(materialSet).toEqual({ exists: true, data: { displayName: 'Alpha set' } });
+    expect(mockCollection).toHaveBeenCalledWith(
+      fakeDb,
+      'seasons',
+      'season-synth',
+      'materialSets',
+      'set-alpha',
+      'sections',
+    );
+    expect(mockCollection).toHaveBeenCalledWith(
+      fakeDb,
+      'seasons',
+      'season-synth',
+      'materialSets',
+      'set-alpha',
+      'cards',
+    );
+    expect(mockCollection).not.toHaveBeenCalledWith(
+      fakeDb,
+      'seasons',
+      'season-synth',
+      'cards',
+    );
+    expect(mockOrderBy).toHaveBeenCalledTimes(1);
+    expect(mockOrderBy).toHaveBeenCalledWith('cardNumber');
+    expect(mockOrderBy).not.toHaveBeenCalledWith('card_number');
+    expect(sections).toEqual([{ sectionId: 'section-1', data: { title: 'Opening' } }]);
+    expect(cards).toEqual([{ cardId: 'card-1', data: { cardNumber: 1 } }]);
   });
 });

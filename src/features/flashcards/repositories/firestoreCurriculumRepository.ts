@@ -1,6 +1,19 @@
-import { FirebaseNotConfiguredError } from '../../../services/firebase';
+import { FirebaseNotConfiguredError } from '../../../services/firebase/firebaseConfig';
+import type { Card } from '../domain/card';
+import { readMaterialSetDisplayName } from '../data/mapFirestoreMaterialSet';
+import type { FirestoreSectionSnapshot } from '../data/mapFirestoreSection';
+import { mapFirestoreSectionToDomain } from '../data/mapFirestoreSection';
 import type { FirestoreCardSnapshot } from '../data/mapFirestoreToCard';
-import { InvalidCurriculumDocumentError, mapFirestoreCardsToDomain } from '../data/mapFirestoreToCard';
+import {
+  InvalidCurriculumDocumentError,
+  mapFirestoreCardsToDomain,
+} from '../data/mapFirestoreToCard';
+import {
+  assertCurriculumSectionInvariants,
+  CurriculumSectionInvariantError,
+  sortCurriculumSections,
+  type CurriculumSection,
+} from '../../season/domain/curriculumSection';
 import {
   UnknownMaterialSetError,
   UnknownSeasonError,
@@ -8,15 +21,29 @@ import {
   type StudyCurriculum,
 } from './curriculumRepository';
 
-export interface SeasonDocumentSnapshot {
+export interface CurriculumDocumentSnapshot {
   exists: boolean;
   data: unknown;
 }
 
-/** Smallest Firestore read port for curriculum. Injected in tests. */
+/** @deprecated Use CurriculumDocumentSnapshot. Kept for existing imports. */
+export type SeasonDocumentSnapshot = CurriculumDocumentSnapshot;
+
+/** Smallest Firestore read port for nested curriculum. Injected in tests. */
 export interface CurriculumFirestoreSource {
-  getSeason(seasonId: string): Promise<SeasonDocumentSnapshot>;
-  listCardsOrderedByNumber(seasonId: string): Promise<readonly FirestoreCardSnapshot[]>;
+  getSeason(seasonId: string): Promise<CurriculumDocumentSnapshot>;
+  getMaterialSet(
+    seasonId: string,
+    materialSetId: string,
+  ): Promise<CurriculumDocumentSnapshot>;
+  listSections(
+    seasonId: string,
+    materialSetId: string,
+  ): Promise<readonly FirestoreSectionSnapshot[]>;
+  listCardsOrderedByNumber(
+    seasonId: string,
+    materialSetId: string,
+  ): Promise<readonly FirestoreCardSnapshot[]>;
 }
 
 export type CurriculumPersistenceCode = 'permission-denied' | 'unavailable' | 'unexpected';
@@ -55,6 +82,7 @@ function translateCurriculumError(error: unknown, seasonId: string): never {
     error instanceof UnknownSeasonError ||
     error instanceof UnknownMaterialSetError ||
     error instanceof InvalidCurriculumDocumentError ||
+    error instanceof CurriculumSectionInvariantError ||
     error instanceof CurriculumPersistenceError
   ) {
     throw error;
@@ -78,21 +106,66 @@ function translateCurriculumError(error: unknown, seasonId: string): never {
   throw new CurriculumPersistenceError('unexpected', UNEXPECTED_MESSAGE, seasonId);
 }
 
-function readSeasonTitle(data: unknown, seasonId: string): string {
-  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
-    throw new InvalidCurriculumDocumentError('document', 'must be an object', seasonId);
-  }
+function sortCardsByStudyOrder(cards: readonly Card[]): Card[] {
+  return [...cards].sort((left, right) => {
+    if (left.cardNumber !== right.cardNumber) {
+      return left.cardNumber - right.cardNumber;
+    }
+    return left.cardId.localeCompare(right.cardId);
+  });
+}
 
-  const title = (data as { title?: unknown }).title;
-  if (typeof title !== 'string' || title.trim().length === 0) {
-    throw new InvalidCurriculumDocumentError(
-      'title',
-      'must be a non-empty string',
-      seasonId,
-    );
+function assertUniqueCardIdentity(cards: readonly Card[], seasonId: string): void {
+  const seenIds = new Set<string>();
+  const seenNumbers = new Set<number>();
+  for (const card of cards) {
+    if (seenIds.has(card.cardId)) {
+      throw new InvalidCurriculumDocumentError(
+        'cardId',
+        'is duplicated within the MaterialSet',
+        seasonId,
+        card.cardId,
+      );
+    }
+    seenIds.add(card.cardId);
+    if (seenNumbers.has(card.cardNumber)) {
+      throw new InvalidCurriculumDocumentError(
+        'cardNumber',
+        'is duplicated within the MaterialSet',
+        seasonId,
+        card.cardId,
+      );
+    }
+    seenNumbers.add(card.cardNumber);
   }
+}
 
-  return title.trim();
+function assertCardsBelongToListedSections(
+  cards: readonly Card[],
+  sections: readonly CurriculumSection[],
+): void {
+  const sectionsById = new Map(sections.map((section) => [section.sectionId, section]));
+  for (const card of cards) {
+    if (!card.sectionId) {
+      throw new InvalidCurriculumDocumentError(
+        'sectionId',
+        'must be a non-empty string',
+        card.seasonId,
+        card.cardId,
+      );
+    }
+    const section = sectionsById.get(card.sectionId);
+    if (!section) {
+      throw new CurriculumSectionInvariantError(
+        `Card "${card.cardId}" references missing section "${card.sectionId}"`,
+      );
+    }
+    if (!section.cardIds.includes(card.cardId)) {
+      throw new CurriculumSectionInvariantError(
+        `Card "${card.cardId}" is missing from section "${card.sectionId}" that it belongs to`,
+      );
+    }
+  }
 }
 
 /** Firestore-backed CurriculumRepository used by the live Study tab. */
@@ -106,12 +179,40 @@ export class FirestoreCurriculumRepository implements CurriculumRepository {
         throw new UnknownSeasonError(seasonId);
       }
 
-      const title = readSeasonTitle(season.data, seasonId);
-      // Flat seasons/{seasonId}/cards until Phase 2; stamp caller materialSetId.
-      const snapshots = await this.source.listCardsOrderedByNumber(seasonId);
-      const cards = mapFirestoreCardsToDomain(snapshots, seasonId, materialSetId);
+      const materialSet = await this.source.getMaterialSet(seasonId, materialSetId);
+      if (!materialSet.exists) {
+        throw new UnknownMaterialSetError(seasonId, materialSetId);
+      }
 
-      return { seasonId, materialSetId, title, cards, sections: [] };
+      const title = readMaterialSetDisplayName(materialSet.data, seasonId, materialSetId);
+      const [sectionSnapshots, cardSnapshots] = await Promise.all([
+        this.source.listSections(seasonId, materialSetId),
+        this.source.listCardsOrderedByNumber(seasonId, materialSetId),
+      ]);
+
+      const cards = sortCardsByStudyOrder(
+        mapFirestoreCardsToDomain(cardSnapshots, seasonId, materialSetId),
+      );
+      assertUniqueCardIdentity(cards, seasonId);
+
+      const sections = sortCurriculumSections(
+        sectionSnapshots.map((snapshot) =>
+          mapFirestoreSectionToDomain(
+            snapshot.data,
+            seasonId,
+            materialSetId,
+            snapshot.sectionId,
+          ),
+        ),
+      );
+
+      assertCurriculumSectionInvariants(
+        sections,
+        new Set(cards.map((card) => card.cardId)),
+      );
+      assertCardsBelongToListedSections(cards, sections);
+
+      return { seasonId, materialSetId, title, cards, sections };
     } catch (error) {
       translateCurriculumError(error, seasonId);
     }

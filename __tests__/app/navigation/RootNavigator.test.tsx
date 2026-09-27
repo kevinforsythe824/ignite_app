@@ -17,13 +17,13 @@ import { createParentalConsentRepositoryFake } from '../../../test-utils/parenta
 import { createQuizzerProfileRepositoryFake } from '../../../test-utils/quizzerProfileRepositoryFake';
 
 jest.mock('../../../src/features/flashcards/repositories/firebaseCurriculumSource', () => {
-  const { jsonCurriculumRepository } = jest.requireActual(
-    '../../../src/features/flashcards/repositories/jsonCurriculumRepository',
-  ) as typeof import('../../../src/features/flashcards/repositories/jsonCurriculumRepository');
+  const { temporaryStudyFixtureRepository } = jest.requireActual(
+    '../../../test-utils/temporaryStudyFixtureRepository',
+  ) as typeof import('../../../test-utils/temporaryStudyFixtureRepository');
 
   return {
     createFirebaseCurriculumSource: jest.fn(),
-    firestoreCurriculumRepository: jsonCurriculumRepository,
+    firestoreCurriculumRepository: temporaryStudyFixtureRepository,
   };
 });
 

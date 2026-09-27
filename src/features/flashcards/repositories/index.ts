@@ -5,7 +5,11 @@ export {
   createFirebaseCurriculumSource,
   firestoreCurriculumRepository,
 } from './firebaseCurriculumSource';
-export type { CurriculumFirestoreSource, SeasonDocumentSnapshot } from './firestoreCurriculumRepository';
+export type {
+  CurriculumDocumentSnapshot,
+  CurriculumFirestoreSource,
+  SeasonDocumentSnapshot,
+} from './firestoreCurriculumRepository';
 export {
   CurriculumPersistenceError,
   FirestoreCurriculumRepository,

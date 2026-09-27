@@ -30,6 +30,8 @@ export function mapFixtureToCard(
     indexCode: record.index_code,
     matchedRules: record.matched_rules.map(mapMatchedRule),
     tags: [...record.tags],
+    annotations: [],
+    crossReferences: [],
   };
 }
 
@@ -61,7 +63,7 @@ export function cardToParseInput(card: Card): Verse {
     id: card.cardId,
     reference: card.reference,
     verse_text: card.verseText,
-    index_code: card.indexCode,
+    index_code: card.indexCode ?? '',
     matched_rules: matchedRulesToParseInput(card.matchedRules),
     tags: [...card.tags],
   };

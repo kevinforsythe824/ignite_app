@@ -1,27 +1,14 @@
-import mockVerseData from '../../src/data/mock-verse-data.json';
-import type { FixtureCardRecord } from '../../src/features/flashcards/data/fixtureCardRecord';
-import type { FirestoreCardDocument } from '../../src/features/flashcards/data/firestoreCardDocument';
 import {
   InvalidCurriculumDocumentError,
   mapFirestoreCardToDomain,
   mapFirestoreCardsToDomain,
 } from '../../src/features/flashcards/data/mapFirestoreToCard';
 import { makeCardKey } from '../../src/features/flashcards/domain/card';
-import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../../src/features/flashcards/domain/testSeason';
 
-const fixtures = mockVerseData as FixtureCardRecord[];
-
-const EXPECTED_CARD_KEYS = [
-  'seasonId',
-  'materialSetId',
-  'cardId',
-  'cardNumber',
-  'reference',
-  'verseText',
-  'indexCode',
-  'matchedRules',
-  'tags',
-] as const;
+const SEASON_ID = 'season-synth';
+const MATERIAL_SET_ID = 'set-alpha';
+const CARD_ID = 'card-1';
+const VERSE_TEXT = 'Alpha walks the silver path.';
 
 const SNAKE_CASE_LEAKS = [
   'verse_text',
@@ -46,258 +33,399 @@ function assertNoSnakeCaseLeak(value: unknown): void {
   }
 }
 
-function firestoreDocumentFromFixture(
-  fixture: FixtureCardRecord,
-  cardNumber: number,
-): FirestoreCardDocument {
+function canonicalDocument(overrides: Record<string, unknown> = {}) {
   return {
-    card_number: cardNumber,
-    reference: fixture.reference,
-    verse_text: fixture.verse_text,
-    index_code: fixture.index_code,
-    matched_rules: fixture.matched_rules.map((rule) => ({ ...rule })),
-    tags: [...fixture.tags],
+    seasonId: SEASON_ID,
+    materialSetId: MATERIAL_SET_ID,
+    cardId: CARD_ID,
+    cardNumber: 1,
+    reference: 'Book 1:1',
+    verseText: VERSE_TEXT,
+    sectionId: 'section-1',
+    ...overrides,
   };
 }
 
-const validDocument = firestoreDocumentFromFixture(fixtures[0], 1);
+function phraseAnnotation(type: string, annotationId = `ann-${type}`) {
+  return {
+    annotationId,
+    cardId: CARD_ID,
+    type,
+    sourceTarget: {
+      strategy: 'phraseOccurrence',
+      phrase: 'silver',
+      occurrenceIndex: 1,
+    },
+    resolvedTarget: { start: 0, end: 6 },
+    notes: `${type} note`,
+  };
+}
 
 describe('mapFirestoreCardToDomain', () => {
-  it('maps a valid Firestore Card document to the domain Card', () => {
+  it('maps a valid canonical card and omits indexCode and quiz metadata when absent', () => {
     const card = mapFirestoreCardToDomain(
-      validDocument,
-      TEST_SEASON_ID,
-      TEST_MATERIAL_SET_ID,
-      'v1',
+      canonicalDocument(),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
     );
 
     expect(card).toEqual({
-      seasonId: TEST_SEASON_ID,
-      materialSetId: TEST_MATERIAL_SET_ID,
-      cardId: 'v1',
+      seasonId: SEASON_ID,
+      materialSetId: MATERIAL_SET_ID,
+      cardId: CARD_ID,
       cardNumber: 1,
-      reference: 'Luke 2:1',
-      verseText: fixtures[0].verse_text,
-      indexCode: '103-2b',
-      matchedRules: fixtures[0].matched_rules.map((rule) => ({
-        ruleName: rule.rule_name,
-        ruleCategory: rule.rule_category,
-        notes: rule.notes,
-      })),
-      tags: fixtures[0].tags,
+      reference: 'Book 1:1',
+      verseText: VERSE_TEXT,
+      sectionId: 'section-1',
+      matchedRules: [],
+      tags: [],
+      annotations: [],
+      crossReferences: [],
+    });
+    expect(card).not.toHaveProperty('indexCode');
+    expect(card).not.toHaveProperty('quizMetadata');
+    assertNoSnakeCaseLeak(card);
+  });
+
+  it('keeps indexCode when the document includes it', () => {
+    const card = mapFirestoreCardToDomain(
+      canonicalDocument({ indexCode: 'A-1' }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+
+    expect(card.indexCode).toBe('A-1');
+  });
+
+  it('preserves embedded annotations, including an unknown type, without matchedRules', () => {
+    const types = [
+      'highlight',
+      'underline',
+      'keyword',
+      'uniqueBeginning',
+      'uniqueEnding',
+      'frequency',
+      'crossReference',
+      'rosterMark',
+    ] as const;
+    const card = mapFirestoreCardToDomain(
+      canonicalDocument({
+        annotations: types.map((type) => phraseAnnotation(type)),
+        matched_rules: [{ rule_name: 'ignore', rule_category: 'ignore', notes: '' }],
+        matchedRules: [{ ruleName: 'ignore', ruleCategory: 'ignore', notes: '' }],
+      }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+
+    expect(card.matchedRules).toEqual([]);
+    expect(card.annotations?.map((annotation) => annotation.type)).toEqual([...types]);
+    expect(card.annotations?.[0]).toEqual({
+      annotationId: 'ann-highlight',
+      cardId: CARD_ID,
+      type: 'highlight',
+      sourceTarget: {
+        strategy: 'phraseOccurrence',
+        phrase: 'silver',
+        occurrenceIndex: 1,
+      },
+      resolvedTarget: { start: 0, end: 6 },
+      notes: 'highlight note',
+    });
+    expect(card.annotations?.find((annotation) => annotation.type === 'rosterMark')).toMatchObject({
+      type: 'rosterMark',
+      cardId: CARD_ID,
     });
   });
 
-  it('uses path identity for seasonId and cardId, not document fields', () => {
+  it('returns annotation cardId when it matches the owning card', () => {
     const card = mapFirestoreCardToDomain(
-      { ...validDocument, seasonId: 'ignored', id: 'ignored' },
-      'season-from-path',
-      'ms-from-caller',
-      'card-from-path',
+      canonicalDocument({ annotations: [phraseAnnotation('highlight')] }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
     );
 
-    expect(card.seasonId).toBe('season-from-path');
-    expect(card.materialSetId).toBe('ms-from-caller');
-    expect(card.cardId).toBe('card-from-path');
+    expect(card.annotations?.[0]?.cardId).toBe(CARD_ID);
+    expect(card.matchedRules).toEqual([]);
   });
 
-  it('preserves stored cardNumber instead of deriving it from array position', () => {
-    const card = mapFirestoreCardToDomain(
-      firestoreDocumentFromFixture(fixtures[0], 42),
-      TEST_SEASON_ID,
-      TEST_MATERIAL_SET_ID,
-      'v1',
+  it('fails when annotation cardId is missing, blank, or not a string', () => {
+    const { cardId: _ownedCardId, ...missingCardId } = phraseAnnotation('highlight');
+    const cases: unknown[] = [
+      [missingCardId],
+      [{ ...phraseAnnotation('highlight'), cardId: null }],
+      [{ ...phraseAnnotation('highlight'), cardId: 1 }],
+      [{ ...phraseAnnotation('highlight'), cardId: '' }],
+      [{ ...phraseAnnotation('highlight'), cardId: '   ' }],
+    ];
+
+    for (const annotations of cases) {
+      expect(() =>
+        mapFirestoreCardToDomain(
+          canonicalDocument({ annotations }),
+          SEASON_ID,
+          MATERIAL_SET_ID,
+          CARD_ID,
+        ),
+      ).toThrow(InvalidCurriculumDocumentError);
+    }
+  });
+
+  it('omits quiz metadata when absent and maps it when present', () => {
+    const absent = mapFirestoreCardToDomain(
+      canonicalDocument(),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+    const present = mapFirestoreCardToDomain(
+      canonicalDocument({
+        quizMetadata: { pointValue: 20, questionHint: 'Name the path.' },
+      }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
     );
 
-    expect(card.cardNumber).toBe(42);
+    expect(absent.quizMetadata).toBeUndefined();
+    expect(present.quizMetadata).toEqual({
+      pointValue: 20,
+      questionHint: 'Name the path.',
+    });
   });
 
-  it('maps reference, verseText, indexCode, matchedRules, and tags', () => {
-    const card = mapFirestoreCardToDomain(
-      validDocument,
-      TEST_SEASON_ID,
-      TEST_MATERIAL_SET_ID,
-      'v1',
+  it('defaults cross references to an empty array and maps them when present', () => {
+    const absent = mapFirestoreCardToDomain(
+      canonicalDocument(),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+    const present = mapFirestoreCardToDomain(
+      canonicalDocument({
+        crossReferences: [
+          {
+            fromCardId: CARD_ID,
+            toReference: 'Book 2:2',
+            toCardId: 'card-9',
+            notes: 'See the gate.',
+          },
+        ],
+      }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
     );
 
-    expect(card.reference).toBe(validDocument.reference);
-    expect(card.verseText).toBe(validDocument.verse_text);
-    expect(card.indexCode).toBe(validDocument.index_code);
-    expect(card.matchedRules).toHaveLength(validDocument.matched_rules.length);
-    expect(card.tags).toEqual(validDocument.tags);
+    expect(absent.crossReferences).toEqual([]);
+    expect(present.crossReferences).toEqual([
+      {
+        toReference: 'Book 2:2',
+        toCardId: 'card-9',
+        notes: 'See the gate.',
+      },
+    ]);
+    expect(present.crossReferences?.[0]).not.toHaveProperty('fromCardId');
   });
 
-  it('treats the same cardId in different seasons as distinct Cards', () => {
+  it('treats the same cardId in different seasons or MaterialSets as distinct Cards', () => {
     const seasonA = mapFirestoreCardToDomain(
-      validDocument,
+      canonicalDocument({ seasonId: 'season-a' }),
       'season-a',
-      TEST_MATERIAL_SET_ID,
-      'v1',
+      MATERIAL_SET_ID,
+      CARD_ID,
     );
     const seasonB = mapFirestoreCardToDomain(
-      validDocument,
+      canonicalDocument({ seasonId: 'season-b' }),
       'season-b',
-      TEST_MATERIAL_SET_ID,
-      'v1',
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+    const otherSet = mapFirestoreCardToDomain(
+      canonicalDocument({ materialSetId: 'set-beta' }),
+      SEASON_ID,
+      'set-beta',
+      CARD_ID,
     );
 
-    expect(seasonA.cardId).toBe(seasonB.cardId);
-    expect(seasonA.seasonId).not.toBe(seasonB.seasonId);
     expect(makeCardKey(seasonA.seasonId, seasonA.materialSetId, seasonA.cardId)).not.toBe(
       makeCardKey(seasonB.seasonId, seasonB.materialSetId, seasonB.cardId),
     );
-  });
-
-  it('treats the same cardId in different MaterialSets as distinct Cards', () => {
-    const cadet = mapFirestoreCardToDomain(validDocument, TEST_SEASON_ID, 'ms-cadet', 'v1');
-    const experienced = mapFirestoreCardToDomain(
-      validDocument,
-      TEST_SEASON_ID,
-      'ms-experienced',
-      'v1',
+    expect(makeCardKey(seasonA.seasonId, seasonA.materialSetId, seasonA.cardId)).not.toBe(
+      makeCardKey(otherSet.seasonId, otherSet.materialSetId, otherSet.cardId),
     );
-
-    expect(cadet.cardId).toBe(experienced.cardId);
-    expect(cadet.reference).toBe(experienced.reference);
-    expect(makeCardKey(cadet.seasonId, cadet.materialSetId, cadet.cardId)).not.toBe(
-      makeCardKey(experienced.seasonId, experienced.materialSetId, experienced.cardId),
-    );
-  });
-
-  it('does not leak Firestore snake_case field names into the domain Card', () => {
-    const card = mapFirestoreCardToDomain(
-      { ...validDocument, extra_persistence_field: 'ignore-me' },
-      TEST_SEASON_ID,
-      TEST_MATERIAL_SET_ID,
-      'v1',
-    );
-
-    expect(Object.keys(card).sort()).toEqual([...EXPECTED_CARD_KEYS].sort());
-    assertNoSnakeCaseLeak(card);
+    expect(seasonA.reference).toBe(otherSet.reference);
   });
 });
 
 describe('mapFirestoreCardToDomain validation', () => {
-  it('fails when seasonId is missing or blank', () => {
+  it('fails when a required field is missing', () => {
+    const { reference: _reference, ...withoutReference } = canonicalDocument();
+    const { sectionId: _sectionId, ...withoutSection } = canonicalDocument();
+    const { verseText: _verseText, ...withoutVerse } = canonicalDocument();
+
     expect(() =>
-      mapFirestoreCardToDomain(validDocument, '', TEST_MATERIAL_SET_ID, 'v1'),
-    ).toThrow(InvalidCurriculumDocumentError);
+      mapFirestoreCardToDomain(withoutReference, SEASON_ID, MATERIAL_SET_ID, CARD_ID),
+    ).toThrow(/reference/);
     expect(() =>
-      mapFirestoreCardToDomain(validDocument, '   ', TEST_MATERIAL_SET_ID, 'v1'),
+      mapFirestoreCardToDomain(withoutSection, SEASON_ID, MATERIAL_SET_ID, CARD_ID),
+    ).toThrow(/sectionId/);
+    expect(() =>
+      mapFirestoreCardToDomain(withoutVerse, SEASON_ID, MATERIAL_SET_ID, CARD_ID),
+    ).toThrow(/verseText/);
+    expect(() =>
+      mapFirestoreCardToDomain(canonicalDocument(), '', MATERIAL_SET_ID, CARD_ID),
     ).toThrow(/seasonId/);
   });
 
-  it('fails when materialSetId is missing or blank', () => {
-    expect(() => mapFirestoreCardToDomain(validDocument, TEST_SEASON_ID, '', 'v1')).toThrow(
-      InvalidCurriculumDocumentError,
-    );
+  it('fails when cardNumber is missing or invalid', () => {
+    const { cardNumber: _cardNumber, ...withoutNumber } = canonicalDocument();
     expect(() =>
-      mapFirestoreCardToDomain(validDocument, TEST_SEASON_ID, '  ', 'v1'),
-    ).toThrow(/materialSetId/);
+      mapFirestoreCardToDomain(withoutNumber, SEASON_ID, MATERIAL_SET_ID, CARD_ID),
+    ).toThrow(/cardNumber/);
+    expect(() =>
+      mapFirestoreCardToDomain(
+        canonicalDocument({ cardNumber: 0 }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
+      ),
+    ).toThrow(/cardNumber/);
+    expect(() =>
+      mapFirestoreCardToDomain(
+        canonicalDocument({ cardNumber: 1.5 }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
+      ),
+    ).toThrow(/cardNumber/);
+    expect(() =>
+      mapFirestoreCardToDomain(
+        canonicalDocument({ cardNumber: '1' }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
+      ),
+    ).toThrow(/cardNumber/);
   });
 
-  it('fails when cardId is missing or blank', () => {
+  it('fails when the document cardId does not match the Firestore document id', () => {
     expect(() =>
-      mapFirestoreCardToDomain(validDocument, TEST_SEASON_ID, TEST_MATERIAL_SET_ID, ''),
+      mapFirestoreCardToDomain(
+        canonicalDocument({ cardId: 'other-card' }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
+      ),
     ).toThrow(InvalidCurriculumDocumentError);
     expect(() =>
-      mapFirestoreCardToDomain(validDocument, TEST_SEASON_ID, TEST_MATERIAL_SET_ID, '  '),
+      mapFirestoreCardToDomain(
+        canonicalDocument({ cardId: 'other-card' }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
+      ),
     ).toThrow(/cardId/);
   });
 
-  it('fails when card_number is missing or invalid', () => {
-    const { card_number: _cardNumber, ...withoutNumber } = validDocument;
-    expect(() =>
-      mapFirestoreCardToDomain(withoutNumber, TEST_SEASON_ID, TEST_MATERIAL_SET_ID, 'v1'),
-    ).toThrow(/card_number/);
+  it('fails when document seasonId or materialSetId does not match the request', () => {
     expect(() =>
       mapFirestoreCardToDomain(
-        { ...validDocument, card_number: 0 },
-        TEST_SEASON_ID,
-        TEST_MATERIAL_SET_ID,
-        'v1',
+        canonicalDocument({ seasonId: 'other-season' }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
       ),
-    ).toThrow(/card_number/);
+    ).toThrow(/seasonId/);
     expect(() =>
       mapFirestoreCardToDomain(
-        { ...validDocument, card_number: 1.5 },
-        TEST_SEASON_ID,
-        TEST_MATERIAL_SET_ID,
-        'v1',
+        canonicalDocument({ materialSetId: 'other-set' }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
       ),
-    ).toThrow(/card_number/);
+    ).toThrow(/materialSetId/);
     expect(() =>
       mapFirestoreCardToDomain(
-        { ...validDocument, card_number: '1' },
-        TEST_SEASON_ID,
-        TEST_MATERIAL_SET_ID,
-        'v1',
+        canonicalDocument({ materialSetId: undefined }),
+        SEASON_ID,
+        MATERIAL_SET_ID,
+        CARD_ID,
       ),
-    ).toThrow(/card_number/);
+    ).toThrow(/materialSetId/);
   });
 
-  it('fails when reference or verse text is missing', () => {
-    expect(() =>
-      mapFirestoreCardToDomain(
-        { ...validDocument, reference: '' },
-        TEST_SEASON_ID,
-        TEST_MATERIAL_SET_ID,
-        'v1',
-      ),
-    ).toThrow(/reference/);
-    expect(() =>
-      mapFirestoreCardToDomain(
-        { ...validDocument, verse_text: undefined },
-        TEST_SEASON_ID,
-        TEST_MATERIAL_SET_ID,
-        'v1',
-      ),
-    ).toThrow(/verse_text/);
-  });
+  it('fails closed on a malformed annotation', () => {
+    const cases: unknown[] = [
+      [null],
+      [{ type: 'highlight' }],
+      [
+        {
+          ...phraseAnnotation('highlight'),
+          resolvedTarget: { start: 8, end: 2 },
+        },
+      ],
+      [
+        {
+          ...phraseAnnotation('highlight'),
+          sourceTarget: { strategy: 'phraseOccurrence', occurrenceIndex: 1 },
+        },
+      ],
+      [
+        {
+          ...phraseAnnotation('highlight'),
+          sourceTarget: { strategy: 'phraseOccurrence', phrase: 'silver' },
+        },
+      ],
+      [{ ...phraseAnnotation('highlight'), type: '' }],
+      [{ ...phraseAnnotation('highlight'), type: 4 }],
+      [{ ...phraseAnnotation('highlight'), cardId: 'someone-else' }],
+    ];
 
-  it('fails when matched rules or tags are malformed', () => {
-    expect(() =>
-      mapFirestoreCardToDomain(
-        { ...validDocument, matched_rules: [{ rule_name: 'Only name' }] },
-        TEST_SEASON_ID,
-        TEST_MATERIAL_SET_ID,
-        'v1',
-      ),
-    ).toThrow(InvalidCurriculumDocumentError);
-    expect(() =>
-      mapFirestoreCardToDomain(
-        { ...validDocument, tags: ['ok', 2] },
-        TEST_SEASON_ID,
-        TEST_MATERIAL_SET_ID,
-        'v1',
-      ),
-    ).toThrow(/tags/);
+    for (const annotations of cases) {
+      expect(() =>
+        mapFirestoreCardToDomain(
+          canonicalDocument({ annotations }),
+          SEASON_ID,
+          MATERIAL_SET_ID,
+          CARD_ID,
+        ),
+      ).toThrow(InvalidCurriculumDocumentError);
+    }
   });
 
   it('does not silently produce a Card from a non-object document', () => {
     expect(() =>
-      mapFirestoreCardToDomain(null, TEST_SEASON_ID, TEST_MATERIAL_SET_ID, 'v1'),
+      mapFirestoreCardToDomain(null, SEASON_ID, MATERIAL_SET_ID, CARD_ID),
     ).toThrow(InvalidCurriculumDocumentError);
     expect(() =>
-      mapFirestoreCardToDomain('not-a-card', TEST_SEASON_ID, TEST_MATERIAL_SET_ID, 'v1'),
+      mapFirestoreCardToDomain('not-a-card', SEASON_ID, MATERIAL_SET_ID, CARD_ID),
     ).toThrow(InvalidCurriculumDocumentError);
   });
 });
 
 describe('mapFirestoreCardsToDomain', () => {
-  it('maps snapshots without reordering by array position', () => {
+  it('maps snapshots without reordering by cardNumber', () => {
     const cards = mapFirestoreCardsToDomain(
       [
-        { cardId: 'v9', data: firestoreDocumentFromFixture(fixtures[8], 9) },
-        { cardId: 'v1', data: firestoreDocumentFromFixture(fixtures[0], 1) },
+        {
+          cardId: 'card-9',
+          data: canonicalDocument({ cardId: 'card-9', cardNumber: 9 }),
+        },
+        {
+          cardId: 'card-1',
+          data: canonicalDocument({ cardId: CARD_ID, cardNumber: 1 }),
+        },
       ],
-      TEST_SEASON_ID,
-      TEST_MATERIAL_SET_ID,
+      SEASON_ID,
+      MATERIAL_SET_ID,
     );
 
-    expect(cards.map((card) => card.cardId)).toEqual(['v9', 'v1']);
+    expect(cards.map((card) => card.cardId)).toEqual(['card-9', 'card-1']);
     expect(cards.map((card) => card.cardNumber)).toEqual([9, 1]);
-    expect(cards.every((card) => card.seasonId === TEST_SEASON_ID)).toBe(true);
-    expect(cards.every((card) => card.materialSetId === TEST_MATERIAL_SET_ID)).toBe(true);
   });
 });
