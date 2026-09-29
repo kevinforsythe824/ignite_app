@@ -120,6 +120,44 @@ describe('flashcardSessionReducer', () => {
     expect(atEnd.currentIndex).toBe(2);
   });
 
+  it('moves from the second card back to the first without changing scores', () => {
+    const second: FlashcardSessionState = {
+      currentIndex: 1,
+      statusById: { v1: 'correct' },
+      activeCardIds: null,
+    };
+
+    const next = flashcardSessionReducer(second, { type: 'previous' });
+
+    expect(next.currentIndex).toBe(0);
+    expect(next.statusById).toEqual({ v1: 'correct' });
+    expect(next.activeCardIds).toBeNull();
+  });
+
+  it('moves from a middle card to the preceding active card and keeps scores', () => {
+    const middle: FlashcardSessionState = {
+      currentIndex: 2,
+      statusById: { v1: 'correct', v3: 'needsWork' },
+      activeCardIds: ['v1', 'v3', 'v2'],
+    };
+
+    const next = flashcardSessionReducer(middle, { type: 'previous' });
+
+    expect(next.currentIndex).toBe(1);
+    expect(next.activeCardIds).toEqual(['v1', 'v3', 'v2']);
+    expect(next.statusById).toEqual({ v1: 'correct', v3: 'needsWork' });
+  });
+
+  it('does nothing on the first card and does not clear scores', () => {
+    const first: FlashcardSessionState = {
+      currentIndex: 0,
+      statusById: { v2: 'needsWork' },
+      activeCardIds: ['v2', 'v1', 'v3'],
+    };
+
+    expect(flashcardSessionReducer(first, { type: 'previous' })).toEqual(first);
+  });
+
   it('jumps to a clamped index', () => {
     const next = flashcardSessionReducer(INITIAL_SESSION_STATE, {
       type: 'goToIndex',

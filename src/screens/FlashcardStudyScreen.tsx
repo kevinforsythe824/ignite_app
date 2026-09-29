@@ -23,9 +23,11 @@ export const FlashcardStudyScreen: React.FC = () => {
     progress,
     isComplete,
     showCard,
+    canGoPrevious,
     settings,
     markCorrect,
     markNeedsWork,
+    goToPrevious,
     restartFlashcards,
     setShuffleCards,
     setDefaultSide,
@@ -61,6 +63,8 @@ export const FlashcardStudyScreen: React.FC = () => {
       card={currentCard}
       segments={currentSegments}
       defaultSide={settings.defaultSide}
+      canGoPrevious={canGoPrevious}
+      onPrevious={goToPrevious}
       onSwipeCorrect={markCorrect}
       onSwipeNeedsWork={markNeedsWork}
     />

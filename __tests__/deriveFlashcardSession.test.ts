@@ -89,7 +89,55 @@ describe('deriveFlashcardSession', () => {
     expect(view.currentStatus).toBe('unseen');
     expect(view.showCard).toBe(true);
     expect(view.isComplete).toBe(false);
+    expect(view.canGoPrevious).toBe(true);
+    expect(view.canGoNext).toBe(true);
     expect(view.settings).toEqual(DEFAULT_FLASHCARD_SETTINGS);
+  });
+
+  it('disables previous on the first card and next on the last card', () => {
+    const first = deriveFlashcardSession(
+      curriculum,
+      {
+        currentIndex: 0,
+        statusById: {},
+        activeCardIds: null,
+      },
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
+    expect(first.canGoPrevious).toBe(false);
+    expect(first.canGoNext).toBe(true);
+
+    const last = deriveFlashcardSession(
+      curriculum,
+      {
+        currentIndex: 2,
+        statusById: {},
+        activeCardIds: null,
+      },
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
+    expect(last.canGoPrevious).toBe(true);
+    expect(last.canGoNext).toBe(false);
+    expect(last.currentCard?.cardId).toBe('v3');
+  });
+
+  it('resolves the preceding card in the shuffled active order', () => {
+    const view = deriveFlashcardSession(
+      curriculum,
+      {
+        currentIndex: 1,
+        statusById: { v1: 'correct' },
+        activeCardIds: ['v1', 'v3', 'v2'],
+      },
+      DEFAULT_FLASHCARD_SETTINGS,
+    );
+
+    expect(view.cards.map((card) => card.cardId)).toEqual(['v1', 'v3', 'v2']);
+    expect(view.currentCard?.cardId).toBe('v3');
+    expect(view.currentCard?.cardNumber).toBe(3);
+    expect(view.canGoPrevious).toBe(true);
+    expect(view.correctCount).toBe(1);
+    expect(view.needsWorkCount).toBe(0);
   });
 
   it('marks the session complete when every card is answered', () => {
@@ -115,6 +163,8 @@ describe('deriveFlashcardSession', () => {
     expect(view.progress).toBe(1);
     expect(view.isComplete).toBe(true);
     expect(view.showCard).toBe(false);
+    expect(view.canGoPrevious).toBe(false);
+    expect(view.canGoNext).toBe(false);
   });
 
   it('marks complete when index is past the end even before counts catch up', () => {

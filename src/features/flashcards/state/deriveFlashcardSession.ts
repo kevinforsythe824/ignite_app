@@ -22,6 +22,10 @@ export interface FlashcardSessionView {
   progress: number;
   isComplete: boolean;
   showCard: boolean;
+  /** True when the active order has a card before the current index. */
+  canGoPrevious: boolean;
+  /** True when the active order has a card after the current index. */
+  canGoNext: boolean;
   settings: FlashcardSettings;
 }
 
@@ -126,6 +130,8 @@ export function deriveFlashcardSession(
     progress: totalCards === 0 ? 0 : isComplete ? 1 : (state.currentIndex + 1) / totalCards,
     isComplete,
     showCard: !isComplete && currentCard !== undefined,
+    canGoPrevious: currentCard !== undefined && state.currentIndex > 0,
+    canGoNext: currentCard !== undefined && state.currentIndex < totalCards - 1,
     settings,
   };
 }

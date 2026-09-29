@@ -358,6 +358,130 @@ describe('FlashcardSessionContext', () => {
     expect(session).not.toHaveProperty('markPracticing');
   });
 
+  it('returns to the first card from the second without clearing the score', () => {
+    const { getSession } = createSessionController();
+
+    act(() => {
+      getSession().markCorrect();
+    });
+    expect(getSession().currentCard?.cardId).toBe('t2');
+    expect(getSession().canGoPrevious).toBe(true);
+
+    act(() => {
+      getSession().goToPrevious();
+    });
+
+    const session = getSession();
+    expect(session.currentIndex).toBe(0);
+    expect(session.currentCard?.cardId).toBe('t1');
+    expect(session.statusById).toEqual({ t1: 'correct' });
+    expect(session.correctCount).toBe(1);
+    expect(session.needsWorkCount).toBe(0);
+    expect(session.canGoPrevious).toBe(false);
+  });
+
+  it('returns the preceding card from the middle of the active order', () => {
+    const { getSession } = createSessionController();
+
+    act(() => {
+      getSession().goToNext();
+      getSession().goToNext();
+    });
+    expect(getSession().currentCard?.cardId).toBe('t3');
+
+    act(() => {
+      getSession().goToPrevious();
+    });
+
+    const session = getSession();
+    expect(session.currentIndex).toBe(1);
+    expect(session.currentCard?.cardId).toBe('t2');
+    expect(session.statusById).toEqual({});
+  });
+
+  it('previous follows the shuffled active order and does not reshuffle', () => {
+    const random = jest.spyOn(Math, 'random').mockReturnValue(0);
+    const { getSession } = createSessionController();
+
+    act(() => {
+      getSession().setShuffleCards(true);
+    });
+
+    const order = getSession().cards.map((card) => card.cardId);
+    expect(order).toEqual(['t2', 't3', 't1']);
+
+    act(() => {
+      getSession().goToIndex(2);
+    });
+    expect(getSession().currentCard?.cardId).toBe('t1');
+    expect(getSession().canGoPrevious).toBe(true);
+
+    act(() => {
+      getSession().goToPrevious();
+    });
+
+    const session = getSession();
+    expect(session.cards.map((card) => card.cardId)).toEqual(order);
+    expect(session.currentCard?.cardId).toBe('t3');
+    expect(session.currentIndex).toBe(1);
+    expect(session.statusById).toEqual({});
+    random.mockRestore();
+  });
+
+  it('previous stays inside the filtered active sequence', () => {
+    const filteredCards: Card[] = [
+      { ...testCards[0], tags: ['Unique Beg.'] },
+      { ...testCards[1], tags: ['Questions'] },
+      { ...testCards[2], tags: ['Unique Beg.'] },
+    ];
+    const { getSession } = createSessionController(filteredCards);
+
+    act(() => {
+      getSession().toggleCategoryFilter('uniqueBeginning');
+    });
+    expect(getSession().cards.map((card) => card.cardId)).toEqual(['t1', 't3']);
+    expect(getSession().canGoPrevious).toBe(false);
+
+    act(() => {
+      getSession().markNeedsWork();
+    });
+    expect(getSession().currentCard?.cardId).toBe('t3');
+
+    act(() => {
+      getSession().goToPrevious();
+    });
+
+    const session = getSession();
+    expect(session.cards.map((card) => card.cardId)).toEqual(['t1', 't3']);
+    expect(session.currentCard?.cardId).toBe('t1');
+    expect(session.statusById).toEqual({ t1: 'needsWork' });
+    expect(session.needsWorkCount).toBe(1);
+    expect(session.correctCount).toBe(0);
+  });
+
+  it('next advances without scoring and previous does not undo that step', () => {
+    const { getSession } = createSessionController();
+
+    act(() => {
+      getSession().goToNext();
+    });
+
+    let session = getSession();
+    expect(session.currentIndex).toBe(1);
+    expect(session.currentCard?.cardId).toBe('t2');
+    expect(session.statusById).toEqual({});
+    expect(session.canGoNext).toBe(true);
+    expect(session.canGoPrevious).toBe(true);
+
+    act(() => {
+      getSession().goToPrevious();
+    });
+
+    session = getSession();
+    expect(session.currentIndex).toBe(0);
+    expect(session.statusById).toEqual({});
+  });
+
   it('throws when useFlashcards is used outside the provider', () => {
     function BrokenProbe(): null {
       useFlashcards();
