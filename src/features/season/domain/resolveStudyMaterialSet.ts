@@ -1,10 +1,12 @@
 import { isDivisionId } from './division';
 import type { MaterialSet } from './materialSet';
+import { parseReadyParticipationRecord } from './readyParticipationRecord';
 import type { QuizzerSeasonParticipation } from './quizzerSeasonParticipation';
 
 /**
- * Resolves the MaterialSet a participation studies.
+ * Resolves the MaterialSet a ready participation studies.
  * MaterialSet ids are taken from the matching record. They are not built from names.
+ * Missing, malformed, or cross-season configuration is invalid — not an empty default.
  * Does not call curriculum loading.
  */
 
@@ -13,10 +15,17 @@ export interface StudyTarget {
   readonly materialSetId: string;
 }
 
+export type StudyMaterialSetInvalidReason =
+  | 'malformedParticipation'
+  | 'invalidCatalog'
+  | 'missingTarget';
+
 export type ResolveStudyMaterialSetResult =
   | { status: 'resolved'; studyTarget: StudyTarget }
-  | { status: 'none' }
-  | { status: 'ambiguous' };
+  | { status: 'ambiguous' }
+  | { status: 'invalid'; reason: StudyMaterialSetInvalidReason };
+
+const MATERIAL_SET_FIELDS = ['displayName', 'divisionId', 'materialSetId', 'seasonId'] as const;
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0 && value.trim() === value;
@@ -28,6 +37,14 @@ function isStructurallyValidMaterialSet(value: unknown): value is MaterialSet {
   }
 
   const row = value as Record<string, unknown>;
+  const keys = Object.keys(row);
+  if (keys.length !== MATERIAL_SET_FIELDS.length) {
+    return false;
+  }
+  if (!MATERIAL_SET_FIELDS.every((field) => Object.prototype.hasOwnProperty.call(row, field))) {
+    return false;
+  }
+
   return (
     isNonEmptyString(row.seasonId) &&
     isNonEmptyString(row.materialSetId) &&
@@ -45,7 +62,7 @@ function toStudyTarget(materialSet: MaterialSet): StudyTarget {
 
 function fromMatches(matches: readonly MaterialSet[]): ResolveStudyMaterialSetResult {
   if (matches.length === 0) {
-    return { status: 'none' };
+    return { status: 'invalid', reason: 'missingTarget' };
   }
   if (matches.length === 1) {
     const match = matches[0];
@@ -56,54 +73,42 @@ function fromMatches(matches: readonly MaterialSet[]): ResolveStudyMaterialSetRe
   return { status: 'ambiguous' };
 }
 
-function isCompetitiveParticipation(
-  value: QuizzerSeasonParticipation,
-): value is Extract<QuizzerSeasonParticipation, { participationType: 'competitive' }> {
-  if (value.participationType !== 'competitive') {
-    return false;
+function matchesForParticipation(
+  participation: QuizzerSeasonParticipation,
+  sameSeason: readonly MaterialSet[],
+): readonly MaterialSet[] {
+  if (participation.participationType === 'competitive') {
+    return sameSeason.filter((materialSet) => materialSet.divisionId === participation.divisionId);
   }
-  return !('studyTrackMaterialSetId' in value);
-}
-
-function isStudyTrackParticipation(
-  value: QuizzerSeasonParticipation,
-): value is Extract<QuizzerSeasonParticipation, { participationType: 'studyTrack' }> {
-  if (value.participationType !== 'studyTrack') {
-    return false;
-  }
-  return !('divisionId' in value) && isNonEmptyString(value.studyTrackMaterialSetId);
+  return sameSeason.filter(
+    (materialSet) => materialSet.materialSetId === participation.studyTrackMaterialSetId,
+  );
 }
 
 export function resolveStudyMaterialSet(
-  participation: QuizzerSeasonParticipation,
-  materialSets: readonly MaterialSet[],
+  participation: unknown,
+  materialSets: unknown,
 ): ResolveStudyMaterialSetResult {
-  if (!isNonEmptyString(participation.seasonId) || !Array.isArray(materialSets)) {
-    return { status: 'none' };
+  const parsed = parseReadyParticipationRecord(participation);
+  if (!parsed.ok) {
+    return { status: 'invalid', reason: 'malformedParticipation' };
   }
 
-  const sameSeason = materialSets.filter(
-    (materialSet) =>
-      isStructurallyValidMaterialSet(materialSet) &&
-      materialSet.seasonId === participation.seasonId,
+  if (!Array.isArray(materialSets)) {
+    return { status: 'invalid', reason: 'invalidCatalog' };
+  }
+
+  const catalog: MaterialSet[] = [];
+  for (const materialSet of materialSets) {
+    if (!isStructurallyValidMaterialSet(materialSet)) {
+      return { status: 'invalid', reason: 'invalidCatalog' };
+    }
+    catalog.push(materialSet);
+  }
+
+  const sameSeason = catalog.filter(
+    (materialSet) => materialSet.seasonId === parsed.participation.seasonId,
   );
 
-  if (isCompetitiveParticipation(participation)) {
-    if (!isDivisionId(participation.divisionId)) {
-      return { status: 'none' };
-    }
-    return fromMatches(
-      sameSeason.filter((materialSet) => materialSet.divisionId === participation.divisionId),
-    );
-  }
-
-  if (isStudyTrackParticipation(participation)) {
-    return fromMatches(
-      sameSeason.filter(
-        (materialSet) => materialSet.materialSetId === participation.studyTrackMaterialSetId,
-      ),
-    );
-  }
-
-  return { status: 'none' };
+  return fromMatches(matchesForParticipation(parsed.participation, sameSeason));
 }

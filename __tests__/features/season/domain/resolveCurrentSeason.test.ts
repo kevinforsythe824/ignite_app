@@ -269,7 +269,7 @@ describe('resolveCurrentSeason', () => {
     });
   });
 
-  it('skips structurally invalid seasons', () => {
+  it('fails the catalog when a season document is malformed', () => {
     const badEnd = makeSeason({ seasonId: '2041', status: 'published', endDate: '2032-02-31' });
     const inverted = makeSeason({
       seasonId: '2042',
@@ -283,7 +283,77 @@ describe('resolveCurrentSeason', () => {
       status: 'live' as SeasonStatus,
     };
     expect(
-      resolve([badEnd, inverted, blankName, badStatus], '2032-06-01', RELEASE_SEASON_SELECTION_POLICY),
-    ).toEqual({ status: 'none' });
+      resolve([badEnd], '2032-06-01', RELEASE_SEASON_SELECTION_POLICY),
+    ).toEqual({ status: 'invalid', reason: 'catalog' });
+    expect(
+      resolve([inverted, blankName, badStatus], '2032-06-01', RELEASE_SEASON_SELECTION_POLICY),
+    ).toEqual({ status: 'invalid', reason: 'catalog' });
+  });
+
+  it('does not treat a sole malformed in-window season as none', () => {
+    const malformed = {
+      ...makeSeason({ seasonId: '2046', status: 'published' }),
+      name: ' ',
+    };
+    expect(resolve([malformed], '2032-06-01', RELEASE_SEASON_SELECTION_POLICY)).toEqual({
+      status: 'invalid',
+      reason: 'catalog',
+    });
+  });
+
+  it('does not skip a malformed sibling and keep a valid current season', () => {
+    const valid = makeSeason({ seasonId: '2034', status: 'published' });
+    const malformed = { ...valid, seasonId: '2035', endDate: '2032-02-31' };
+    expect(
+      resolve([malformed, valid], '2032-06-01', RELEASE_SEASON_SELECTION_POLICY),
+    ).toEqual({ status: 'invalid', reason: 'catalog' });
+  });
+
+  it('treats igniteAvailabilityDate after endDate as invalid configuration', () => {
+    const invertedAvailability = makeSeason({
+      seasonId: '2047',
+      status: 'published',
+      startDate: '2032-04-01',
+      endDate: '2032-11-30',
+      igniteAvailabilityDate: '2033-01-01',
+    });
+    expect(
+      resolve([invertedAvailability], '2032-06-01', RELEASE_SEASON_SELECTION_POLICY),
+    ).toEqual({ status: 'invalid', reason: 'catalog' });
+
+    const valid = makeSeason({ seasonId: '2034', status: 'published' });
+    expect(
+      resolve([valid, invertedAvailability], '2032-06-01', RELEASE_SEASON_SELECTION_POLICY),
+    ).toEqual({ status: 'invalid', reason: 'catalog' });
+  });
+
+  it('rejects a non-array season catalog', () => {
+    expect(
+      resolveCurrentSeason(null, '2032-06-01', RELEASE_SEASON_SELECTION_POLICY),
+    ).toEqual({ status: 'invalid', reason: 'catalog' });
+    expect(
+      resolveCurrentSeason({ seasonId: '2032' }, '2032-06-01', DEV_SEASON_SELECTION_POLICY),
+    ).toEqual({ status: 'invalid', reason: 'catalog' });
+  });
+
+  it('rejects a malformed selection policy instead of returning none', () => {
+    expect(
+      resolveCurrentSeason([], '2032-06-01', { permittedStatuses: 'published' }),
+    ).toEqual({ status: 'invalid', reason: 'selectionPolicy' });
+    expect(resolveCurrentSeason([], '2032-06-01', null)).toEqual({
+      status: 'invalid',
+      reason: 'selectionPolicy',
+    });
+    expect(
+      resolveCurrentSeason([], '2032-06-01', {
+        permittedStatuses: ['published', 'live'],
+      }),
+    ).toEqual({ status: 'invalid', reason: 'selectionPolicy' });
+    expect(
+      resolveCurrentSeason([], '2032-06-01', {
+        permittedStatuses: ['published'],
+        source: 'dev',
+      }),
+    ).toEqual({ status: 'invalid', reason: 'selectionPolicy' });
   });
 });

@@ -65,7 +65,8 @@ describe('resolveStudyMaterialSet', () => {
         }),
       ];
       expect(resolveStudyMaterialSet(competitive('2031', 'junior'), sets)).toEqual({
-        status: 'none',
+        status: 'invalid',
+        reason: 'missingTarget',
       });
     });
 
@@ -88,8 +89,12 @@ describe('resolveStudyMaterialSet', () => {
         }),
       ];
       expect(resolveStudyMaterialSet(competitive('2031', 'junior'), sets)).toEqual({
-        status: 'none',
+        status: 'invalid',
+        reason: 'missingTarget',
       });
+      expect(JSON.stringify(resolveStudyMaterialSet(competitive('2031', 'junior'), sets))).not.toContain(
+        'junior-2031',
+      );
     });
 
     it('uses the stored materialSetId even when it is not division plus season', () => {
@@ -144,7 +149,8 @@ describe('resolveStudyMaterialSet', () => {
         }),
       ];
       expect(resolveStudyMaterialSet(studyTrack('2034', 'missing-set'), sets)).toEqual({
-        status: 'none',
+        status: 'invalid',
+        reason: 'missingTarget',
       });
     });
 
@@ -157,7 +163,8 @@ describe('resolveStudyMaterialSet', () => {
         }),
       ];
       expect(resolveStudyMaterialSet(studyTrack('2034', 'adult-notes'), sets)).toEqual({
-        status: 'none',
+        status: 'invalid',
+        reason: 'missingTarget',
       });
     });
 
@@ -172,7 +179,7 @@ describe('resolveStudyMaterialSet', () => {
     });
   });
 
-  it('ignores a structurally invalid same-season row', () => {
+  it('fails the catalog when a MaterialSet row is malformed instead of skipping it', () => {
     const valid = materialSet({
       seasonId: '2031',
       materialSetId: 'set-q-77',
@@ -180,8 +187,64 @@ describe('resolveStudyMaterialSet', () => {
     });
     const invalid = { ...valid, materialSetId: ' ', displayName: 'Broken' };
     expect(resolveStudyMaterialSet(competitive('2031', 'junior'), [invalid, valid])).toEqual({
-      status: 'resolved',
-      studyTarget: { seasonId: '2031', materialSetId: 'set-q-77' },
+      status: 'invalid',
+      reason: 'invalidCatalog',
     });
+    expect(resolveStudyMaterialSet(competitive('2031', 'junior'), null)).toEqual({
+      status: 'invalid',
+      reason: 'invalidCatalog',
+    });
+  });
+
+  it('rejects malformed participation, broken XOR, and blank identifiers', () => {
+    const sets = [
+      materialSet({ seasonId: '2031', materialSetId: 'set-q-77', divisionId: 'junior' }),
+    ];
+    expect(resolveStudyMaterialSet(null, sets)).toEqual({
+      status: 'invalid',
+      reason: 'malformedParticipation',
+    });
+    expect(
+      resolveStudyMaterialSet(
+        {
+          ...competitive('2031', 'junior'),
+          studyTrackMaterialSetId: 'set-q-77',
+        },
+        sets,
+      ),
+    ).toEqual({ status: 'invalid', reason: 'malformedParticipation' });
+    expect(
+      resolveStudyMaterialSet(
+        {
+          ...studyTrack('2031', 'set-q-77'),
+          divisionId: 'junior',
+        },
+        sets,
+      ),
+    ).toEqual({ status: 'invalid', reason: 'malformedParticipation' });
+    expect(
+      resolveStudyMaterialSet(
+        { ...competitive('2031', 'junior'), seasonId: ' ' },
+        sets,
+      ),
+    ).toEqual({ status: 'invalid', reason: 'malformedParticipation' });
+    expect(
+      resolveStudyMaterialSet(
+        { ...competitive('2031', 'junior'), readiness: 'incomplete' },
+        sets,
+      ),
+    ).toEqual({ status: 'invalid', reason: 'malformedParticipation' });
+    expect(
+      resolveStudyMaterialSet(
+        { ...competitive('2031', 'junior'), eligibilityAge: 11 },
+        sets,
+      ),
+    ).toEqual({ status: 'invalid', reason: 'malformedParticipation' });
+  });
+
+  it('does not invent a beginner material set id when the division has none', () => {
+    const result = resolveStudyMaterialSet(competitive('2031', 'beginner'), []);
+    expect(result).toEqual({ status: 'invalid', reason: 'missingTarget' });
+    expect(JSON.stringify(result)).not.toContain('beginner-2031');
   });
 });

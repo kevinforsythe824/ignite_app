@@ -195,5 +195,6 @@ describe('official WPF regions', () => {
     expect(isValidOfficialRegionConfig({ ...valid, displayOrder: 0 })).toBe(false);
     expect(isValidOfficialRegionConfig({ ...valid, active: 'yes' })).toBe(false);
     expect(isValidOfficialRegionConfig({ ...valid, active: false })).toBe(true);
+    expect(isValidOfficialRegionConfig({ ...valid, leadershipContact: 'hidden' })).toBe(false);
   });
 });

@@ -54,6 +54,13 @@ service cloud.firestore {
           allow write: if false;
         }
       }
+
+      // Official Region configuration (ADR-015 amendment). Authenticated read.
+      // Client writes stay denied. No recursive season wildcard.
+      match /regions/{regionId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
     }
 
     match /users/{userId} {
@@ -76,6 +83,13 @@ service cloud.firestore {
           && request.resource.data.last_name.size() > 0;
 
         allow delete: if false;
+      }
+
+      // QuizzerSeasonParticipation (ADR-016). The document is the participation record.
+      // Owner read only. Clients cannot create, update, or delete.
+      match /seasons/{seasonId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
       }
     }
 

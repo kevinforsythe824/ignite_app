@@ -5,10 +5,12 @@ import { SEASON_STATUSES, type Season, type SeasonStatus } from './season';
 /**
  * Pure current-Season resolution.
  * `today` is an already-resolved YYYY-MM-DD. No clock and no environment branch.
- * Zero matches → none. One match → current. More than one → ambiguous (no guess).
+ * A malformed catalog or selection policy is invalid. It is not treated as "no season".
+ * Zero structurally valid non-candidates → none. One candidate → current.
+ * More than one candidate → ambiguous (no guess).
  */
 
-export type CurrentSeasonInvalidReason = 'calendarDate';
+export type CurrentSeasonInvalidReason = 'calendarDate' | 'catalog' | 'selectionPolicy';
 
 export type CurrentSeasonResult =
   | { status: 'invalid'; reason: CurrentSeasonInvalidReason }
@@ -55,50 +57,92 @@ function isStructurallyValidSeason(value: unknown): value is Season {
   return true;
 }
 
-function isCurrentSeasonCandidate(
-  value: unknown,
-  today: string,
-  permittedStatuses: readonly SeasonStatus[],
-): value is Season {
+/**
+ * A row may stay in the catalog when it is not current (missing availability,
+ * future, ended, archived, or a status the policy does not allow).
+ * A corrupt row fails the whole catalog. Availability after endDate is corrupt.
+ */
+function isAcceptableCatalogSeason(value: unknown): value is Season {
   if (!isStructurallyValidSeason(value)) {
     return false;
   }
-  if (value.status === 'archived') {
+  if (
+    value.igniteAvailabilityDate !== undefined &&
+    value.igniteAvailabilityDate > value.endDate
+  ) {
     return false;
   }
-  if (!permittedStatuses.includes(value.status)) {
-    return false;
-  }
-  if (!isIsoCalendarDate(value.igniteAvailabilityDate)) {
-    return false;
-  }
-  if (value.igniteAvailabilityDate > value.endDate) {
+  return true;
+}
+
+function isValidSelectionPolicy(value: unknown): value is SeasonSelectionPolicy {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     return false;
   }
 
-  return today >= value.igniteAvailabilityDate && today <= value.endDate;
+  const row = value as Record<string, unknown>;
+  const keys = Object.keys(row);
+  if (keys.length !== 1 || keys[0] !== 'permittedStatuses') {
+    return false;
+  }
+
+  const permittedStatuses = row.permittedStatuses;
+  if (!Array.isArray(permittedStatuses)) {
+    return false;
+  }
+
+  return permittedStatuses.every((status) => isSeasonStatus(status));
+}
+
+function isCurrentSeasonCandidate(
+  season: Season,
+  today: string,
+  permittedStatuses: readonly SeasonStatus[],
+): boolean {
+  if (season.status === 'archived') {
+    return false;
+  }
+  if (!permittedStatuses.includes(season.status)) {
+    return false;
+  }
+  if (!isIsoCalendarDate(season.igniteAvailabilityDate)) {
+    return false;
+  }
+  if (season.igniteAvailabilityDate > season.endDate) {
+    return false;
+  }
+
+  return today >= season.igniteAvailabilityDate && today <= season.endDate;
 }
 
 export function resolveCurrentSeason(
-  seasons: readonly Season[],
+  seasons: unknown,
   today: string,
-  selectionPolicy: SeasonSelectionPolicy,
+  selectionPolicy: unknown,
 ): CurrentSeasonResult {
   if (!isIsoCalendarDate(today)) {
     return { status: 'invalid', reason: 'calendarDate' };
   }
 
-  const permittedStatuses = selectionPolicy.permittedStatuses;
-  if (!Array.isArray(permittedStatuses) || !Array.isArray(seasons)) {
-    return { status: 'none' };
+  if (!isValidSelectionPolicy(selectionPolicy)) {
+    return { status: 'invalid', reason: 'selectionPolicy' };
   }
 
-  const candidates: Season[] = [];
-  for (const season of seasons) {
-    if (isCurrentSeasonCandidate(season, today, permittedStatuses)) {
-      candidates.push(season);
-    }
+  if (!Array.isArray(seasons)) {
+    return { status: 'invalid', reason: 'catalog' };
   }
+
+  const catalog: Season[] = [];
+  for (const season of seasons) {
+    if (!isAcceptableCatalogSeason(season)) {
+      return { status: 'invalid', reason: 'catalog' };
+    }
+    catalog.push(season);
+  }
+
+  const candidates = catalog.filter((season) =>
+    isCurrentSeasonCandidate(season, today, selectionPolicy.permittedStatuses),
+  );
 
   if (candidates.length === 0) {
     return { status: 'none' };

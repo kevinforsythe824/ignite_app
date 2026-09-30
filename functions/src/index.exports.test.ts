@@ -14,6 +14,7 @@ describe('functions export surface (6.5B)', () => {
     expect(index.createParentalConsentRequest).toBeDefined();
     expect(index.claimParentalConsent).toBeDefined();
     expect(index.submitFeedback).toBeDefined();
+    expect(index.createQuizzerSeasonParticipation).toBeDefined();
   });
 
   it('does not export duplicate *Fn callable aliases', () => {

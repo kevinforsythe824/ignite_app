@@ -12,6 +12,8 @@ module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/__tests__/firestore-rules/**/*.rules.test.ts'],
   testTimeout: 20000,
+  // Suites share one emulator project and call clearFirestore. Parallel files race.
+  maxWorkers: 1,
   transform: {
     '^.+\\.tsx?$': [
       'babel-jest',

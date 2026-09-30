@@ -408,7 +408,7 @@ Do not implement these personas in production behavior yet. Use for test plannin
 | **Intended scenario** | Authenticated user A attempts to read/write user B's season-scoped learning data |
 | **Authentication** | Signed in as synthetic user A |
 | **Expected routing / result** | Denied at backend; UI must not rely on hiding alone (PRD §43, ADR-006) |
-| **Security expectation** | **Security Rules + server enforcement** — primary persona for Sprint 3 rules tests |
+| **Security expectation** | **Security Rules + server enforcement** — primary persona for Sprint 3 rules tests. Phase 3B covers `users/{uid}/seasons/{seasonId}`: owner read, client create/update/delete denied, other users denied, signed-out denied. Official `seasons/{seasonId}/regions/{regionId}` is authenticated read and client-write denied. |
 | **Sprint** | 3 |
 | **Testing use** | Security Rules, automated (when emulator tests exist) |
 

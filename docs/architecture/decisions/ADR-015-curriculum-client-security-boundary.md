@@ -57,3 +57,11 @@ Explicit matches keep future Season subcollections denied until a later ADR name
 - Keep public curriculum reads — rejected; no signed-out runtime flow needs them.
 - Recursive Season wildcard — rejected; unknown paths must fail closed.
 - Encode entitlement, division, or season status in this slice — rejected; those policies are not decided here, and a guessed rule would be hard to unwind.
+
+## Amendment (2026-09-30) — official Region reads
+
+Phase 3 participation adds one explicit season path:
+
+- `seasons/{seasonId}/regions/{regionId}` — authenticated client read; client create, update, and delete denied.
+
+This match is only that subcollection. It does not add `seasons/{seasonId}/{document=**}` or open any other season path. Unknown season siblings stay denied. Official region documents are not account-owned. Participation remains a separate user path, recorded in ADR-016, and is not a curriculum rule.

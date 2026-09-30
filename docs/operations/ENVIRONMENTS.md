@@ -107,6 +107,10 @@ The same `firestore.rules` file is promoted across DEV, STAGING, and PROD. Rules
 - `parentalConsentRequests/{requestId}` — **deny all** client read/write (Phase 6.5A). Cloud Functions Admin SDK only.
 - `parentalConsentRateLimits/{bucketId}` — **deny all** client read/write (Phase 6.5A abuse counters). Cloud Functions Admin SDK only.
 - `feedbackSubmissions/{submissionId}` — **deny all** client read/write (Phase 8 / ADR-012). Created only via authenticated `submitFeedback` callable (Admin SDK). Not account-owned by UID; see [`ACCOUNT_DELETION_RUNBOOK.md`](ACCOUNT_DELETION_RUNBOOK.md).
+- `users/{userId}/seasons/{seasonId}` — owner read of QuizzerSeasonParticipation; client create, update, and delete denied (ADR-016). Other users and signed-out clients are denied. Unknown paths under the user stay denied.
+- `seasons/{seasonId}/regions/{regionId}` — authenticated client read; client writes denied (ADR-015 amendment). This is not a recursive season wildcard. Unknown season subcollections stay denied.
+
+Editing `firestore.rules` or the functions source does **not** deploy them. Phase 3B does not deploy rules or Cloud Functions to DEV, STAGING, or PROD. Deploy only as a later explicit environment action.
 
 **Workflow**
 
@@ -196,6 +200,20 @@ npm run firebase:use:dev  # restore CLI default if needed
 ```
 
 Do **not** deploy rules to staging or prod as part of ordinary Phase 4 work.
+
+## Season selection policy
+
+The current-Season resolver does not read the environment. Composition chooses the policy:
+
+- **DEV** (`IGNITE_ENV=dev` on functions, `EXPO_PUBLIC_IGNITE_ENV=dev` in the app): `draft`, `published`, and `activeLocked` may be current when the season dates say so.
+- **STAGING and PROD:** `published` and `activeLocked` only. A DEV draft is not current there.
+- An unknown environment fails closed. Do not infer the policy from a hostname.
+
+Date rules still apply in every environment. A canonical Season timezone is **not** configured. Do not deploy `createQuizzerSeasonParticipation` until that timezone is an approved project setting. The callable fails closed rather than guessing UTC or the machine zone.
+
+## DEV official Region configuration
+
+`scripts/region-config/` can plan official WPF Region documents at `seasons/{seasonId}/regions/{regionId}` from `OFFICIAL_REGIONS`. It is not the curriculum importer. It refuses STAGING and PROD. **Phase 3B implemented the planner and unit tests only. It was not executed against the live DEV project.** Do not run it against DEV, STAGING, or PROD unless a later request explicitly says to.
 
 ## How backend config/rules are promoted
 

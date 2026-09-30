@@ -25,6 +25,15 @@ import { getParentalConsentStatus as getParentalConsentStatusUseCase } from './c
 import { resendParentalConsentNotice as resendParentalConsentNoticeUseCase } from './consent/resendNotice';
 import { buildConsentServiceDeps } from './consent/serviceDeps';
 import { updateParentalConsentEmail as updateParentalConsentEmailUseCase } from './consent/updateEmail';
+import { readAuthoritativeSeasonCalendarDate } from './participation/authoritativeSeasonCalendarDate';
+import { createQuizzerSeasonParticipation as createQuizzerSeasonParticipationUseCase } from './participation/createQuizzerSeasonParticipation';
+import {
+  createFirestoreParticipationCreatePort,
+  createFirestoreSeasonParticipationCatalog,
+} from './participation/firestoreParticipationPorts';
+import { ParticipationCreateError } from './participation/participationCreateError';
+import { seasonSelectionPolicyForEnvironment } from './participation/seasonSelectionPolicyForEnvironment';
+import { toParticipationHttpsError } from './participation/toParticipationHttpsError';
 import { toFeedbackHttpsError } from './feedback/feedbackHttpsError';
 import { createFeedbackSheetsMirror } from './feedback/feedbackSheetsMirror';
 import { createGoogleSheetsValuesAppend } from './feedback/googleSheetsFeedbackAdapter';
@@ -205,6 +214,40 @@ export const submitFeedback = onCall(
       );
     } catch (error) {
       throw toFeedbackHttpsError(error);
+    }
+  },
+);
+
+/**
+ * Create-only QuizzerSeasonParticipation. Uid comes from request.auth.
+ * The calendar date is injected by the composition root, not the client.
+ * Canonical Season timezone is not configured, so this callable fails closed
+ * until that date port is supplied. Do not deploy it before then.
+ */
+export const createQuizzerSeasonParticipation = onCall(
+  {
+    ...appCheckCallableOptions(),
+    invoker: 'public',
+  },
+  async (request) => {
+    try {
+      guardEnvironment();
+      if (!request.auth?.uid) {
+        throw new ParticipationCreateError('unauthenticated');
+      }
+      const environment = readIgniteEnvironment();
+      return await createQuizzerSeasonParticipationUseCase(
+        {
+          authenticatedUid: request.auth.uid,
+          today: readAuthoritativeSeasonCalendarDate(),
+          selectionPolicy: seasonSelectionPolicyForEnvironment(environment),
+          catalog: createFirestoreSeasonParticipationCatalog(),
+          participation: createFirestoreParticipationCreatePort(),
+        },
+        request.data,
+      );
+    } catch (error) {
+      throw toParticipationHttpsError(error);
     }
   },
 );

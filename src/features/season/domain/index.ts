@@ -39,8 +39,14 @@ export {
 export {
   resolveStudyMaterialSet,
   type ResolveStudyMaterialSetResult,
+  type StudyMaterialSetInvalidReason,
   type StudyTarget,
 } from './resolveStudyMaterialSet';
+export {
+  parseReadyParticipationRecord,
+  type ReadyParticipationParseResult,
+  type ReadyQuizzerSeasonParticipation,
+} from './readyParticipationRecord';
 export {
   findActiveRegionById,
   isValidOfficialRegionConfig,
@@ -50,6 +56,11 @@ export {
   type RegionRef,
 } from './region';
 export { OFFICIAL_REGIONS } from './officialRegions';
+export {
+  validateOfficialRegionCatalog,
+  type OfficialRegionCatalogInvalidReason,
+  type OfficialRegionCatalogResult,
+} from './validateOfficialRegionCatalog';
 export {
   assertParticipationImmutableDuringActiveSeason,
   assertValidQuizzerSeasonParticipation,

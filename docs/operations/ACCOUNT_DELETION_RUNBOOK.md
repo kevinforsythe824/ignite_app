@@ -56,10 +56,12 @@ Future deletion, anonymization, or retention handling happens on the **backend**
 |-------------|---------|-----------|-------------|--------------|-----------------|--------|
 | Firebase Auth | Auth project | auth feature | `uid` | `DELETE_WITH_ACCOUNT` | Email / credentials | **UNRESOLVED** how/when Auth user is deleted |
 | QuizzerProfile | `users/{uid}/profile/main` | profile | path = uid | `DELETE_WITH_ACCOUNT` | Names + `avatar_id` | Client delete denied; server delete **UNRESOLVED** |
+| QuizzerSeasonParticipation | `users/{uid}/seasons/{seasonId}` | season participation | path = uid and seasonId | `DELETE_WITH_ACCOUNT` | Ready participation only. No date of birth, age, or first-year flag | Client create/update/delete denied (ADR-016). Future deleter must include this path. Server deleter **UNRESOLVED** |
 | Parental consent requests | `parentalConsentRequests/{id}` | consent Functions | optional `claimedByUid` + parent email | **`UNRESOLVED`** | Parent PII / audit trail | **Must resolve before final deletion** — see [Parental-consent server retention](#parental-consent-server-retention-unresolved) |
 | Consent rate limits | `parentalConsentRateLimits/{bucket}` | consent Functions | email hash / IP bucket | `NOT_ACCOUNT_OWNED` | Abuse counters | Ops TTL optional; not Quizzer-owned |
 | Feedback submissions | `feedbackSubmissions/{id}` | feedback | **none** (auth only gates the callable) | `NOT_ACCOUNT_OWNED` | Free-text may contain volunteered PII | ADR-012 boundary; retention length is a separate support/privacy decision — **do not retrofit UID** |
 | Official seasons / cards | `seasons/...` | curriculum | none | `NOT_ACCOUNT_OWNED` / retain | Global content | Must survive account deletion |
+| Official Region configuration | `seasons/{seasonId}/regions/{regionId}` | season configuration | none | `NOT_ACCOUNT_OWNED` | Official WPF region list for that season | Must survive account deletion. Client writes denied |
 
 ### Conceptual ownership (ladder)
 

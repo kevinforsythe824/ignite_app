@@ -9,9 +9,9 @@
     "target": "ES2022",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "rootDir": "src",
+    "rootDir": "..",
     "types": ["node", "jest"]
   },
-  "include": ["src"],
+  "include": ["src", "../src/features/season/domain", "../src/features/season/data"],
   "exclude": ["src/**/*.test.ts", "src/**/integration/**"]
 }
