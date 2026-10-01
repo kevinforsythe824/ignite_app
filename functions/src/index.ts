@@ -220,9 +220,8 @@ export const submitFeedback = onCall(
 
 /**
  * Create-only QuizzerSeasonParticipation. Uid comes from request.auth.
- * The calendar date is injected by the composition root, not the client.
- * Canonical Season timezone is not configured, so this callable fails closed
- * until that date port is supplied. Do not deploy it before then.
+ * The calendar date is the America/Chicago YYYY-MM-DD from this composition
+ * root. The client cannot submit today, a timezone, or a date override.
  */
 export const createQuizzerSeasonParticipation = onCall(
   {

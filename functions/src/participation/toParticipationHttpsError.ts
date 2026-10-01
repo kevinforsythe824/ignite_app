@@ -21,7 +21,7 @@ const HTTPS_CODES: Record<ParticipationFailureReason, FunctionsErrorCode> = {
   'existing-participation-invalid': 'failed-precondition',
   'persistence-failure': 'internal',
   'unknown-environment': 'failed-precondition',
-  'calendar-unconfigured': 'failed-precondition',
+  'invalid-calendar-instant': 'failed-precondition',
 };
 
 /** Maps participation failures to HttpsError. Unknown errors stay non-PII. */

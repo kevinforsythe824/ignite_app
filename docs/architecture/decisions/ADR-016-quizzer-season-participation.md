@@ -25,7 +25,7 @@ The participation document path is already fixed by the PRD: `users/{userId}/sea
 - There is one eligibility source. Functions compile the pure season domain modules from `src/features/season/domain` into the functions output. The matrix is not copied into `functions/src`.
 - `functions/tsconfig.json` sets `rootDir` to the repository root so those pure files typecheck and emit under `functions/lib` without a second package. `functions/package.json` `main` is `lib/functions/src/index.js`.
 - DEV composition may inject `DEV_SEASON_SELECTION_POLICY`. STAGING and PROD inject `RELEASE_SEASON_SELECTION_POLICY`. `resolveCurrentSeason` does not read the environment.
-- The callable receives an injected calendar date. It does not accept the client clock. A canonical Season timezone is still required before this callable is deployed.
+- The callable receives an injected `YYYY-MM-DD`. It does not accept a client clock, client date, or client timezone. The canonical Ignite Season timezone is `America/Chicago`, and it does not vary by environment. That zone converts the current instant into the date passed to `resolveCurrentSeason`. `igniteAvailabilityDate` stays date-only: October 1 means October 1 in America/Chicago, including daylight-saving transitions from the IANA zone. `resolveCurrentSeason` does not import a timezone. Tournament local time is outside this decision and should later use the tournament's local timezone.
 - Official regions live at `seasons/{seasonId}/regions/{regionId}` and are checked as a whole catalog against `OFFICIAL_REGIONS` before a `regionId` is trusted.
 - A trusted correction process is required before public launch. This decision does not build that tool. See the participation correction runbook.
 - Account deletion must remove `users/{uid}/seasons/{seasonId}` with the account. Official region documents are not account-owned.
@@ -39,7 +39,7 @@ Rules-only writes would either store eligibility inputs or accept a client-suppl
 - Season Setup (Phase 3C) submits eligibility inputs and does not write Firestore itself.
 - Lifecycle and Study cutover (Phase 3D) read participation through the repository. A missing document is setup-required. A malformed document is an error, not an empty Study target.
 - Deploying the callable or the rules is a separate operational action. This decision does not deploy them.
-- Until a Season timezone is an approved project setting, the deployed callable fails closed rather than guessing UTC or the server zone.
+- Season calendar boundaries use `America/Chicago` as application configuration. Season documents do not store a timezone. An invalid instant fails closed. Deploying the callable or the rules remains a separate operational action.
 - Future progress collections under the participation document stay denied until a later rule names them.
 
 ## Alternatives considered

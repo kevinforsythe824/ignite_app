@@ -209,7 +209,7 @@ The current-Season resolver does not read the environment. Composition chooses t
 - **STAGING and PROD:** `published` and `activeLocked` only. A DEV draft is not current there.
 - An unknown environment fails closed. Do not infer the policy from a hostname.
 
-Date rules still apply in every environment. A canonical Season timezone is **not** configured. Do not deploy `createQuizzerSeasonParticipation` until that timezone is an approved project setting. The callable fails closed rather than guessing UTC or the machine zone.
+Date rules still apply in every environment. The canonical Ignite Season timezone is `America/Chicago`. It controls Season calendar boundaries only: `igniteAvailabilityDate`, current-Season determination, and later Season lifecycle date comparisons that intentionally use the same Season calendar. `igniteAvailabilityDate` stays date-only (`YYYY-MM-DD`). October 1 means October 1 in America/Chicago. Daylight-saving transitions follow the IANA zone rather than a fixed Central offset. DEV, STAGING, and PROD use this same timezone. Environment selection still only chooses the DEV versus release season-status policy. Tournament times are outside this rule and should later use the tournament's local timezone. Deploying `createQuizzerSeasonParticipation` remains a separate explicit operation.
 
 ## DEV official Region configuration
 

@@ -14,7 +14,7 @@ export type ParticipationFailureReason =
   | 'existing-participation-invalid'
   | 'persistence-failure'
   | 'unknown-environment'
-  | 'calendar-unconfigured';
+  | 'invalid-calendar-instant';
 
 const CLIENT_MESSAGES: Record<ParticipationFailureReason, string> = {
   unauthenticated: 'Authentication is required.',
@@ -32,7 +32,7 @@ const CLIENT_MESSAGES: Record<ParticipationFailureReason, string> = {
   'existing-participation-invalid': 'Existing participation could not be used.',
   'persistence-failure': 'Participation could not be saved.',
   'unknown-environment': 'Season configuration is unavailable.',
-  'calendar-unconfigured': 'Season configuration is unavailable.',
+  'invalid-calendar-instant': 'Season configuration is unavailable.',
 };
 
 /**

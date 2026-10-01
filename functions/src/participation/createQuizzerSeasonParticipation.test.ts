@@ -312,6 +312,8 @@ describe('createQuizzerSeasonParticipation', () => {
     const clientDate = await failureReason(request({ today: '1999-01-01', uid: 'other-user' }));
     expect(clientDate.reason).toBe('malformed-input');
     expect(clientDate.clientMessage).not.toContain('1999');
+    const clientZone = await failureReason(request({ timeZone: 'America/New_York' }));
+    expect(clientZone.reason).toBe('malformed-input');
   });
 
   it('rejects season configuration that is not one current season', async () => {
@@ -494,6 +496,50 @@ describe('createQuizzerSeasonParticipation', () => {
     expect(httpsError.message).not.toContain('users/');
     expect(httpsError.message).not.toContain('boom');
   });
+
+  it('applies the October 1 Central midnight boundary to the current season', async () => {
+    const seasonId = '2026';
+    const season = {
+      seasonId,
+      name: 'Season 2026',
+      startDate: '2026-09-01',
+      endDate: '2027-06-30',
+      igniteAvailabilityDate: '2026-10-01',
+      status: 'published' as const,
+    };
+    const beforeCentralMidnight = readAuthoritativeSeasonCalendarDate(
+      () => new Date('2026-10-01T04:59:59Z'),
+    );
+    const atCentralMidnight = readAuthoritativeSeasonCalendarDate(
+      () => new Date('2026-10-01T05:00:00Z'),
+    );
+    expect(beforeCentralMidnight).toBe('2026-09-30');
+    expect(atCentralMidnight).toBe('2026-10-01');
+
+    const seasonCatalog = catalog({
+      seasons: [season],
+      materialSets: materialSets(seasonId),
+    });
+    const unavailable = await failureReason(request({ seasonId }), {
+      today: beforeCentralMidnight,
+      selectionPolicy: RELEASE_SEASON_SELECTION_POLICY,
+      catalog: seasonCatalog,
+    });
+    expect(unavailable.reason).toBe('no-current-season');
+
+    const participation = memoryParticipation();
+    const result = await createQuizzerSeasonParticipation(
+      deps({
+        today: atCentralMidnight,
+        selectionPolicy: RELEASE_SEASON_SELECTION_POLICY,
+        catalog: seasonCatalog,
+        participation,
+      }),
+      request({ seasonId }),
+    );
+    expect(result.created).toBe(true);
+    expect(result.participation.seasonId).toBe(seasonId);
+  });
 });
 
 describe('season selection policy composition', () => {
@@ -527,21 +573,14 @@ describe('season selection policy composition', () => {
     expect(resolver).not.toContain('Date.now');
     expect(resolver).not.toContain('process.env');
     expect(resolver).not.toContain('DEV_SEASON_SELECTION_POLICY');
+    expect(resolver).not.toContain('America/Chicago');
+    expect(resolver).not.toContain('IGNITE_SEASON_TIME_ZONE');
+    expect(resolver).not.toContain('timeZone');
     expect(useCase).toContain('resolveParticipationOptions');
     expect(useCase).not.toContain('Date.now');
+    expect(useCase).not.toContain('new Date');
+    expect(useCase).not.toContain('IGNITE_SEASON_TIME_ZONE');
     expect(useCase).not.toMatch(/eligibilityAge\s*>=/);
     expect(useCase).not.toContain('DEV_SEASON_SELECTION_POLICY');
-  });
-});
-
-describe('authoritative season calendar date', () => {
-  it('fails closed instead of guessing a timezone', () => {
-    expect(() => readAuthoritativeSeasonCalendarDate()).toThrow(ParticipationCreateError);
-    try {
-      readAuthoritativeSeasonCalendarDate();
-    } catch (error) {
-      expect((error as ParticipationCreateError).reason).toBe('calendar-unconfigured');
-      expect((error as ParticipationCreateError).clientMessage).not.toContain('UTC');
-    }
   });
 });
