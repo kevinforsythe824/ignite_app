@@ -55,6 +55,7 @@
     "consent:dev-create": "tsx scripts/consent/devCreateConsentRequest.ts",
     "fix:claim-invoker:dev": "bash scripts/consent/fixClaimInvokerDev.sh",
     "seed:firestore": "tsx scripts/firestore-seed/seedFirestore.ts",
+    "cleanup:legacy-test-season": "tsx scripts/firestore-seed/cleanupLegacyTestSeason.ts",
     "content:validate-source": "tsx scripts/content-pipeline/cli/validateSourceCli.ts",
     "content:generate-package": "tsx scripts/content-pipeline/cli/generatePackageCli.ts",
     "content:validate-package": "tsx scripts/content-pipeline/cli/validatePackageCli.ts",

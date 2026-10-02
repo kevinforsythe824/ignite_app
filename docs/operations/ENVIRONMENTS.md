@@ -240,15 +240,11 @@ Auth users, learning state, and season documents do **not** sync from `wpf-bible
 
 ## Official season content
 
-Official curriculum uses the committee → validate → import → approve workflow (PRD §50, playbook §9). That is separate from this environment layout. Test seeds (`npm run seed:firestore`) are for **dev** (and only staging if explicitly intended). They are not the production publishing path.
+Official curriculum uses the committee → validate → import → approve workflow (PRD §50, playbook §9). That is separate from this environment layout. Current curriculum is placed with the content package and import workflow (`npm run content:validate-source`, `content:generate-package`, `content:validate-package`, `content:import`). Local and emulator fixtures may still use the `test-season` identity. Those fixtures are not authoritative live Season documents.
 
-The seed script:
+`npm run seed:firestore` is retired. It exits before Firebase initialization and does not write `seasons/test-season` for DEV, STAGING, or PROD.
 
-- Requires `EXPO_PUBLIC_IGNITE_ENV`
-- Requires the Firebase project ID to match that env
-- Prints `environment=` and `project=` before writing
-- Allows **dev** and intentionally targeted **staging**
-- **Always refuses `prod`.** There is no override flag. Official production season publishing is a separate workflow and must not reuse this script.
+Stale DEV data at `seasons/test-season` is a one-time corrective cleanup: `npm run cleanup:legacy-test-season`. The command is dry-run by default. It requires `EXPO_PUBLIC_IGNITE_ENV=dev` and the DEV project id `wpf-bible-qizzing`. It refuses STAGING, PROD, an unknown environment, and a project-id mismatch. `--apply` deletes that exact document and its legacy `cards` subcollection only after the document still matches the retired fixture (`title` of `Luke 2:1-9`, flat `cards` only). A modern Season shape stops the command for manual review. It does not accept a Season id argument.
 
 ## Safeguards against accidental production changes
 
@@ -256,7 +252,7 @@ The seed script:
 - Project ID must match the named env.
 - CLI default alias is `dev`. There is no npm script that switches the persistent default to prod.
 - No production deploy npm script.
-- Seed always refuses production. There is no override.
+- `npm run seed:firestore` is retired and exits before Firebase initialization. `npm run cleanup:legacy-test-season` is dry-run by default, DEV-only, and limited to `seasons/test-season`.
 - `.env.local` and service-account JSON are gitignored.
 - `firestore.rules` must stay aligned with git before any deploy; test on DEV before STAGING/PROD.
 
@@ -269,7 +265,7 @@ If a command or log line shows `prod` / `ignite-prod-01` and you did not mean pr
 1. Copy `.env.dev.example` → `.env.local` and fill the web-app config for `wpf-bible-qizzing`.
 2. `npm start`
 3. Confirm the Metro log: `environment=dev project=wpf-bible-qizzing`
-4. Optional seed: `npm run seed:firestore` (needs Application Default Credentials for that project)
+4. Load curriculum with the content import workflow. `npm run seed:firestore` is retired and does not write. To inspect a stale DEV `seasons/test-season` document, run `npm run cleanup:legacy-test-season` (dry-run; needs Application Default Credentials). Deletion requires a separate `--apply` and stays on DEV.
 
 **STAGING**
 

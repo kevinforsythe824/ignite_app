@@ -52,3 +52,7 @@ A durable authoring-source vs generated-package boundary keeps corrections in hu
 - Official committee content-source mapping and identifier policy
 - Official annotation types and targeting strategies beyond the synthetic `phraseOccurrence` strategy
 - DEV apply/replacement and repository cutover remain later Phase 2A.2 slices (ADR-014). Official mapping stays Phase 2B.
+
+## Amendment (2026-10-02) — live test-season writer retired
+
+The consequence that `scripts/firestore-seed/` remains a test-curriculum importer described the live writer that stored `seasons/test-season`. That writer is retired and exits before Firebase initialization. Local fixture helpers in that folder may still build in-memory test documents. Live curriculum writes use the content import workflow. Current procedure is in [`ENVIRONMENTS.md`](../../operations/ENVIRONMENTS.md) and [`CONTENT_PUBLISHING_RUNBOOK.md`](../../operations/CONTENT_PUBLISHING_RUNBOOK.md). The decision above is otherwise unchanged.

@@ -84,7 +84,7 @@ Sprint accepted
 **Migration / data changes**
 
 - **No migration framework in repo yet.** If existing Firestore documents need transformation, plan an explicit script or manual process per environment.
-- Test data seed (`npm run seed:firestore`) is DEV-only by default; prod is always refused. Official content uses a separate import path (Sprint 3+).
+- Legacy live seed (`npm run seed:firestore`) is retired and does not write Firebase. Official content uses the content import path. Local fixtures remain local.
 
 **Merge → main**
 

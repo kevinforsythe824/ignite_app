@@ -73,7 +73,7 @@ Identifier policy (synthetic/DEV): humans enter season/material/division identit
 
 Annotation targeting (provisional): Phase 2A.1 supports `phraseOccurrence`. `occurrenceIndex` is optional when the exact phrase occurs once in the verse. If the phrase occurs more than once, enter the 1-based occurrence number that identifies the intended match. The pipeline does not guess among repeated phrases. Unresolved or ambiguous targets fail. Official committee mapping is Phase 2B.
 
-`scripts/firestore-seed/` is unchanged and is not a publisher.
+`scripts/firestore-seed/` is not a publisher. Its live `seasons/test-season` writer is retired. Curriculum writes use the content import workflow above. Local fixture helpers in that folder may still build test documents in memory.
 
 ### Phase 2A.2 Slice 3 — plan and DEV read-only diff
 

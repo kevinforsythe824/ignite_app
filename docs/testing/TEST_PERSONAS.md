@@ -394,7 +394,7 @@ Do not implement these personas in production behavior yet. Use for test plannin
 |-------|-------|
 | **Persona ID** | `s3-content-edgecases-001` |
 | **Intended scenario** | Synthetic curriculum covering numbering, long/short cards, annotations, keywords, cross-references (playbook §8, PRD §49) |
-| **Season** | Dev/staging test season (e.g. existing `test-season` seed) |
+| **Season** | Deterministic local or emulator fixtures, or the controlled DEV 2027 curriculum package. Synthetic numbering, length, annotation, keyword, and cross-reference cases stay in those fixtures. |
 | **Expected routing / result** | Curriculum loads and renders without domain identity collisions |
 | **Security expectation** | Authenticated read-only client access to official nested paths; signed-out reads denied |
 | **Sprint** | 3 |
@@ -561,6 +561,6 @@ Do not encode guessed values for these in automated tests until the product owne
 
 ## Seeds and fixtures
 
-This document does **not** add user seed scripts. The existing **`npm run seed:firestore`** path seeds **test curriculum only** (Admin SDK, dev/staging). User/auth personas remain manual or test-fixture responsibilities until Sprint 2 introduces a safe, documented provisioning approach.
+This document does **not** add user seed scripts. Curriculum for live DEV uses the content package/import workflow. **`npm run seed:firestore`** is retired and does not write `seasons/test-season`. Local and unit fixtures may still use the `test-season` identity. User/auth personas remain manual or test-fixture responsibilities until Sprint 2 introduces a safe, documented provisioning approach.
 
 Automated unit/domain tests should continue using deterministic in-memory fixtures under `__tests__/`.

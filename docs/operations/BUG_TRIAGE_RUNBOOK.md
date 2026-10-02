@@ -122,7 +122,7 @@ Determine which layer owns the failure before editing code.
 | **Domain** | Incorrect business rule, eligibility, season isolation | Domain modules, policy — check PRD and ADRs |
 | **Repository / persistence** | Mapping errors, query shape, sync timing | Repository implementations — not UI |
 | **Firebase / Firestore rules** | Permission denied, unexpected public read, writes blocked | `firestore.rules`, Security Rules tests, console vs git diff |
-| **Seed / tooling** | Wrong test data, script targeted wrong project | `scripts/firestore-seed/`, `assertSeedTarget.ts` |
+| **Seed / tooling** | Retired live seed invoked, or DEV cleanup pointed at the wrong project | `scripts/firestore-seed/` (`seedFirestore.ts` exits before Firebase; `cleanupLegacyTestSeason.ts` is DEV-only) |
 | **Configuration** | Wrong env vars, project ID mismatch, missing `EXPO_PUBLIC_IGNITE_ENV` | `.env.local`, `firebaseEnvironments.ts`, [ENVIRONMENTS.md](ENVIRONMENTS.md) |
 | **External provider** | Auth, store, crash reporting | Provider-specific service boundaries (ADR-005 for AI) |
 
@@ -227,7 +227,7 @@ Do not copy Production Firestore into Staging. Do not create synthetic personas 
 
 **Never:**
 
-- Run general seed scripts against Production (`assertSeedTarget` blocks this by design).
+- Run `npm run seed:firestore`. The command is retired entirely and exits before Firebase initialization. Production seeding remains prohibited.
 - Deploy Firestore rules to Production without reconciling `firestore.rules` in git.
 - Leave a known P0/P1 open across a wide Production release without mitigation.
 

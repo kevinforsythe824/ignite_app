@@ -4,6 +4,9 @@ import type { FirestoreCardDocument } from '../../src/features/flashcards/data/f
  * Temporary test seed derives card_number from fixture array order (v1 → 1).
  * Official future curriculum should provide validated official card numbers
  * rather than relying on array position.
+ *
+ * TEST_SEED_SEASON_ID is a local fixture id. The live writer that stored it
+ * under seasons/ is retired.
  */
 export const TEST_SEED_SEASON_ID = 'test-season';
 export const TEST_SEED_TITLE = 'Luke 2:1-9';

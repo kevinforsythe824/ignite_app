@@ -31,7 +31,7 @@ ignite_app/
 │   └── packages/                # Derived content.json / manifest / validation-report
 ├── scripts/                     # Developer tooling (not shipped in the app)
 │   ├── content-pipeline/        # Local/CI content validation + package generation (no Firebase)
-│   └── firestore-seed/          # Admin SDK import of the JSON test curriculum
+│   └── firestore-seed/          # Retired live seed; local fixture helper; DEV-only cleanup
 ├── .cursor/rules/               # AI coding rules (incl. project-philosophy)
 ├── src/
 │   ├── app/                     # App shell only
@@ -210,7 +210,7 @@ Route param lists: `src/app/navigation/types.ts`. Auth stack types: `src/feature
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app, Firestore, Auth, and Functions singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`, `getFirebaseFunctions` / `us-central1`). Authentication application logic lives in `src/features/auth/`. Parental consent callables are consumed from `src/features/parentalConsent/`. Help & Feedback uses `submitFeedback` from `src/features/feedback/` (ADR-012; no persisted UID). The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads the temporary target `2027` / `beginner-2027` through `FirestoreCurriculumRepository` (canonical nested MaterialSet cards). Phase 3 participation replaces that call site without changing `getCurriculum(seasonId, materialSetId)`. `JsonCurriculumRepository` remains for tests/fixtures and still serves `test-season`. Firebase Admin (`scripts/firestore-seed`) is developer tooling only — not part of the mobile runtime. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
+| `firebase/` | Firebase JS SDK app, Firestore, Auth, and Functions singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`, `getFirebaseFunctions` / `us-central1`). Authentication application logic lives in `src/features/auth/`. Parental consent callables are consumed from `src/features/parentalConsent/`. Help & Feedback uses `submitFeedback` from `src/features/feedback/` (ADR-012; no persisted UID). The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads the temporary target `2027` / `beginner-2027` through `FirestoreCurriculumRepository` (canonical nested MaterialSet cards). Phase 3 participation replaces that call site without changing `getCurriculum(seasonId, materialSetId)`. `JsonCurriculumRepository` remains for tests/fixtures and still serves `test-season`. Firebase Admin under `scripts/firestore-seed` is developer tooling and is not part of the mobile runtime. The live writer that created `seasons/test-season` is retired; `buildSeedRecords` remains a local fixture helper, and `npm run cleanup:legacy-test-season` is the DEV-only dry-run command for that stale document. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 

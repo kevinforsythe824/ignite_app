@@ -18,8 +18,9 @@ Canonical details: [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONME
 
 - Deploy to **STAGING** or **PROD** (Firebase CLI or Console).
 - Seed, migrate, import, or modify **STAGING** or **PROD** data.
-- Run `npm run seed:firestore` against anything other than DEV unless the user explicitly targets staging.
-- Never seed PROD with test data. The seed script refuses prod in code — do not attempt workarounds.
+- Run `npm run seed:firestore`. It is retired and is not a DEV or STAGING write path.
+- Run `npm run cleanup:legacy-test-season -- --apply`, or run that cleanup against STAGING or PROD, unless the user explicitly approves a DEV-only apply.
+- Never seed PROD with test data. Do not work around the retired seed.
 
 ## Before consequential Firebase CLI actions
 
