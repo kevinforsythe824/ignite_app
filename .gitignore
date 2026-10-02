@@ -75,3 +75,6 @@ content/packages/*
 !content/packages/README.md
 !content/packages/dev-synthetic-s3/
 !content/packages/dev-synthetic-s3/**
+
+# Local-only Phase 3B smoke-test credentials
+.smoke-test.env
