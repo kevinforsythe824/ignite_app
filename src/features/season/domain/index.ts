@@ -22,9 +22,17 @@ export {
 } from './curriculumSection';
 export { isIsoCalendarDate } from './isoCalendarDate';
 export {
+  IGNITE_SEASON_TIME_ZONE,
+  calendarDateInTimeZone,
+  formatIgniteSeasonCalendarDate,
+  type CalendarDateInTimeZoneResult,
+} from './seasonCalendarDate';
+export {
   DEV_SEASON_SELECTION_POLICY,
   RELEASE_SEASON_SELECTION_POLICY,
+  selectSeasonSelectionPolicy,
   type SeasonSelectionPolicy,
+  type SelectSeasonSelectionPolicyResult,
 } from './seasonSelectionPolicy';
 export {
   resolveCurrentSeason,

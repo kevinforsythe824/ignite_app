@@ -1,13 +1,22 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
 import {
   IGNITE_SEASON_TIME_ZONE,
   calendarDateInTimeZone,
-  readAuthoritativeSeasonCalendarDate,
-} from './authoritativeSeasonCalendarDate';
+  formatIgniteSeasonCalendarDate,
+} from '../../../src/features/season/domain/seasonCalendarDate';
+
+import { readAuthoritativeSeasonCalendarDate } from './authoritativeSeasonCalendarDate';
 import { ParticipationCreateError } from './participationCreateError';
 
 /** Fixed-offset zones used only to show America/Chicago is not a permanent UTC offset. */
 const FIXED_UTC_MINUS_5 = 'Etc/GMT+5';
 const FIXED_UTC_MINUS_6 = 'Etc/GMT+6';
+
+function expectCalendarDate(instant: Date, timeZone: string, calendarDate: string): void {
+  expect(calendarDateInTimeZone(instant, timeZone)).toEqual({ status: 'date', calendarDate });
+}
 
 describe('calendarDateInTimeZone', () => {
   it('uses America/Chicago as the only Season calendar timezone', () => {
@@ -18,18 +27,18 @@ describe('calendarDateInTimeZone', () => {
     const beforeMidnight = new Date('2026-10-01T04:59:59Z');
     const atMidnight = new Date('2026-10-01T05:00:00Z');
 
-    expect(calendarDateInTimeZone(beforeMidnight, IGNITE_SEASON_TIME_ZONE)).toBe('2026-09-30');
-    expect(calendarDateInTimeZone(atMidnight, IGNITE_SEASON_TIME_ZONE)).toBe('2026-10-01');
-    expect(calendarDateInTimeZone(atMidnight, FIXED_UTC_MINUS_6)).toBe('2026-09-30');
+    expectCalendarDate(beforeMidnight, IGNITE_SEASON_TIME_ZONE, '2026-09-30');
+    expectCalendarDate(atMidnight, IGNITE_SEASON_TIME_ZONE, '2026-10-01');
+    expectCalendarDate(atMidnight, FIXED_UTC_MINUS_6, '2026-09-30');
   });
 
   it('crosses a January midnight on Central standard time', () => {
     const beforeMidnight = new Date('2026-01-15T05:59:59Z');
     const atMidnight = new Date('2026-01-15T06:00:00Z');
 
-    expect(calendarDateInTimeZone(beforeMidnight, IGNITE_SEASON_TIME_ZONE)).toBe('2026-01-14');
-    expect(calendarDateInTimeZone(atMidnight, IGNITE_SEASON_TIME_ZONE)).toBe('2026-01-15');
-    expect(calendarDateInTimeZone(beforeMidnight, FIXED_UTC_MINUS_5)).toBe('2026-01-15');
+    expectCalendarDate(beforeMidnight, IGNITE_SEASON_TIME_ZONE, '2026-01-14');
+    expectCalendarDate(atMidnight, IGNITE_SEASON_TIME_ZONE, '2026-01-15');
+    expectCalendarDate(beforeMidnight, FIXED_UTC_MINUS_5, '2026-01-15');
   });
 
   it('follows the spring-forward transition instead of a fixed Central offset', () => {
@@ -37,25 +46,28 @@ describe('calendarDateInTimeZone', () => {
     // is UTC-5. A fixed UTC-6 offset would still be the previous calendar date.
     const afterSpringForward = new Date('2026-03-09T05:30:00Z');
 
-    expect(calendarDateInTimeZone(afterSpringForward, IGNITE_SEASON_TIME_ZONE)).toBe('2026-03-09');
-    expect(calendarDateInTimeZone(afterSpringForward, FIXED_UTC_MINUS_6)).toBe('2026-03-08');
-    expect(calendarDateInTimeZone(afterSpringForward, FIXED_UTC_MINUS_5)).toBe('2026-03-09');
+    expectCalendarDate(afterSpringForward, IGNITE_SEASON_TIME_ZONE, '2026-03-09');
+    expectCalendarDate(afterSpringForward, FIXED_UTC_MINUS_6, '2026-03-08');
+    expectCalendarDate(afterSpringForward, FIXED_UTC_MINUS_5, '2026-03-09');
   });
 
-  it('fails closed on an invalid instant', () => {
-    expect(() => calendarDateInTimeZone(new Date(Number.NaN), IGNITE_SEASON_TIME_ZONE)).toThrow(
-      ParticipationCreateError,
-    );
-    expect(() => calendarDateInTimeZone(new Date('not-a-date'), IGNITE_SEASON_TIME_ZONE)).toThrow(
-      ParticipationCreateError,
-    );
+  it('fails closed on an invalid instant without a Functions error', () => {
+    expect(calendarDateInTimeZone(new Date(Number.NaN), IGNITE_SEASON_TIME_ZONE)).toEqual({
+      status: 'invalid',
+      reason: 'invalidInstant',
+    });
+    expect(calendarDateInTimeZone(new Date('not-a-date'), IGNITE_SEASON_TIME_ZONE)).toEqual({
+      status: 'invalid',
+      reason: 'invalidInstant',
+    });
+    expect(() => calendarDateInTimeZone(new Date(Number.NaN), IGNITE_SEASON_TIME_ZONE)).not.toThrow();
+  });
 
-    try {
-      calendarDateInTimeZone(new Date(Number.NaN), IGNITE_SEASON_TIME_ZONE);
-    } catch (error) {
-      expect(error).toBeInstanceOf(ParticipationCreateError);
-      expect((error as ParticipationCreateError).reason).toBe('invalid-calendar-instant');
-      expect((error as ParticipationCreateError).clientMessage).not.toContain('NaN');
+  it('returns strict YYYY-MM-DD', () => {
+    const formatted = formatIgniteSeasonCalendarDate(new Date('2026-10-01T05:00:00Z'));
+    expect(formatted).toEqual({ status: 'date', calendarDate: '2026-10-01' });
+    if (formatted.status === 'date') {
+      expect(formatted.calendarDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
   });
 });
@@ -63,21 +75,33 @@ describe('calendarDateInTimeZone', () => {
 describe('readAuthoritativeSeasonCalendarDate', () => {
   it('returns the America/Chicago date for an injected instant', () => {
     const instant = new Date('2026-10-01T05:00:00Z');
-    expect(readAuthoritativeSeasonCalendarDate(() => instant)).toBe(
-      calendarDateInTimeZone(instant, IGNITE_SEASON_TIME_ZONE),
-    );
+    const formatted = formatIgniteSeasonCalendarDate(instant);
+    expect(formatted.status).toBe('date');
+    if (formatted.status !== 'date') {
+      return;
+    }
+    expect(readAuthoritativeSeasonCalendarDate(() => instant)).toBe(formatted.calendarDate);
     expect(readAuthoritativeSeasonCalendarDate(() => instant)).toBe('2026-10-01');
   });
 
-  it('fails closed when the injected clock returns an invalid instant', () => {
+  it('translates an invalid instant into ParticipationCreateError', () => {
     expect(() => readAuthoritativeSeasonCalendarDate(() => new Date(Number.NaN))).toThrow(
       ParticipationCreateError,
     );
+    expect(() => readAuthoritativeSeasonCalendarDate(() => new Date('not-a-date'))).toThrow(
+      ParticipationCreateError,
+    );
+
+    try {
+      readAuthoritativeSeasonCalendarDate(() => new Date(Number.NaN));
+    } catch (error) {
+      expect(error).toBeInstanceOf(ParticipationCreateError);
+      expect((error as ParticipationCreateError).reason).toBe('invalid-calendar-instant');
+      expect((error as ParticipationCreateError).clientMessage).not.toContain('NaN');
+    }
   });
 
   it('is the date port the participation callable uses', () => {
-    const { readFileSync } = require('fs') as typeof import('fs');
-    const { resolve } = require('path') as typeof import('path');
     const source = readFileSync(resolve(__dirname, '../index.ts'), 'utf8');
     expect(source).toContain('today: readAuthoritativeSeasonCalendarDate()');
     expect(source).not.toContain('calendar-unconfigured');
@@ -85,16 +109,20 @@ describe('readAuthoritativeSeasonCalendarDate', () => {
     expect(source).not.toContain('request.data.timeZone');
   });
 
-  it('does not read the clock inside the pure converter', () => {
-    const { readFileSync } = require('fs') as typeof import('fs');
-    const { resolve } = require('path') as typeof import('path');
-    const source = readFileSync(resolve(__dirname, 'authoritativeSeasonCalendarDate.ts'), 'utf8');
-    const pureStart = source.indexOf('export function calendarDateInTimeZone');
-    const adapterStart = source.indexOf('export function readAuthoritativeSeasonCalendarDate');
-    const pureSource = source.slice(pureStart, adapterStart);
-    expect(pureSource).not.toContain('Date.now');
-    expect(pureSource).not.toContain('new Date');
-    expect(source).toContain("IGNITE_SEASON_TIME_ZONE = 'America/Chicago'");
-    expect(source).not.toContain('process.env');
+  it('keeps the pure converter free of the clock and Functions errors', () => {
+    const domainSource = readFileSync(
+      resolve(__dirname, '../../../src/features/season/domain/seasonCalendarDate.ts'),
+      'utf8',
+    );
+    const adapterSource = readFileSync(resolve(__dirname, 'authoritativeSeasonCalendarDate.ts'), 'utf8');
+    expect(domainSource).toContain("IGNITE_SEASON_TIME_ZONE = 'America/Chicago'");
+    expect(domainSource).not.toContain('Date.now');
+    expect(domainSource).not.toContain('new Date');
+    expect(domainSource).not.toContain('process.env');
+    expect(domainSource).not.toContain('ParticipationCreateError');
+    expect(adapterSource).toContain('formatIgniteSeasonCalendarDate');
+    expect(adapterSource).toContain("new ParticipationCreateError('invalid-calendar-instant')");
+    expect(adapterSource).not.toContain("IGNITE_SEASON_TIME_ZONE =");
+    expect(adapterSource).toContain('new Date()');
   });
 });

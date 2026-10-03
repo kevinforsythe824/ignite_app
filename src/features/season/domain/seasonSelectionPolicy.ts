@@ -31,3 +31,24 @@ export const DEV_SEASON_SELECTION_POLICY: SeasonSelectionPolicy = Object.freeze(
 export const RELEASE_SEASON_SELECTION_POLICY: SeasonSelectionPolicy = Object.freeze({
   permittedStatuses: RELEASE_PERMITTED_STATUSES,
 });
+
+export type SelectSeasonSelectionPolicyResult =
+  | { status: 'selected'; policy: SeasonSelectionPolicy }
+  | { status: 'invalid'; reason: 'unknownEnvironment' };
+
+/**
+ * Environment → selection policy.
+ * Status lists stay on the constants above. Unknown environments fail closed.
+ * This function does not throw Functions errors and does not read the process environment.
+ */
+export function selectSeasonSelectionPolicy(
+  environment: string,
+): SelectSeasonSelectionPolicyResult {
+  if (environment === 'dev') {
+    return { status: 'selected', policy: DEV_SEASON_SELECTION_POLICY };
+  }
+  if (environment === 'staging' || environment === 'prod') {
+    return { status: 'selected', policy: RELEASE_SEASON_SELECTION_POLICY };
+  }
+  return { status: 'invalid', reason: 'unknownEnvironment' };
+}
