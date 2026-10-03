@@ -2,19 +2,14 @@ import type { SeasonSetupStepId } from '../application/deriveSeasonSetupSteps';
 
 import type { SeasonSetupStackParamList } from './types';
 
-export type SeasonSetupEarlyRouteName = Exclude<
-  keyof SeasonSetupStackParamList,
-  'EligibilityAge'
->;
+export type SeasonSetupRouteName = Exclude<keyof SeasonSetupStackParamList, 'EligibilityAge'>;
 
 /**
- * Maps a derived step id to an early route.
- * Which step is current comes from deriveSeasonSetupSteps, not from an age band.
- * Region is a boundary, not a screen in this slice.
+ * Maps a derived step id to a route.
+ * Which step is current comes from deriveSeasonSetupSteps.
+ * Complete stays off the stack.
  */
-export function seasonSetupRouteForStep(
-  step: SeasonSetupStepId,
-): SeasonSetupEarlyRouteName | 'region' | null {
+export function seasonSetupRouteForStep(step: SeasonSetupStepId): SeasonSetupRouteName | null {
   switch (step) {
     case 'placementChoice':
       return 'PlacementChoice';
@@ -23,9 +18,10 @@ export function seasonSetupRouteForStep(
     case 'studyTrack':
       return 'StudyTrack';
     case 'region':
-      return 'region';
-    case 'eligibilityAge':
+      return 'Region';
     case 'review':
+      return 'Review';
+    case 'eligibilityAge':
     case 'complete':
       return null;
     default: {

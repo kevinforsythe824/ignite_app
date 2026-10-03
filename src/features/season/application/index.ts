@@ -6,6 +6,10 @@ export {
   type CreateQuizzerSeasonParticipationRequest,
 } from './buildCreateParticipationRequest';
 export {
+  deriveSeasonSetupReview,
+  type SeasonSetupReviewModel,
+} from './deriveSeasonSetupReview';
+export {
   deriveSeasonSetupSteps,
   SEASON_SETUP_STEP_IDS,
   type SeasonSetupStepId,

@@ -51,6 +51,6 @@ describe('FirstYearScreen', () => {
     await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
     expect(await screen.findByTestId('season-setup-age-input')).toBeTruthy();
     expect(screen.getByTestId('season-setup-age-input').props.value).toBe('16');
-    expect(screen.onReachedRegionBoundary).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
   });
 });

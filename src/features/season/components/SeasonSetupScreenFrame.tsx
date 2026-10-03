@@ -9,6 +9,7 @@ export interface SeasonSetupScreenFrameProps {
   title: string;
   titleTestID: string;
   onBack?: () => void;
+  busy?: boolean;
   children: ReactNode;
 }
 
@@ -17,12 +18,19 @@ export function SeasonSetupScreenFrame({
   title,
   titleTestID,
   onBack,
+  busy = false,
   children,
 }: SeasonSetupScreenFrameProps): React.JSX.Element {
   return (
     <AuthScreenLayout canvas="brand" onBack={onBack}>
       <View style={styles.header}>
-        <Text accessibilityRole="header" style={styles.title} testID={titleTestID}>
+        <Text
+          accessibilityRole="header"
+          accessibilityLiveRegion={busy ? 'polite' : undefined}
+          accessibilityState={busy ? { busy: true } : undefined}
+          style={styles.title}
+          testID={titleTestID}
+        >
           {title}
         </Text>
       </View>

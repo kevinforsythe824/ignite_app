@@ -3,6 +3,7 @@ import { join } from 'path';
 
 const PRODUCTION_ROOTS = [
   'src/features/season/components',
+  'src/features/season/composition',
   'src/features/season/copy',
   'src/features/season/hooks',
   'src/features/season/navigation',
@@ -34,8 +35,6 @@ const FORBIDDEN: readonly { label: string; pattern: RegExp }[] = [
   { label: 'age band 15-18', pattern: /\b15\s*[–-]\s*18\b/ },
   { label: 'age band 19+', pattern: /19\+/ },
   { label: 'route params', pattern: /route\.params/ },
-  { label: 'Region screen', pattern: /name="Region"|RegionScreen/ },
-  { label: 'Review screen', pattern: /name="Review"|ReviewScreen/ },
 ];
 
 function productionFiles(): string[] {
@@ -59,7 +58,7 @@ function productionFiles(): string[] {
 }
 
 describe('Season Setup eligibility UI source guard', () => {
-  it('does not encode eligibility tables, persistence, or later-phase screens', () => {
+  it('does not encode eligibility tables, Firebase calls, or root navigation in the UI', () => {
     const files = productionFiles();
     expect(files.length).toBeGreaterThan(0);
     const hits: string[] = [];

@@ -10,6 +10,7 @@ export interface SeasonSetupChoiceCardProps {
   selected: boolean;
   onPress: () => void;
   disabled?: boolean;
+  supportingText?: string;
   testID?: string;
 }
 
@@ -22,13 +23,16 @@ export function SeasonSetupChoiceCard({
   selected,
   onPress,
   disabled = false,
+  supportingText,
   testID,
 }: SeasonSetupChoiceCardProps): React.JSX.Element {
+  const accessibilityLabel = supportingText ? `${label}. ${supportingText}` : label;
+
   return (
     <Pressable
       testID={testID}
       accessibilityRole="radio"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected, disabled, checked: selected }}
       disabled={disabled}
       onPress={onPress}
@@ -40,7 +44,10 @@ export function SeasonSetupChoiceCard({
       ]}
     >
       <View style={styles.row}>
-        <Text style={styles.label}>{label}</Text>
+        <View style={styles.copy}>
+          <Text style={styles.label}>{label}</Text>
+          {supportingText ? <Text style={styles.supporting}>{supportingText}</Text> : null}
+        </View>
         {selected ? (
           <View style={styles.selectedMark}>
             <Ionicons name="checkmark-circle" size={22} color={colors.authAccent} />
@@ -72,9 +79,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  copy: {
+    flexShrink: 1,
+    gap: spacing.xs,
+  },
   label: {
     ...typography.cardTitle,
-    flexShrink: 1,
+  },
+  supporting: {
+    ...typography.bodySecondary,
   },
   selectedMark: {
     flexDirection: 'row',

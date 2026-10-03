@@ -62,7 +62,7 @@ describe('StudyTrackScreen', () => {
 
     await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
     expect(await screen.findByTestId('season-setup-age-input')).toBeTruthy();
-    expect(screen.onReachedRegionBoundary).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
   });
 
   it('fails closed when injected options are missing or malformed', async () => {
@@ -72,7 +72,7 @@ describe('StudyTrackScreen', () => {
     expect(missing.getByTestId('season-setup-study-track-continue').props.accessibilityState.disabled).toBe(
       true,
     );
-    expect(missing.onReachedRegionBoundary).not.toHaveBeenCalled();
+    expect(missing.queryByTestId('season-setup-region-title')).toBeNull();
 
     const malformed = await openStudyTrack({
       studyTrackOptions: FIXTURE_STUDY_TRACK_OPTIONS.map((option) =>

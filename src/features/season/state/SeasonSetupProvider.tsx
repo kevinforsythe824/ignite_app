@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 
 import { deriveSeasonSetupSteps } from '../application/deriveSeasonSetupSteps';
 import { isSeasonSetupOpaqueId } from '../application/seasonSetupOpaqueId';
+import { isSeasonSetupRequestReady } from '../application/seasonSetupRequestReady';
 import {
   deriveSeasonSetupPlacement,
   INITIAL_SEASON_SETUP_STATE,
@@ -20,6 +21,7 @@ import {
   type SeasonSetupWizardState,
 } from '../application';
 import type { DivisionId } from '../domain/division';
+import type { OfficialRegionConfig } from '../domain/region';
 import {
   resolveStudyTrackChoices,
   type SeasonSetupStudyTrackOption,
@@ -29,16 +31,25 @@ import {
 export interface SeasonSetupContextValue {
   /** Resolved season id held by the wizard. Null until a valid id is injected. */
   seasonId: string | null;
+  /** Injected session identity. The navigator resets when this changes. */
+  sessionIdentityKey: string | null;
   /** Canonical season calendar date used for the January 1 question. */
   calendarDate: string;
   wizard: SeasonSetupWizardState;
   steps: SeasonSetupStepPlan;
   placement: SeasonSetupPlacement;
   studyTrackChoices: StudyTrackChoicesResult;
+  /** Validated Region catalog, including inactive official rows. Null until loaded. */
+  regions: readonly OfficialRegionConfig[] | null;
   setEligibilityAge(eligibilityAge: number): void;
   setFirstYearQuizzer(isFirstYearQuizzer: boolean): void;
   setCompetitiveDivision(divisionId: DivisionId): void;
   setStudyTrackMaterialSet(studyTrackMaterialSetId: string): void;
+  setRegion(regionId: string): void;
+  /** False when the participation request is not ready or a submission is already in flight. */
+  startSubmission(): boolean;
+  completeSubmission(): void;
+  failSubmission(): void;
 }
 
 const SeasonSetupContext = createContext<SeasonSetupContextValue | undefined>(undefined);
@@ -55,10 +66,15 @@ export interface SeasonSetupProviderProps {
    */
   sessionIdentityKey: string | null;
   /**
-   * Study Track catalog. Phase 3C.3 maps the season's MaterialSets into this list.
+   * Study Track catalog. Mapped from the season's MaterialSets.
    * Missing or unusable catalogs fail closed in the view model.
    */
   studyTrackOptions?: readonly SeasonSetupStudyTrackOption[] | null;
+  /**
+   * Validated Region catalog for the resolved Season.
+   * Inactive official rows may be present. The Region screen offers active rows only.
+   */
+  regions?: readonly OfficialRegionConfig[] | null;
 }
 
 function wizardStateForSeason(resolvedSeasonId: string | null): SeasonSetupWizardState {
@@ -82,6 +98,7 @@ export function SeasonSetupProvider({
   calendarDate,
   sessionIdentityKey,
   studyTrackOptions = null,
+  regions = null,
 }: SeasonSetupProviderProps): React.JSX.Element {
   const [wizard, dispatch] = useReducer(
     seasonSetupWizardReducer,
@@ -123,6 +140,30 @@ export function SeasonSetupProvider({
     dispatch({ type: 'setStudyTrackMaterialSet', studyTrackMaterialSetId });
   }, []);
 
+  const setRegion = useCallback((regionId: string) => {
+    dispatch({ type: 'setRegion', regionId });
+  }, []);
+
+  const startSubmission = useCallback(() => {
+    if (
+      wizard.submission.status === 'submitting' ||
+      wizard.submission.status === 'complete' ||
+      !isSeasonSetupRequestReady(wizard)
+    ) {
+      return false;
+    }
+    dispatch({ type: 'submissionStarted' });
+    return true;
+  }, [wizard]);
+
+  const completeSubmission = useCallback(() => {
+    dispatch({ type: 'submissionCompleted' });
+  }, []);
+
+  const failSubmission = useCallback(() => {
+    dispatch({ type: 'submissionFailed' });
+  }, []);
+
   const steps = useMemo(() => deriveSeasonSetupSteps(wizard), [wizard]);
   const placement = useMemo(() => deriveSeasonSetupPlacement(wizard), [wizard]);
   const studyTrackChoices = useMemo(
@@ -133,26 +174,38 @@ export function SeasonSetupProvider({
   const value = useMemo<SeasonSetupContextValue>(
     () => ({
       seasonId: wizard.resolvedSeasonId,
+      sessionIdentityKey,
       calendarDate,
       wizard,
       steps,
       placement,
       studyTrackChoices,
+      regions,
       setEligibilityAge,
       setFirstYearQuizzer,
       setCompetitiveDivision,
       setStudyTrackMaterialSet,
+      setRegion,
+      startSubmission,
+      completeSubmission,
+      failSubmission,
     }),
     [
       wizard,
+      sessionIdentityKey,
       calendarDate,
       steps,
       placement,
       studyTrackChoices,
+      regions,
       setEligibilityAge,
       setFirstYearQuizzer,
       setCompetitiveDivision,
       setStudyTrackMaterialSet,
+      setRegion,
+      startSubmission,
+      completeSubmission,
+      failSubmission,
     ],
   );
 

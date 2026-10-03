@@ -21,18 +21,16 @@ describe('SeasonSetupNavigator', () => {
     await fireEvent.press(screen.getByTestId('season-setup-choice-cadet'));
     await fireEvent.press(screen.getByTestId('season-setup-placement-continue'));
 
-    expect(screen.onReachedRegionBoundary).toHaveBeenCalledTimes(1);
-    expect(screen.onReachedRegionBoundary).toHaveBeenCalledWith({ nextStep: 'region' });
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
     expect(screen.getByTestId('probe-step').props.children).toBe('region');
     expect(screen.getByTestId('probe-division').props.children).toBe('cadet');
     expect(screen.getByTestId('probe-placement-division').props.children).toBe('cadet');
-    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
     expect(screen.queryByTestId('season-setup-review-title')).toBeNull();
   });
 
-  it('sends age 10 to the region boundary without a division choice screen', async () => {
+  it('sends age 10 to the region screen without a division choice screen', async () => {
     const screen = await enterAge('10');
-    expect(screen.onReachedRegionBoundary).toHaveBeenCalledWith({ nextStep: 'region' });
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
     expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
     expect(screen.queryByText(getDivisionLabel('junior'))).toBeNull();
     expect(screen.getByTestId('probe-division').props.children).toBe('none');
@@ -45,14 +43,14 @@ describe('SeasonSetupNavigator', () => {
     const screen = await enterAge('16');
     expect(await screen.findByTestId('season-setup-first-year-title')).toBeTruthy();
     expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
-    expect(screen.onReachedRegionBoundary).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
 
     await fireEvent.press(screen.getByTestId('season-setup-choice-yes'));
     expect(screen.getByTestId('season-setup-first-year-division').props.children).toBe(
       seasonSetupCopy.firstYear.divisionOutcome(getDivisionLabel('intermediate')),
     );
     await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
-    expect(screen.onReachedRegionBoundary).toHaveBeenCalledWith({ nextStep: 'region' });
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
 
     expect(getDoc).not.toHaveBeenCalled();
     expect(httpsCallable).not.toHaveBeenCalled();
@@ -65,7 +63,7 @@ describe('SeasonSetupNavigator', () => {
     await fireEvent.press(screen.getByTestId('season-setup-choice-fixture-study-junior'));
     expect(screen.getByTestId('probe-material').props.children).toBe('fixture-study-junior');
     await fireEvent.press(screen.getByTestId('season-setup-study-track-continue'));
-    expect(screen.onReachedRegionBoundary).toHaveBeenCalledWith({ nextStep: 'region' });
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
     expect(screen.getByTestId('probe-placement-material').props.children).toBe(
       'fixture-study-junior',
     );
@@ -82,10 +80,10 @@ describe('SeasonSetupNavigator', () => {
 
     expect(screen.getByTestId('probe-division').props.children).toBe('none');
     expect(screen.getByTestId('probe-placement-division').props.children).toBe('junior');
-    expect(screen.onReachedRegionBoundary).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
 
     await fireEvent.press(screen.getByTestId('season-setup-age-continue'));
-    expect(screen.onReachedRegionBoundary).toHaveBeenCalledWith({ nextStep: 'region' });
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
     expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
     expect(screen.queryByText(getDivisionLabel('junior'))).toBeNull();
   });
@@ -105,6 +103,6 @@ describe('SeasonSetupNavigator', () => {
     await fireEvent.press(screen.getByTestId('season-setup-age-continue'));
     expect(await screen.findByTestId('season-setup-first-year-question')).toBeTruthy();
     expect(screen.queryByTestId('season-setup-study-track-title')).toBeNull();
-    expect(screen.onReachedRegionBoundary).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
   });
 });

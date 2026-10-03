@@ -9,6 +9,7 @@ import { seasonSetupJanuaryFirstQuestion } from '../application/seasonSetupJanua
 import { SeasonSetupScreenFrame } from '../components/SeasonSetupScreenFrame';
 import { seasonSetupCopy } from '../copy/seasonSetupCopy';
 import { useSeasonSetupAdvance } from '../hooks/useSeasonSetupAdvance';
+import { useSeasonSetupSessionNavigationReset } from '../hooks/useSeasonSetupSessionNavigationReset';
 import { useSeasonSetup } from '../state/SeasonSetupProvider';
 import { parseEligibilityAgeInput } from '../utils/parseEligibilityAgeInput';
 
@@ -19,6 +20,7 @@ import { parseEligibilityAgeInput } from '../utils/parseEligibilityAgeInput';
 export function EligibilityAgeScreen(): React.JSX.Element {
   const { seasonId, calendarDate, wizard, setEligibilityAge } = useSeasonSetup();
   const advance = useSeasonSetupAdvance();
+  useSeasonSetupSessionNavigationReset();
   const [text, setText] = useState(() =>
     wizard.eligibilityAge === null ? '' : String(wizard.eligibilityAge),
   );

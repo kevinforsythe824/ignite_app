@@ -8,35 +8,33 @@ import {
   type SeasonSetupWizardAction,
 } from '../application/seasonSetupWizard';
 import type { DivisionId } from '../domain/division';
-import { useSeasonSetupBoundary } from '../navigation/seasonSetupBoundary';
 import { seasonSetupRouteForStep } from '../navigation/seasonSetupStepRoutes';
 import type { SeasonSetupStackParamList } from '../navigation/types';
 import { useSeasonSetup } from '../state/SeasonSetupProvider';
 
-export type SeasonSetupEarlyAction =
+export type SeasonSetupAdvanceAction =
   | { type: 'setEligibilityAge'; eligibilityAge: number }
   | { type: 'setFirstYearQuizzer'; isFirstYearQuizzer: boolean }
   | { type: 'setCompetitiveDivision'; divisionId: DivisionId }
-  | { type: 'setStudyTrackMaterialSet'; studyTrackMaterialSetId: string };
+  | { type: 'setStudyTrackMaterialSet'; studyTrackMaterialSetId: string }
+  | { type: 'setRegion'; regionId: string };
 
 /**
- * Commits an early answer through the existing reducer, then follows the derived step.
- * Region is reported to the boundary callback. It is not pushed as a route.
+ * Commits an answer through the existing reducer, then follows the derived step.
  */
-export function useSeasonSetupAdvance(): (action: SeasonSetupEarlyAction) => void {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<SeasonSetupStackParamList>>();
-  const { onReachedRegionBoundary } = useSeasonSetupBoundary();
+export function useSeasonSetupAdvance(): (action: SeasonSetupAdvanceAction) => void {
+  const navigation = useNavigation<NativeStackNavigationProp<SeasonSetupStackParamList>>();
   const {
     wizard,
     setEligibilityAge,
     setFirstYearQuizzer,
     setCompetitiveDivision,
     setStudyTrackMaterialSet,
+    setRegion,
   } = useSeasonSetup();
 
   return useCallback(
-    (action: SeasonSetupEarlyAction) => {
+    (action: SeasonSetupAdvanceAction) => {
       const wizardAction: SeasonSetupWizardAction = action;
       const nextState = seasonSetupWizardReducer(wizard, wizardAction);
       switch (action.type) {
@@ -52,6 +50,9 @@ export function useSeasonSetupAdvance(): (action: SeasonSetupEarlyAction) => voi
         case 'setStudyTrackMaterialSet':
           setStudyTrackMaterialSet(action.studyTrackMaterialSetId);
           break;
+        case 'setRegion':
+          setRegion(action.regionId);
+          break;
         default: {
           const unexpected: never = action;
           return unexpected;
@@ -59,10 +60,6 @@ export function useSeasonSetupAdvance(): (action: SeasonSetupEarlyAction) => voi
       }
 
       const destination = seasonSetupRouteForStep(deriveSeasonSetupSteps(nextState).currentStep);
-      if (destination === 'region') {
-        onReachedRegionBoundary?.({ nextStep: 'region' });
-        return;
-      }
       if (destination) {
         navigation.navigate(destination);
       }
@@ -70,11 +67,11 @@ export function useSeasonSetupAdvance(): (action: SeasonSetupEarlyAction) => voi
     [
       wizard,
       navigation,
-      onReachedRegionBoundary,
       setEligibilityAge,
       setFirstYearQuizzer,
       setCompetitiveDivision,
       setStudyTrackMaterialSet,
+      setRegion,
     ],
   );
 }

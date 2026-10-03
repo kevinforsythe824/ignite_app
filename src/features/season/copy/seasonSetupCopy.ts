@@ -40,4 +40,30 @@ export const seasonSetupCopy = {
   choice: {
     selected: 'Selected',
   },
+  region: {
+    title: 'Choose a region',
+    helper: 'Choose the region where you quiz.',
+    unavailable: "Region choices aren't available right now.",
+  },
+  review: {
+    title: 'Review',
+    season: 'Season',
+    division: 'Division',
+    studyMaterial: 'Study material',
+    region: 'Region',
+    confirm: 'Confirm',
+    confirming: 'Saving your season',
+    unavailable: "Season setup isn't available right now.",
+    complete: 'Your season is ready.',
+  },
+  loading: {
+    title: 'Preparing your season…',
+  },
+  catalog: {
+    title: 'Season setup',
+    unavailable: "Season setup isn't available right now.",
+    temporarilyUnavailable:
+      'Season setup is temporarily unavailable. Check your connection and try again.',
+    retry: 'Try again',
+  },
 } as const;
