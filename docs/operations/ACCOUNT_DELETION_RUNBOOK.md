@@ -142,7 +142,7 @@ Playbook §18 Sprint 2–4 guardrails point here. Prefer updating this file in t
 
 | Future area | Likely storage (TBD) | Earliest sprint | Notes |
 |-------------|----------------------|-----------------|-------|
-| Season participation / region / division / track | User- or season-scoped docs TBD | Sprint 3 | Must remain deletable without touching global curriculum |
+| Season participation / region / division / track | `users/{uid}/seasons/{seasonId}` (already inventoried above) | Sprint 3 | Phase 3D reads this document and does not add eligibility age, first-year status, date of birth, email, or display name. Delete with the account. Do not delete official Season or Region documents. |
 | Entitlements / purchases | Entitlement records + store linkage TBD | Sprint 4 | Store billing history may outlive Ignite deletion |
 | Progress / activity | Learning-state docs TBD | Sprint 6 | Owned by Quizzer + Season + MaterialSet + Card (PRD), not Deck |
 | Mastery | Mastery records TBD | Sprint 7 | |

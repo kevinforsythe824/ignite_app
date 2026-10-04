@@ -336,9 +336,27 @@ Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name 
 
 ---
 
-## Sprint 3 — Season & Official Content (placeholders)
+## Sprint 3 — Season & Official Content
 
-Do not implement these personas in production behavior yet. Use for test planning, Security Rules design, and fixture naming.
+Security and content personas below remain fixtures for Rules and curriculum tests. Phase 3D lifecycle personas are automated-test fixtures, not live accounts. Do not create them in DEV, STAGING, or PROD.
+
+### Phase 3D lifecycle fixtures
+
+These describe routing after a ready Quizzer profile. Entitlement stays unavailable, so a ready Season continues to Main. None of these are live user accounts.
+
+| Persona | Eligibility | Season / participation | Expected routing |
+|---------|-------------|------------------------|------------------|
+| Age 3 Cadet | Age 3, Cadet chosen | Current Season, no participation yet | Season Setup, then competitive Cadet |
+| Age 3 Beginner | Age 3, Beginner chosen | Current Season, no participation yet | Season Setup, then competitive Beginner |
+| Age 7 Beginner | Age 7 | Current Season, no participation yet | Season Setup, Beginner only |
+| Age 10 Junior | Age 10 | Current Season, no participation yet | Season Setup, Junior only |
+| Age 13 Intermediate | Age 13 | Current Season, no participation yet | Season Setup, Intermediate only |
+| Age 16 first-year Intermediate | Age 16, first year | Current Season, no participation yet | Season Setup, Intermediate |
+| Age 16 Experienced | Age 16, not first year | Current Season, no participation yet | Season Setup, Experienced |
+| Adult Study Track | Age 19 or older | Current Season, no participation yet | Season Setup, chosen Study Track MaterialSet |
+| No current Season | Any ready profile | No date-valid selectable Season, even if an older participation exists | NoCurrentSeason. Not Main. Not the old Season's Study material |
+| Returning participant | Profile ready | Valid participation for the current Season | Skip Season Setup. Study loads that participation's MaterialSet |
+| Cross-user isolation | User A then User B | Separate participation documents | User A's late setup completion cannot install A's participation or move B to Main |
 
 ### S3-001 — Current active season
 

@@ -12,6 +12,9 @@ const PRODUCTION_ROOTS = [
   'src/features/season/utils',
 ];
 
+/** Lifecycle session observes Auth. It is not the Season Setup wizard. */
+const LIFECYCLE_SESSION = 'SeasonParticipationProvider.tsx';
+
 const FORBIDDEN: readonly { label: string; pattern: RegExp }[] = [
   { label: 'dateOfBirth', pattern: /dateOfBirth/ },
   { label: 'date of birth', pattern: /date of birth/i },
@@ -47,6 +50,9 @@ function productionFiles(): string[] {
         continue;
       }
       if (path.endsWith('.ts') || path.endsWith('.tsx')) {
+        if (path.endsWith(LIFECYCLE_SESSION)) {
+          continue;
+        }
         files.push(path);
       }
     }

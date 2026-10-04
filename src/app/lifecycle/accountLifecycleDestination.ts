@@ -1,3 +1,5 @@
+import type { SeasonLifecycleSeam } from '../../features/season/application/deriveSeasonLifecycleSeam';
+
 /**
  * Derived account-lifecycle destination. Not persisted. Not an onboarding flag.
  * RootNavigator is the only consumer; Auth, consent, and profile stay in their providers.
@@ -25,8 +27,8 @@ export type FutureLifecycleSeamStatus =
   | 'ready';
 
 /**
- * Dormant Sprint 3/4 input. `unavailable` means the owning sprint has not
- * shipped a source of truth — skip the gate. Never invent Firestore records.
+ * Entitlement seam until Sprint 4. `unavailable` means that gate is not active.
+ * It does not mean there is no current Season.
  */
 export interface FutureLifecycleSeam {
   status: FutureLifecycleSeamStatus;
@@ -39,6 +41,7 @@ export type AccountLifecycleDestination =
   | 'consentClaim'
   | 'profileOnboarding'
   | 'profileError'
+  | 'noCurrentSeason'
   | 'main'
   | 'seasonSetup'
   | 'entitlementAccess';
@@ -50,6 +53,6 @@ export interface AccountLifecycleInput {
   isClaimRequired: boolean;
   profileStatus: AccountLifecycleProfileStatus;
   profileQuizzerId: string | null;
-  seasonSeam: FutureLifecycleSeam;
+  seasonSeam: SeasonLifecycleSeam;
   entitlementSeam: FutureLifecycleSeam;
 }

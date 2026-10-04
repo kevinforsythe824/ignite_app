@@ -68,6 +68,45 @@ jest.mock('../src/features/profile/repositories', () => {
   };
 });
 
+/** Shell fixture. Production Study uses the real Season session, not this target. */
+jest.mock('../src/features/season/state/SeasonParticipationProvider', () => {
+  const React = require('react');
+  const session = {
+    status: 'ready',
+    quizzerId: 'app-test-user',
+    calendarDate: '2026-10-03',
+    season: {
+      seasonId: '2027',
+      name: 'Fixture season',
+      startDate: '2026-09-01',
+      endDate: '2027-07-31',
+      status: 'published',
+      igniteAvailabilityDate: '2026-09-01',
+    },
+    participation: {
+      quizzerId: 'app-test-user',
+      seasonId: '2027',
+      regionId: 'northwest',
+      readiness: 'ready',
+      participationType: 'competitive',
+      divisionId: 'beginner',
+    },
+    studyTarget: {
+      seasonId: '2027',
+      materialSetId: 'beginner-2027',
+    },
+  };
+
+  return {
+    SeasonParticipationProvider: ({ children }: { children: React.ReactNode }) => children,
+    useSeasonParticipation: () => ({
+      session,
+      refresh: async () => undefined,
+      acceptParticipationReady: async () => undefined,
+    }),
+  };
+});
+
 describe('App', () => {
   it('renders the Luke 2 deck title and first verse reference when authenticated', async () => {
     const { findByText } = await render(<App />);

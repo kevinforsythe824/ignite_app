@@ -137,7 +137,7 @@ See [ENVIRONMENTS.md](ENVIRONMENTS.md).
 | Sprint | Expected work |
 |--------|----------------|
 | **Sprint 2** | Returning-user routing; new-season setup UX planning; age/division eligibility |
-| **Sprint 3** | Season lifecycle/configuration, import tooling, active-season selection, locked content, archival behavior |
+| **Sprint 3** | Season lifecycle is active in the client (Phase 3D): no current Season, Season Setup when participation is missing, returning participants skip setup, and Study uses the resolved MaterialSet. Import tooling, locked content, and archival operations remain operational work. Study Hub and tournament configuration are later Sprint 3 phases. |
 | **Sprint 4** | Season purchase products, entitlements, restore/access recovery, archived/expired season handling |
 | **Sprint 11** | End-to-end season access and transition validation before MVP release |
 

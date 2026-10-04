@@ -1,3 +1,4 @@
+import type { SeasonLifecycleSeam } from '../../features/season/application/deriveSeasonLifecycleSeam';
 import type {
   AccountLifecycleDestination,
   AccountLifecycleInput,
@@ -12,18 +13,41 @@ function profileSessionMatchesUid(
 }
 
 /**
- * Future seams without a real screen fail closed to `resolving` so RootNavigator
- * cannot treat them as `main`. `required` is the Sprint 3/4 contract destination.
+ * `unavailable` skips the Season gate for tests. Production derivation does not use it.
+ * `noCurrentSeason` is its own destination. Loading and error stay on the resolving cover.
  */
-function destinationForFutureSeam(
+function destinationForSeasonSeam(
+  seam: SeasonLifecycleSeam,
+): AccountLifecycleDestination | null {
+  switch (seam.status) {
+    case 'unavailable':
+    case 'ready':
+      return null;
+    case 'required':
+      return 'seasonSetup';
+    case 'noCurrentSeason':
+      return 'noCurrentSeason';
+    case 'loading':
+    case 'error':
+      return 'resolving';
+    default: {
+      const unexpected: never = seam.status;
+      return unexpected;
+    }
+  }
+}
+
+/**
+ * Entitlement has no screen in Sprint 3. `required` stays fail-closed until Sprint 4.
+ */
+function destinationForEntitlementSeam(
   seam: FutureLifecycleSeam,
-  requiredDestination: 'seasonSetup' | 'entitlementAccess',
 ): AccountLifecycleDestination | null {
   if (seam.status === 'unavailable' || seam.status === 'ready') {
     return null;
   }
   if (seam.status === 'required') {
-    return requiredDestination;
+    return 'entitlementAccess';
   }
   return 'resolving';
 }
@@ -74,15 +98,12 @@ export function resolveAccountLifecycleDestination(
     return 'profileOnboarding';
   }
 
-  const seasonDestination = destinationForFutureSeam(input.seasonSeam, 'seasonSetup');
+  const seasonDestination = destinationForSeasonSeam(input.seasonSeam);
   if (seasonDestination !== null) {
     return seasonDestination;
   }
 
-  const entitlementDestination = destinationForFutureSeam(
-    input.entitlementSeam,
-    'entitlementAccess',
-  );
+  const entitlementDestination = destinationForEntitlementSeam(input.entitlementSeam);
   if (entitlementDestination !== null) {
     return entitlementDestination;
   }

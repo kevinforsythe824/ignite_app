@@ -16,14 +16,17 @@ export type MainTabParamList = {
  * resolving → QuizzerProfileLoading;
  * consentClaim → ConsentClaimPending;
  * profileOnboarding → QuizzerName; profileError → QuizzerProfileLoadError;
+ * noCurrentSeason → NoCurrentSeason; seasonSetup → SeasonSetup;
  * main → MainTabs.
- * seasonSetup / entitlementAccess have no screens yet — fail closed to
+ * entitlementAccess has no screen until Sprint 4 and fail-closes to
  * QuizzerProfileLoading. No route-param payloads for lifecycle.
  */
 export type RootStackParamList = {
   IgniteEntry: undefined;
   Auth: undefined;
   ConsentClaimPending: undefined;
+  NoCurrentSeason: undefined;
+  SeasonSetup: undefined;
   MainTabs: undefined;
   TournamentDetails: undefined;
   QuizzerName: undefined;

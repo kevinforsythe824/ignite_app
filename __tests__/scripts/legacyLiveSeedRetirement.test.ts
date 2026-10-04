@@ -85,7 +85,7 @@ describe('legacy live Firestore seed retirement', () => {
     ]);
   });
 
-  it('keeps live Study on the temporary 2027 / beginner-2027 target', () => {
+  it('keeps the temporary Study ids as fixtures and off the live Study route', () => {
     expect(TEMPORARY_STUDY_SEASON_ID).toBe('2027');
     expect(TEMPORARY_STUDY_MATERIAL_SET_ID).toBe('beginner-2027');
 
@@ -93,9 +93,11 @@ describe('legacy live Firestore seed retirement', () => {
       join(repoRoot, 'src/features/flashcards/screens/FlashcardStudyRoute.tsx'),
       'utf8',
     );
-    expect(source).toContain('TEMPORARY_STUDY_SEASON_ID');
-    expect(source).toContain('TEMPORARY_STUDY_MATERIAL_SET_ID');
+    expect(source).not.toContain('TEMPORARY_STUDY_SEASON_ID');
+    expect(source).not.toContain('TEMPORARY_STUDY_MATERIAL_SET_ID');
+    expect(source).not.toContain('beginner-2027');
     expect(source).not.toContain('TEST_SEASON_ID');
     expect(source).not.toContain('test-season');
+    expect(source).toContain('studyTarget');
   });
 });

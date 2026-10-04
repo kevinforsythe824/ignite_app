@@ -79,22 +79,23 @@ AppProviders
   └─ AuthProvider (app-wide auth session; authenticated/unauthenticated participates in lifecycle resolution)
        └─ ParentalConsentProvider (claim/capability; claim-required participates in routing)
             └─ QuizzerProfileProvider (profile state participates in routing)
-                 └─ RootNavigator (native stack; owns account lifecycle routing — ADR-011)
-                      └─ MainTabs (bottom tabs, initial = Study) when lifecycle destination is the shell
-                           └─ FlashcardStudyRoute
-                                ├─ useFlashcardCurriculum(temporary 2027 / beginner-2027, firestoreCurriculumRepository)
-                                ├─ FlashcardSessionProvider   ← feature-local state
-                                └─ FlashcardStudyScreen       ← thin: hooks + components
-                                     ├─ useFlashcards()
-                                     │    ├─ session state + actions (context)
-                                     │    ├─ deriveFlashcardSession()   (counts, progress, flags)
-                                     │    └─ getVerseSegments()         (cached parse)
-                                     ├─ StudyHeader
-                                     └─ FlashcardStudyActive / SessionComplete
-                                          └─ Flashcard → Front (Locate) / Back (Quote + RichVerseText)
+                 └─ SeasonParticipationProvider (current Season, participation, Study target)
+                      └─ RootNavigator (native stack; owns account lifecycle routing — ADR-011)
+                           └─ MainTabs (bottom tabs, initial = Study) when lifecycle destination is main
+                                └─ FlashcardStudyRoute
+                                     ├─ useFlashcardCurriculum(studyTarget.seasonId, studyTarget.materialSetId, firestoreCurriculumRepository)
+                                     ├─ FlashcardSessionProvider   ← feature-local state
+                                     └─ FlashcardStudyScreen       ← thin: hooks + components
+                                          ├─ useFlashcards()
+                                          │    ├─ session state + actions (context)
+                                          │    ├─ deriveFlashcardSession()   (counts, progress, flags)
+                                          │    └─ getVerseSegments()         (cached parse)
+                                          ├─ StudyHeader
+                                          └─ FlashcardStudyActive / SessionComplete
+                                               └─ Flashcard → Front (Locate) / Back (Quote + RichVerseText)
 ```
 
-Study loads canonical nested curriculum. `FirestoreCurriculumRepository.getCurriculum(seasonId, materialSetId)` reads the Season document, one MaterialSet, that set's sections, and that set's cards ordered by `cardNumber`. `StudyCurriculum.title` is the MaterialSet `displayName`. Sections travel with the cards; study order is card number, not section display order. `FlashcardStudyRoute` currently passes a temporary target (`2027` / `beginner-2027`) until Phase 3 participation replaces that call site. The repository method stays `getCurriculum(seasonId, materialSetId)`.
+Study loads canonical nested curriculum. `FirestoreCurriculumRepository.getCurriculum(seasonId, materialSetId)` reads the Season document, one MaterialSet, that set's sections, and that set's cards ordered by `cardNumber`. `StudyCurriculum.title` is the MaterialSet `displayName`. Sections travel with the cards; study order is card number, not section display order. `FlashcardStudyRoute` passes `SeasonParticipationSession.studyTarget` into `getCurriculum(seasonId, materialSetId)`. It does not use a temporary Season or MaterialSet id, and it does not invent a fallback MaterialSet when the Season session is not ready. Study Hub is not implemented.
 
 `RootNavigator` owns routing. Authenticated/unauthenticated session, parental-consent claim state, and QuizzerProfile state all participate in that resolution. Phase 1 did not gate root routing on auth; that is no longer current (see §7).
 
@@ -190,10 +191,10 @@ Prefer **named exports**; default exports are used for some screens/components f
 
 - **Library:** React Navigation (not Expo Router).
 - **Root:** native stack switched on the derived `AccountLifecycleDestination` from `src/app/lifecycle/` (ADR-011). `RootNavigator` does not inline the routing table.
-  - Precedence: Auth initializing → Ignite Entry; unauthenticated → Auth stack; consent hydrate not ready → loading cover; `isClaimRequired` → `ConsentClaimPending` (before profile routes); UID-mismatched profile → loading cover; profile idle/loading → loading cover; profile error → Retry / Sign Out; profile missing → Quizzer name onboarding; season/entitlement seams `unavailable` (Phase 7) are skipped; otherwise `MainTabs` (+ TournamentDetails placeholder)
+  - Precedence: Auth initializing → Ignite Entry; unauthenticated → Auth stack; consent hydrate not ready → loading cover; `isClaimRequired` → `ConsentClaimPending` (before profile routes); UID-mismatched profile → loading cover; profile idle/loading → loading cover; profile error → Retry / Sign Out; profile missing → Quizzer name onboarding; Season loading/error → loading cover; no current Season → `NoCurrentSeason`; participation missing → `SeasonSetup`; Season ready → entitlement seam; entitlement `unavailable` (until Sprint 4) → `MainTabs` (+ TournamentDetails placeholder)
   - Create Account path remains a pre-auth nested stack: PrivacyAge → CreateAccount (13+, no active consent) or parental-consent screens (under 13; ADR-010)
   - Authenticated remount key is `authenticated:${uid}` only. Destination is not part of the key.
-  - Season setup and entitlement access are contract destinations only. If returned without screens, they fail closed to the loading cover — never MainTabs.
+  - Season setup is a real root screen. Entitlement access remains a contract destination only and fail-closes to the loading cover — never MainTabs.
 - **Tabs (MVP):** Home · Study · Practice · Profile. AI Coach is Post-MVP and is not shown.
 - **Profile tab:** nested `ProfileStackNavigator` (Profile home → Settings → Edit Name / Change Email / Change Password / Help & Feedback / About). **No Delete Account** row — Sprint 2 Phase 9 deletion foundation is documentation only ([`ACCOUNT_DELETION_RUNBOOK.md`](docs/operations/ACCOUNT_DELETION_RUNBOOK.md)).
 - **Default authenticated entry (profile ready):** Study → Flashcards (current product experience).
@@ -210,7 +211,7 @@ Route param lists: `src/app/navigation/types.ts`. Auth stack types: `src/feature
 
 | Package | Purpose |
 |---------|---------|
-| `firebase/` | Firebase JS SDK app, Firestore, Auth, and Functions singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`, `getFirebaseFunctions` / `us-central1`). Authentication application logic lives in `src/features/auth/`. Parental consent callables are consumed from `src/features/parentalConsent/`. Help & Feedback uses `submitFeedback` from `src/features/feedback/` (ADR-012; no persisted UID). The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads the temporary target `2027` / `beginner-2027` through `FirestoreCurriculumRepository` (canonical nested MaterialSet cards). Phase 3 participation replaces that call site without changing `getCurriculum(seasonId, materialSetId)`. `JsonCurriculumRepository` remains for tests/fixtures and still serves `test-season`. Firebase Admin under `scripts/firestore-seed` is developer tooling and is not part of the mobile runtime. The live writer that created `seasons/test-season` is retired; `buildSeedRecords` remains a local fixture helper, and `npm run cleanup:legacy-test-season` is the DEV-only dry-run command for that stale document. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
+| `firebase/` | Firebase JS SDK app, Firestore, Auth, and Functions singleton init (`getFirebaseApp`, `getFirebaseFirestore`, `getFirebaseAuth`, `getFirebaseFunctions` / `us-central1`). Authentication application logic lives in `src/features/auth/`. Parental consent callables are consumed from `src/features/parentalConsent/`. Help & Feedback uses `submitFeedback` from `src/features/feedback/` (ADR-012; no persisted UID). The client must set `EXPO_PUBLIC_IGNITE_ENV` (`dev` / `staging` / `prod`) and a matching project ID; there is no production default. Live Study loads `getCurriculum(seasonId, materialSetId)` for the MaterialSet resolved from the Quizzer's current participation (canonical nested MaterialSet cards). `JsonCurriculumRepository` remains for tests/fixtures and still serves `test-season`. Firebase Admin under `scripts/firestore-seed` is developer tooling and is not part of the mobile runtime. The live writer that created `seasons/test-season` is retired; `buildSeedRecords` remains a local fixture helper, and `npm run cleanup:legacy-test-season` is the DEV-only dry-run command for that stale document. See [`docs/operations/ENVIRONMENTS.md`](docs/operations/ENVIRONMENTS.md). |
 | `storage/` | Local preference key-value stub (no offline study) |
 | `api/` | HTTP facade + `AiGateway` (distractors, coaching, songs, chat) |
 

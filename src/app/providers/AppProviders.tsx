@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../../features/auth';
 import { ParentalConsentProvider } from '../../features/parentalConsent';
 import { QuizzerProfileProvider } from '../../features/profile/state/QuizzerProfileProvider';
+import { SeasonParticipationProvider } from '../../features/season/state/SeasonParticipationProvider';
 import { colors, useIgniteFonts } from '../../shared/theme';
 
 export interface AppProvidersProps {
@@ -28,7 +29,9 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
         <StatusBar style="dark" />
         <AuthProvider>
           <ParentalConsentProvider>
-            <QuizzerProfileProvider>{children}</QuizzerProfileProvider>
+            <QuizzerProfileProvider>
+              <SeasonParticipationProvider>{children}</SeasonParticipationProvider>
+            </QuizzerProfileProvider>
           </ParentalConsentProvider>
         </AuthProvider>
       </SafeAreaProvider>

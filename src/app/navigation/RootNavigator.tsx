@@ -1,6 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 
 import { AuthNavigator } from '../../features/auth/navigation/AuthNavigator';
 import { IgniteEntryScreen } from '../../features/auth/screens/IgniteEntryScreen';
@@ -10,23 +10,38 @@ import { ConsentClaimPendingScreen } from '../../features/parentalConsent/screen
 import { QuizzerNameScreen } from '../../features/profile/screens/QuizzerNameScreen';
 import { QuizzerProfileLoadErrorScreen } from '../../features/profile/screens/QuizzerProfileLoadErrorScreen';
 import { QuizzerProfileLoadingScreen } from '../../features/profile/screens/QuizzerProfileLoadingScreen';
+import { NoCurrentSeasonScreen } from '../../features/season/screens/NoCurrentSeasonScreen';
+import {
+  SeasonSetupRootDependenciesContext,
+  SeasonSetupRootScreen,
+  type SeasonSetupRootDependencies,
+} from '../../features/season/screens/SeasonSetupRootScreen';
+import type { QuizzerSeasonParticipationCreator } from '../../features/season/repositories/quizzerSeasonParticipationCreator';
+import type { SeasonSetupCatalogRepository } from '../../features/season/repositories/seasonSetupCatalogRepository';
 import TournamentDetailsScreen from '../../screens/TournamentDetailsScreen';
 import { colors } from '../../shared/theme';
 import {
   mapAccountLifecycleDestinationToRootScreen,
   useAccountLifecycleDestination,
   type FutureLifecycleSeam,
+  type SeasonLifecycleSeam,
 } from '../lifecycle';
 import BottomTabNavigator from './BottomTabNavigator';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const EMPTY_SEASON_SETUP_DEPENDENCIES: SeasonSetupRootDependencies = {};
+
 export interface RootNavigatorProps {
-  /** Test injection only. Production always uses unavailable seams. */
-  seasonSeam?: FutureLifecycleSeam;
-  /** Test injection only. Production always uses unavailable seams. */
+  /** Test injection only. Production uses the Season participation session. */
+  seasonSeam?: SeasonLifecycleSeam;
+  /** Test injection only. Production entitlement stays unavailable until Sprint 4. */
   entitlementSeam?: FutureLifecycleSeam;
+  /** Test injection only. Production Season Setup loads its own catalog. */
+  seasonSetupCatalogRepository?: SeasonSetupCatalogRepository;
+  /** Test injection only. Production Season Setup uses the participation callable. */
+  seasonSetupParticipationCreator?: QuizzerSeasonParticipationCreator;
 }
 
 /**
@@ -37,6 +52,8 @@ export interface RootNavigatorProps {
 export function RootNavigator({
   seasonSeam,
   entitlementSeam,
+  seasonSetupCatalogRepository,
+  seasonSetupParticipationCreator,
 }: RootNavigatorProps = {}): React.JSX.Element {
   const { session } = useAuth();
   const destination = useAccountLifecycleDestination({
@@ -44,6 +61,18 @@ export function RootNavigator({
     entitlementSeam,
   });
   const rootScreen = mapAccountLifecycleDestinationToRootScreen(destination);
+  const seasonSetupDependencies = useMemo<SeasonSetupRootDependencies>(() => {
+    if (
+      seasonSetupCatalogRepository === undefined &&
+      seasonSetupParticipationCreator === undefined
+    ) {
+      return EMPTY_SEASON_SETUP_DEPENDENCIES;
+    }
+    return {
+      catalogRepository: seasonSetupCatalogRepository,
+      participationCreator: seasonSetupParticipationCreator,
+    };
+  }, [seasonSetupCatalogRepository, seasonSetupParticipationCreator]);
 
   useEffect(() => {
     void hideNativeSplash();
@@ -55,6 +84,7 @@ export function RootNavigator({
       : session.status;
 
   return (
+    <SeasonSetupRootDependenciesContext.Provider value={seasonSetupDependencies}>
     <NavigationContainer>
       <Stack.Navigator
         key={navigatorKey}
@@ -91,6 +121,10 @@ export function RootNavigator({
               }}
             />
           </>
+        ) : rootScreen === 'NoCurrentSeason' ? (
+          <Stack.Screen name="NoCurrentSeason" component={NoCurrentSeasonScreen} />
+        ) : rootScreen === 'SeasonSetup' ? (
+          <Stack.Screen name="SeasonSetup" component={SeasonSetupRootScreen} />
         ) : rootScreen === 'QuizzerName' ? (
           <Stack.Screen name="QuizzerName" component={QuizzerNameScreen} />
         ) : rootScreen === 'QuizzerProfileLoadError' ? (
@@ -103,6 +137,7 @@ export function RootNavigator({
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </SeasonSetupRootDependenciesContext.Provider>
   );
 }
 

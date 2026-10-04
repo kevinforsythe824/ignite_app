@@ -65,3 +65,7 @@ Phase 3 participation adds one explicit season path:
 - `seasons/{seasonId}/regions/{regionId}` — authenticated client read; client create, update, and delete denied.
 
 This match is only that subcollection. It does not add `seasons/{seasonId}/{document=**}` or open any other season path. Unknown season siblings stay denied. Official region documents are not account-owned. Participation remains a separate user path, recorded in ADR-016, and is not a curriculum rule.
+
+## Amendment (2026-10-03) — Season root and MaterialSet reads for lifecycle
+
+Phase 3D reads `seasons/{seasonId}` root documents and `seasons/{seasonId}/materialSets/{materialSetId}` to resolve the current Season and Study target. Those reads were already allowed for a signed-in client. Phase 3D does not change Rules, does not read cards or sections for that resolution, and does not add a client write.

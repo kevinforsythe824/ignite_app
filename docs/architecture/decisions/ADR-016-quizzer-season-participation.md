@@ -37,7 +37,7 @@ Rules-only writes would either store eligibility inputs or accept a client-suppl
 ## Consequences
 
 - Season Setup (Phase 3C) submits eligibility inputs and does not write Firestore itself.
-- Lifecycle and Study cutover (Phase 3D) read participation through the repository. A missing document is setup-required. A malformed document is an error, not an empty Study target.
+- Lifecycle and Study cutover (Phase 3D) are now in the client. After profile readiness, the app resolves the current Season with `resolveAppCurrentSeason`, reads this Quizzer's participation for that Season only, and resolves one Study target. A missing document is Season Setup. A malformed document is an error, not an empty Study target. Study calls `getCurriculum` with that target. The client does not write participation during hydration. Entitlement stays dormant until Sprint 4.
 - Deploying the callable or the rules is a separate operational action. This decision does not deploy them.
 - Season calendar boundaries use `America/Chicago` as application configuration. Season documents do not store a timezone. An invalid instant fails closed. Deploying the callable or the rules remains a separate operational action.
 - Future progress collections under the participation document stay denied until a later rule names them.

@@ -16,10 +16,10 @@ export const TEST_MATERIAL_SET_ID = 'test-material-set';
 export const TEST_MATERIAL_SET_DIVISION_ID: DivisionId = 'beginner';
 
 /**
- * Temporary Study target until Phase 3 participation replaces the
- * FlashcardStudyRoute call site. Not a Season lifecycle or eligibility rule.
+ * Fixture ids retained for tests. Production Study reads
+ * SeasonParticipationSession.studyTarget and does not use these constants.
  */
 export const TEMPORARY_STUDY_SEASON_ID = '2027';
 
-/** Temporary MaterialSet paired with TEMPORARY_STUDY_SEASON_ID. */
+/** Fixture MaterialSet paired with TEMPORARY_STUDY_SEASON_ID. */
 export const TEMPORARY_STUDY_MATERIAL_SET_ID = 'beginner-2027';

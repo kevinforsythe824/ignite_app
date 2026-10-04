@@ -1,7 +1,10 @@
 import { act, fireEvent, render, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
-import type { FutureLifecycleSeam } from '../../../src/app/lifecycle';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+import type { FutureLifecycleSeam, SeasonLifecycleSeam } from '../../../src/app/lifecycle';
 import { RootNavigator } from '../../../src/app/navigation/RootNavigator';
 import { AuthProvider } from '../../../src/features/auth';
 import { authCopy } from '../../../src/features/auth/copy/authCopy';
@@ -11,21 +14,80 @@ import { ParentalConsentError } from '../../../src/features/parentalConsent/erro
 import { parentalConsentCopy } from '../../../src/features/parentalConsent/copy/parentalConsentCopy';
 import { QuizzerProfileError } from '../../../src/features/profile';
 import { QuizzerProfileProvider } from '../../../src/features/profile/state/QuizzerProfileProvider';
+import { OFFICIAL_DIVISION_IDS, getDivisionLabel, type DivisionId } from '../../../src/features/season/domain/division';
+import { OFFICIAL_REGIONS } from '../../../src/features/season/domain/officialRegions';
+import type { QuizzerSeasonParticipationCreator } from '../../../src/features/season/repositories/quizzerSeasonParticipationCreator';
+import type { SeasonSetupCatalogRepository } from '../../../src/features/season/repositories/seasonSetupCatalogRepository';
+import { SeasonParticipationProvider } from '../../../src/features/season/state/SeasonParticipationProvider';
 import { createAuthRepositoryFake } from '../../../test-utils/authRepositoryFake';
 import { createConsentSecureStoreFake } from '../../../test-utils/consentSecureStoreFake';
 import { createParentalConsentRepositoryFake } from '../../../test-utils/parentalConsentRepositoryFake';
 import { createQuizzerProfileRepositoryFake } from '../../../test-utils/quizzerProfileRepositoryFake';
+import {
+  createSeasonParticipationTestDoubles,
+  SEASON_PARTICIPATION_TEST_SEASON_ID,
+  testCompetitiveParticipation,
+  type SeasonParticipationTestDoubles,
+} from '../../../test-utils/seasonParticipationTestDoubles';
 
 jest.mock('../../../src/features/flashcards/repositories/firebaseCurriculumSource', () => {
-  const { temporaryStudyFixtureRepository } = jest.requireActual(
-    '../../../test-utils/temporaryStudyFixtureRepository',
-  ) as typeof import('../../../test-utils/temporaryStudyFixtureRepository');
+  const { jsonCurriculumRepository } = jest.requireActual(
+    '../../../src/features/flashcards/repositories/jsonCurriculumRepository',
+  ) as typeof import('../../../src/features/flashcards/repositories/jsonCurriculumRepository');
+  const { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } = jest.requireActual(
+    '../../../src/features/flashcards/domain/testSeason',
+  ) as typeof import('../../../src/features/flashcards/domain/testSeason');
 
   return {
     createFirebaseCurriculumSource: jest.fn(),
-    firestoreCurriculumRepository: temporaryStudyFixtureRepository,
+    firestoreCurriculumRepository: {
+      async getCurriculum(seasonId: string, materialSetId: string) {
+        const curriculum = await jsonCurriculumRepository.getCurriculum(
+          TEST_SEASON_ID,
+          TEST_MATERIAL_SET_ID,
+        );
+        return {
+          ...curriculum,
+          seasonId,
+          materialSetId,
+          cards: curriculum.cards.map((card) => ({
+            ...card,
+            seasonId,
+            materialSetId,
+          })),
+        };
+      },
+    },
   };
 });
+
+async function pressSetup(node: { props: { onClick?: () => void; onPress?: () => void } }) {
+  await act(async () => {
+    if (typeof node.props.onClick === 'function') {
+      node.props.onClick();
+      return;
+    }
+    node.props.onPress?.();
+  });
+}
+
+function setupCatalog(): SeasonSetupCatalogRepository {
+  return {
+    loadCatalog: jest.fn(async (seasonId: string) => ({
+      seasonId,
+      regions: OFFICIAL_REGIONS.map((region) => ({
+        ...region,
+        coverageAreas: [...region.coverageAreas],
+      })),
+      materialSets: OFFICIAL_DIVISION_IDS.map((divisionId: DivisionId) => ({
+        seasonId,
+        materialSetId: `opaque-${divisionId}-set`,
+        divisionId,
+        displayName: getDivisionLabel(divisionId),
+      })),
+    })),
+  };
+}
 
 async function renderRoot(
   repository: ReturnType<typeof createAuthRepositoryFake>,
@@ -35,10 +97,14 @@ async function renderRoot(
     consentRepository?: ReturnType<typeof createParentalConsentRepositoryFake>;
   },
   seams?: {
-    seasonSeam?: FutureLifecycleSeam;
+    seasonSeam?: SeasonLifecycleSeam;
     entitlementSeam?: FutureLifecycleSeam;
+    season?: SeasonParticipationTestDoubles;
+    seasonSetupCatalogRepository?: SeasonSetupCatalogRepository;
+    seasonSetupParticipationCreator?: QuizzerSeasonParticipationCreator;
   },
 ) {
+  const season = seams?.season ?? createSeasonParticipationTestDoubles();
   return render(
     <AuthProvider repository={repository}>
       <ParentalConsentProvider
@@ -46,10 +112,20 @@ async function renderRoot(
         secureStore={consentOptions?.secureStore ?? createConsentSecureStoreFake()}
       >
         <QuizzerProfileProvider repository={profileRepository}>
-          <RootNavigator
-            seasonSeam={seams?.seasonSeam}
-            entitlementSeam={seams?.entitlementSeam}
-          />
+          <SeasonParticipationProvider
+            clock={season.clock}
+            materialSetCatalog={season.materialSetCatalog}
+            participationRepository={season.participationRepository}
+            readEnvironment={season.readEnvironment}
+            seasonCatalog={season.seasonCatalog}
+          >
+            <RootNavigator
+              entitlementSeam={seams?.entitlementSeam}
+              seasonSeam={seams?.seasonSeam}
+              seasonSetupCatalogRepository={seams?.seasonSetupCatalogRepository}
+              seasonSetupParticipationCreator={seams?.seasonSetupParticipationCreator}
+            />
+          </SeasonParticipationProvider>
         </QuizzerProfileProvider>
       </ParentalConsentProvider>
     </AuthProvider>,
@@ -900,7 +976,7 @@ describe('RootNavigator account lifecycle', () => {
     expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
   });
 
-  it('fail-closes an injected seasonSetup seam to the loading cover, not MainTabs', async () => {
+  it('shows Season Setup for an injected required seam and does not open MainTabs', async () => {
     const repository = createAuthRepositoryFake({
       initialIdentity: {
         uid: 'user-1',
@@ -920,7 +996,7 @@ describe('RootNavigator account lifecycle', () => {
       seasonSeam: { status: 'required' },
     });
 
-    expect(await screen.findByTestId('quizzer-profile-loading')).toBeTruthy();
+    expect(await screen.findByTestId('season-setup-root')).toBeTruthy();
     expect(screen.queryByText('Luke 2:1')).toBeNull();
     expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
   });
@@ -948,6 +1024,215 @@ describe('RootNavigator account lifecycle', () => {
     expect(await screen.findByTestId('quizzer-profile-loading')).toBeTruthy();
     expect(screen.queryByText('Luke 2:1')).toBeNull();
     expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
+  });
+
+  it('skips Season Setup for a returning participant', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+
+    const screen = await renderRoot(repository, profileRepository);
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-age-input')).toBeNull();
+    expect(screen.queryByTestId('no-current-season-title')).toBeNull();
+  });
+
+  it('shows Season Setup when current participation is missing', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const season = createSeasonParticipationTestDoubles();
+    season.participationRepository.getParticipation.mockResolvedValue(null);
+
+    const screen = await renderRoot(repository, profileRepository, undefined, {
+      season,
+      seasonSetupCatalogRepository: setupCatalog(),
+    });
+
+    expect(await screen.findByTestId('season-setup-age-input')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.getByText('How old were you on January 1, 2032?')).toBeTruthy();
+  });
+
+  it('shows NoCurrentSeason and does not enter Main', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const season = createSeasonParticipationTestDoubles();
+    season.seasonCatalog.listSeasons.mockResolvedValue([]);
+
+    const screen = await renderRoot(repository, profileRepository, undefined, { season });
+
+    expect(await screen.findByTestId('no-current-season-title')).toBeTruthy();
+    expect(screen.getByText('Check back when the Season opens.')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+    expect(screen.queryByTestId('season-setup-age-input')).toBeNull();
+  });
+
+  it('rehydrates Season Setup completion into Main without a wizard navigation call', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-1',
+        email: 'quizzer@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-1',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const season = createSeasonParticipationTestDoubles();
+    let stored = false;
+    season.participationRepository.getParticipation.mockImplementation(
+      async (userId: string, seasonId: string) => {
+        if (!stored || seasonId !== SEASON_PARTICIPATION_TEST_SEASON_ID) {
+          return null;
+        }
+        return testCompetitiveParticipation(userId, seasonId);
+      },
+    );
+    const participationCreator: QuizzerSeasonParticipationCreator = {
+      create: jest.fn(async () => {
+        const participation = testCompetitiveParticipation('user-1');
+        stored = true;
+        return { created: false, participation };
+      }),
+    };
+
+    const screen = await renderRoot(repository, profileRepository, undefined, {
+      season,
+      seasonSetupCatalogRepository: setupCatalog(),
+      seasonSetupParticipationCreator: participationCreator,
+    });
+
+    const ageInput = await screen.findByTestId('season-setup-age-input');
+    await fireEvent.changeText(ageInput, '10');
+    await pressSetup(screen.getByTestId('season-setup-age-continue'));
+    await pressSetup(await screen.findByTestId('season-setup-choice-northwest'));
+    await pressSetup(screen.getByTestId('season-setup-region-continue'));
+    await pressSetup(await screen.findByTestId('season-setup-review-confirm'));
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(participationCreator.create).toHaveBeenCalledTimes(1);
+    expect(season.participationRepository.getParticipation).toHaveBeenCalledWith(
+      'user-1',
+      SEASON_PARTICIPATION_TEST_SEASON_ID,
+    );
+    const rootSource = readFileSync(
+      join(__dirname, '../../../src/features/season/screens/SeasonSetupRootScreen.tsx'),
+      'utf8',
+    );
+    expect(rootSource).not.toContain("navigate('MainTabs')");
+    expect(rootSource).not.toContain('navigation.navigate');
+  });
+
+  it('resets to the new Quizzer Season lifecycle on user switch', async () => {
+    const repository = createAuthRepositoryFake({
+      initialIdentity: {
+        uid: 'user-a',
+        email: 'a@example.com',
+        emailVerified: false,
+      },
+    });
+    const profileRepository = createQuizzerProfileRepositoryFake();
+    profileRepository.seed({
+      quizzerId: 'user-a',
+      firstName: 'Taylor',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    profileRepository.seed({
+      quizzerId: 'user-b',
+      firstName: 'Bailey',
+      lastName: 'Quizzer',
+      avatarId: null,
+    });
+    const season = createSeasonParticipationTestDoubles();
+    season.participationRepository.getParticipation.mockImplementation(
+      async (userId: string, seasonId: string) => {
+        if (userId === 'user-a') {
+          return testCompetitiveParticipation('user-a', seasonId);
+        }
+        return null;
+      },
+    );
+
+    const screen = await renderRoot(repository, profileRepository, undefined, {
+      season,
+      seasonSetupCatalogRepository: setupCatalog(),
+    });
+
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+
+    await act(async () => {
+      repository.emit({
+        uid: 'user-b',
+        email: 'b@example.com',
+        emailVerified: false,
+      });
+    });
+
+    expect(await screen.findByTestId('season-setup-age-input')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+  });
+
+  it('does not put Season data in navigation params', () => {
+    const typesSource = readFileSync(
+      join(__dirname, '../../../src/app/navigation/types.ts'),
+      'utf8',
+    );
+    const navigatorSource = readFileSync(
+      join(__dirname, '../../../src/app/navigation/RootNavigator.tsx'),
+      'utf8',
+    );
+    const screenSource = readFileSync(
+      join(__dirname, '../../../src/features/season/screens/SeasonSetupRootScreen.tsx'),
+      'utf8',
+    );
+
+    expect(typesSource).toContain('NoCurrentSeason: undefined');
+    expect(typesSource).toContain('SeasonSetup: undefined');
+    expect(navigatorSource).not.toContain('initialParams');
+    expect(navigatorSource).toContain('authenticated:${session.identity.uid}');
+    expect(screenSource).not.toContain('useRoute');
+    expect(screenSource).not.toContain('route.params');
   });
 });
 

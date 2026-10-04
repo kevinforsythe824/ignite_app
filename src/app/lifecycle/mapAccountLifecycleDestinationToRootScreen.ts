@@ -5,8 +5,7 @@ export type AccountLifecycleRootScreen = keyof RootStackParamList;
 
 /**
  * Maps a derived destination to a root stack screen.
- * `seasonSetup` and `entitlementAccess` have no screens in Phase 7 —
- * fail closed to the loading cover so they never fall through to MainTabs.
+ * `entitlementAccess` has no screen until Sprint 4 and fail-closes to the loading cover.
  */
 export function mapAccountLifecycleDestinationToRootScreen(
   destination: AccountLifecycleDestination,
@@ -22,10 +21,13 @@ export function mapAccountLifecycleDestinationToRootScreen(
       return 'QuizzerName';
     case 'profileError':
       return 'QuizzerProfileLoadError';
+    case 'noCurrentSeason':
+      return 'NoCurrentSeason';
+    case 'seasonSetup':
+      return 'SeasonSetup';
     case 'main':
       return 'MainTabs';
     case 'resolving':
-    case 'seasonSetup':
     case 'entitlementAccess':
       return 'QuizzerProfileLoading';
   }

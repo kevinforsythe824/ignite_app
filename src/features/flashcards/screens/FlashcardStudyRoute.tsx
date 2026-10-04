@@ -4,10 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import FlashcardStudyScreen from '../../../screens/FlashcardStudyScreen';
 import { colors, spacing, typography } from '../../../shared/theme';
-import {
-  TEMPORARY_STUDY_MATERIAL_SET_ID,
-  TEMPORARY_STUDY_SEASON_ID,
-} from '../domain/testSeason';
+import { useSeasonParticipation } from '../../season/state/SeasonParticipationProvider';
 import { useFlashcardCurriculum } from '../hooks/useFlashcardCurriculum';
 import { firestoreCurriculumRepository } from '../repositories';
 import { FlashcardSessionProvider } from '../state/FlashcardSessionContext';
@@ -16,14 +13,33 @@ import { FlashcardSessionProvider } from '../state/FlashcardSessionContext';
 export const studyCurriculumRepository = firestoreCurriculumRepository;
 
 /**
- * Study tab entry: loads curriculum, then mounts session state inside the
- * feature boundary so other tabs are unaffected by session updates.
+ * Study tab entry. Curriculum loads only for the participation-resolved Study target.
+ * An unready Season session does not fall back to another MaterialSet.
  */
 export function FlashcardStudyRoute(): React.JSX.Element {
-  // Temporary until Phase 3 participation replaces this call site.
+  const { session } = useSeasonParticipation();
+  if (session.status !== 'ready') {
+    return <StudyTargetUnavailable />;
+  }
+
+  return (
+    <ReadyFlashcardStudy
+      materialSetId={session.studyTarget.materialSetId}
+      seasonId={session.studyTarget.seasonId}
+    />
+  );
+}
+
+function ReadyFlashcardStudy({
+  seasonId,
+  materialSetId,
+}: {
+  seasonId: string;
+  materialSetId: string;
+}): React.JSX.Element {
   const { loadState, reload } = useFlashcardCurriculum(
-    TEMPORARY_STUDY_SEASON_ID,
-    TEMPORARY_STUDY_MATERIAL_SET_ID,
+    seasonId,
+    materialSetId,
     studyCurriculumRepository,
   );
 
@@ -65,6 +81,16 @@ export function FlashcardStudyRoute(): React.JSX.Element {
             </Pressable>
           </>
         ) : null}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function StudyTargetUnavailable(): React.JSX.Element {
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.message} testID="study-target-unavailable">
+        <Text style={styles.title}>Study isn't available right now</Text>
       </View>
     </SafeAreaView>
   );

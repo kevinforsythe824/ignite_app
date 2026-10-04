@@ -223,6 +223,55 @@ describe('resolveAccountLifecycleDestination', () => {
       expected: 'entitlementAccess',
     },
     {
+      name: 'season noCurrentSeason is its own destination',
+      given: input({
+        seasonSeam: { status: 'noCurrentSeason' },
+      }),
+      expected: 'noCurrentSeason',
+    },
+    {
+      name: 'season ready with unavailable entitlement is main',
+      given: input({
+        seasonSeam: { status: 'ready' },
+        entitlementSeam: UNAVAILABLE_LIFECYCLE_SEAM,
+      }),
+      expected: 'main',
+    },
+    {
+      name: 'season ready with entitlement required stays entitlementAccess',
+      given: input({
+        seasonSeam: { status: 'ready' },
+        entitlementSeam: { status: 'required' },
+      }),
+      expected: 'entitlementAccess',
+    },
+    {
+      name: 'profile missing beats no current Season',
+      given: input({
+        profileStatus: 'missing',
+        profileQuizzerId: AUTHENTICATED_UID,
+        seasonSeam: { status: 'noCurrentSeason' },
+      }),
+      expected: 'profileOnboarding',
+    },
+    {
+      name: 'profile error beats a ready Season',
+      given: input({
+        profileStatus: 'error',
+        profileQuizzerId: AUTHENTICATED_UID,
+        seasonSeam: { status: 'ready' },
+      }),
+      expected: 'profileError',
+    },
+    {
+      name: 'consent claim beats no current Season',
+      given: input({
+        isClaimRequired: true,
+        seasonSeam: { status: 'noCurrentSeason' },
+      }),
+      expected: 'consentClaim',
+    },
+    {
       name: 'season required is evaluated before entitlement required',
       given: input({
         seasonSeam: { status: 'required' },
@@ -283,19 +332,34 @@ describe('mapAccountLifecycleDestinationToRootScreen', () => {
     ['consentClaim', 'ConsentClaimPending'],
     ['profileOnboarding', 'QuizzerName'],
     ['profileError', 'QuizzerProfileLoadError'],
+    ['noCurrentSeason', 'NoCurrentSeason'],
     ['main', 'MainTabs'],
-    ['seasonSetup', 'QuizzerProfileLoading'],
+    ['seasonSetup', 'SeasonSetup'],
     ['entitlementAccess', 'QuizzerProfileLoading'],
   ] as const)('maps %s to %s', (destination, screen) => {
     expect(mapAccountLifecycleDestinationToRootScreen(destination)).toBe(screen);
   });
 
-  it('fail-closes seasonSetup and entitlementAccess away from MainTabs', () => {
-    expect(mapAccountLifecycleDestinationToRootScreen('seasonSetup')).not.toBe(
+  it('keeps no-current-Season and Season Setup off MainTabs', () => {
+    expect(mapAccountLifecycleDestinationToRootScreen('noCurrentSeason')).toBe(
+      'NoCurrentSeason',
+    );
+    expect(mapAccountLifecycleDestinationToRootScreen('noCurrentSeason')).not.toBe(
       'MainTabs',
+    );
+    expect(mapAccountLifecycleDestinationToRootScreen('seasonSetup')).toBe('SeasonSetup');
+    expect(mapAccountLifecycleDestinationToRootScreen('seasonSetup')).not.toBe('MainTabs');
+  });
+
+  it('fail-closes entitlementAccess away from MainTabs until Sprint 4', () => {
+    expect(mapAccountLifecycleDestinationToRootScreen('entitlementAccess')).toBe(
+      'QuizzerProfileLoading',
     );
     expect(mapAccountLifecycleDestinationToRootScreen('entitlementAccess')).not.toBe(
       'MainTabs',
+    );
+    expect(mapAccountLifecycleDestinationToRootScreen('resolving')).toBe(
+      'QuizzerProfileLoading',
     );
   });
 });

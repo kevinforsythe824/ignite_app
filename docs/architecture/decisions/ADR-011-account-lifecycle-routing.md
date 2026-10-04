@@ -18,7 +18,7 @@ PRD §62 owns account lifecycle **routing**, resume, returning-user behavior, an
 - `useAccountLifecycleDestination` only composes `useAuth`, `useParentalConsent`, and `useQuizzerProfile` into the resolver.
 - `RootNavigator` is a thin switch on that destination plus `mapAccountLifecycleDestinationToRootScreen`.
 - Authoritative inputs: Auth status + UID; consent hydrate status + `isClaimRequired`; Quizzer profile session (must match the current Auth UID); dormant `FutureLifecycleSeam` objects for season and entitlement.
-- Production Phase 7 seams are always `{ status: 'unavailable' }` — skip the gate. Do not invent season or entitlement records to populate them.
+- Production Phase 7 left both seams `{ status: 'unavailable' }`. Phase 3D replaced the Season seam with the real session. Entitlement remains `{ status: 'unavailable' }` until Sprint 4. `unavailable` skips a gate. It does not mean there is no current Season.
 
 ### Precedence (first match wins)
 
@@ -30,11 +30,11 @@ PRD §62 owns account lifecycle **routing**, resume, returning-user behavior, an
 6. Profile `idle` / `loading` → `resolving`
 7. Profile `error` → `profileError` (never treat as missing)
 8. Profile `missing` → `profileOnboarding`
-9. Season seam `loading` / `error` → `resolving`; `required` → `seasonSetup`
-10. Entitlement seam `loading` / `error` → `resolving`; `required` → `entitlementAccess`
+9. Season seam `loading` / `error` → `resolving`; `noCurrentSeason` → `noCurrentSeason`; `required` → `seasonSetup`; `ready` continues
+10. Entitlement seam `loading` / `error` → `resolving`; `required` → `entitlementAccess`; `unavailable` / `ready` continue
 11. Else → `main`
 
-`seasonSetup` and `entitlementAccess` have no screens in Phase 7. The mapper **fail-closes** them to the existing loading cover so they cannot fall through to MainTabs.
+`noCurrentSeason` maps to `NoCurrentSeason`. `seasonSetup` maps to `SeasonSetup`. `entitlementAccess` still has no screen and fail-closes to the loading cover so it cannot fall through to MainTabs.
 
 ### UID isolation and remount
 
@@ -67,3 +67,17 @@ Derived routing keeps ADR-007 identity separation and ADR-010 claim-before-profi
 - Destination in the navigator remount key — rejected; it would remount the same user during ordinary lifecycle transitions. UID remount plus resolver/provider UID-match is sufficient for User A → User B.
 - Implementing season or entitlement screens in Phase 7 — rejected; those sprints own the sources of truth. `unavailable` skips the gate.
 - Implementing account deletion in Phase 7 — rejected; exact behavior is UNRESOLVED. Phase 7 only documents that post-deletion routing is signed-out Auth.
+
+## Amendment (2026-10-03) — Phase 3D Season lifecycle
+
+Phase 3D connects the existing Season and participation model to account lifecycle and Study.
+
+- Profile ready, then Season `loading` or `error`, stays `resolving`.
+- No selectable current Season is `noCurrentSeason` (`NoCurrentSeason`). It does not enter Main or an older Season's Study material.
+- Missing participation for the current Season is `seasonSetup` (`SeasonSetup`). Historical participation does not satisfy the new Season.
+- Ready participation resolves one Study target `{ seasonId, materialSetId }` via `resolveStudyMaterialSet`. The Season seam is then `ready`.
+- Entitlement remains the dormant `unavailable` seam. Season ready therefore continues to Main. Sprint 4 owns purchase and access. There is no entitlement screen in this phase.
+- Season Setup success does not navigate to Main. It refreshes the Season session from the participation repository. The lifecycle resolver leaves Setup when that session is ready.
+- A late setup completion for a previous authenticated uid is ignored.
+- `FlashcardStudyRoute` calls `getCurriculum(studyTarget.seasonId, studyTarget.materialSetId)`. It does not use the temporary `2027` / `beginner-2027` target and does not fall back to another MaterialSet.
+- Study Hub, Annotated Scripture List, and tournament configuration are not part of this amendment.

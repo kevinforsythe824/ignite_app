@@ -7,6 +7,10 @@ export type {
   FutureLifecycleSeam,
   FutureLifecycleSeamStatus,
 } from './accountLifecycleDestination';
+export type {
+  SeasonLifecycleSeam,
+  SeasonLifecycleSeamStatus,
+} from '../../features/season/application/deriveSeasonLifecycleSeam';
 export { UNAVAILABLE_LIFECYCLE_SEAM } from './futureLifecycleSeams';
 export {
   mapAccountLifecycleDestinationToRootScreen,
