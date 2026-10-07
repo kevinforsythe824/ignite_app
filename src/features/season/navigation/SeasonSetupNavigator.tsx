@@ -23,7 +23,11 @@ export function SeasonSetupNavigator(): React.JSX.Element {
       <Stack.Screen name="PlacementChoice" component={PlacementChoiceScreen} />
       <Stack.Screen name="FirstYear" component={FirstYearScreen} />
       <Stack.Screen name="StudyTrack" component={StudyTrackScreen} />
-      <Stack.Screen name="Region" component={RegionScreen} />
+      <Stack.Screen
+        name="Region"
+        component={RegionScreen}
+        options={{ animationTypeForReplace: 'pop' }}
+      />
       <Stack.Screen name="Review" component={ReviewScreen} />
     </Stack.Navigator>
   );

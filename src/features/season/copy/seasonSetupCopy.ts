@@ -51,6 +51,8 @@ export const seasonSetupCopy = {
     division: 'Division',
     studyMaterial: 'Study material',
     region: 'Region',
+    change: 'Change',
+    changeRegion: 'Change region',
     confirm: 'Confirm',
     confirming: 'Saving your season',
     unavailable: "Season setup isn't available right now.",

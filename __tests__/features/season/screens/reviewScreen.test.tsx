@@ -1,4 +1,6 @@
-import { act, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, waitFor, within } from '@testing-library/react-native';
+import { getDoc, getDocs, runTransaction } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 import { authCopy } from '../../../../src/features/auth/copy/authCopy';
 import type { CreateQuizzerSeasonParticipationRequest } from '../../../../src/features/season/application/buildCreateParticipationRequest';
@@ -206,6 +208,326 @@ describe('ReviewScreen', () => {
       true,
     );
     expect(screen.queryByText('Northwest')).toBeNull();
+  });
+});
+
+describe('Review change region', () => {
+  function callCount(fn: unknown): number {
+    return (fn as jest.Mock).mock.calls.length;
+  }
+
+  it('returns to the selected region and confirms a newly chosen region id', async () => {
+    const creator = recordingCreator();
+    const screen = await openAge({ participationCreator: creator });
+    await continueFromAge(screen, '10');
+    await chooseRegion(screen, 'southwest');
+
+    const regionSummary = screen.getByTestId('season-setup-review-region');
+    expect(regionSummary.props.accessibilityLabel).toBe('Region, Southwest');
+    expect(within(regionSummary).getByText('Southwest')).toBeTruthy();
+    expect(screen.getByText(seasonSetupCopy.review.change)).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: seasonSetupCopy.review.changeRegion })).toHaveLength(
+      1,
+    );
+    expect(screen.getByLabelText(authCopy.actions.back)).toBeTruthy();
+    expect(screen.queryByLabelText('Change season')).toBeNull();
+    expect(screen.queryByLabelText('Change division')).toBeNull();
+    expect(screen.getByTestId('season-setup-review-confirm')).toBeTruthy();
+
+    const firestoreBefore = {
+      getDoc: callCount(getDoc),
+      getDocs: callCount(getDocs),
+      runTransaction: callCount(runTransaction),
+      httpsCallable: callCount(httpsCallable),
+    };
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-change-region'));
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-review-title')).toBeNull();
+    expect(screen.getByTestId('probe-region').props.children).toBe('southwest');
+    expect(
+      screen.getByTestId('season-setup-choice-southwest').props.accessibilityState.selected,
+    ).toBe(true);
+    expect(creator.create).not.toHaveBeenCalled();
+    expect(screen.getByTestId('probe-submission').props.children).toBe('idle');
+
+    await fireEvent.press(screen.getByTestId('season-setup-choice-northeast'));
+    expect(screen.getByTestId('probe-region').props.children).toBe('northeast');
+    await fireEvent.press(screen.getByTestId('season-setup-region-continue'));
+    await screen.findByTestId('season-setup-review-title');
+
+    const updatedRegion = screen.getByTestId('season-setup-review-region');
+    expect(updatedRegion.props.accessibilityLabel).toBe('Region, Northeast');
+    expect(within(updatedRegion).getByText('Northeast')).toBeTruthy();
+    expect(within(updatedRegion).queryByText('Southwest')).toBeNull();
+    expect(screen.getByText(getDivisionLabel('junior'))).toBeTruthy();
+    expect(screen.getByTestId('probe-placement-division').props.children).toBe('junior');
+    expect(screen.getByTestId('probe-division').props.children).toBe('none');
+    expect(creator.create).not.toHaveBeenCalled();
+    expect(getDoc).toHaveBeenCalledTimes(firestoreBefore.getDoc);
+    expect(getDocs).toHaveBeenCalledTimes(firestoreBefore.getDocs);
+    expect(runTransaction).toHaveBeenCalledTimes(firestoreBefore.runTransaction);
+    expect(httpsCallable).toHaveBeenCalledTimes(firestoreBefore.httpsCallable);
+    expect(screen.getByTestId('probe-submission').props.children).toBe('idle');
+    expect(screen.getByLabelText(authCopy.actions.back)).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-confirm'));
+    await waitFor(() => expect(creator.create).toHaveBeenCalledTimes(1));
+    expect(creator.create.mock.calls[0]?.[0].regionId).toBe('northeast');
+    expect(creator.create.mock.calls[0]?.[0]).not.toMatchObject({ regionId: 'southwest' });
+  });
+
+  it('keeps the current region when Change returns and Continue is pressed again', async () => {
+    const screen = await openAge();
+    await continueFromAge(screen, '10');
+    await chooseRegion(screen, 'southwest');
+
+    expect(screen.getByLabelText(authCopy.actions.back)).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(seasonSetupCopy.review.changeRegion));
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+    expect(
+      screen.getByTestId('season-setup-choice-southwest').props.accessibilityState.selected,
+    ).toBe(true);
+
+    await fireEvent.press(screen.getByTestId('season-setup-region-continue'));
+    await screen.findByTestId('season-setup-review-title');
+    expect(screen.getByTestId('season-setup-review-region').props.accessibilityLabel).toBe(
+      'Region, Southwest',
+    );
+    expect(screen.getByTestId('probe-region').props.children).toBe('southwest');
+
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+    expect(
+      screen.getByTestId('season-setup-choice-southwest').props.accessibilityState.selected,
+    ).toBe(true);
+    expect(screen.queryByTestId('season-setup-review-title')).toBeNull();
+  });
+
+  it('hides Change region while submitting and after completion', async () => {
+    let resolveCreate: (value: {
+      created: boolean;
+      participation: ReadyQuizzerSeasonParticipation;
+    }) => void = () => undefined;
+    const create = jest.fn(
+      (request: CreateQuizzerSeasonParticipationRequest) =>
+        new Promise<{ created: boolean; participation: ReadyQuizzerSeasonParticipation }>(
+          (resolve) => {
+            resolveCreate = resolve;
+          },
+        ),
+    );
+    const screen = await openAge({ participationCreator: { create } });
+    await continueFromAge(screen, '10');
+    await chooseRegion(screen, 'southwest');
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-confirm'));
+    expect(screen.getByTestId('probe-submission').props.children).toBe('submitting');
+    expect(screen.queryByTestId('season-setup-review-change-region')).toBeNull();
+    expect(screen.queryByLabelText(seasonSetupCopy.review.changeRegion)).toBeNull();
+    expect(screen.queryByLabelText(authCopy.actions.back)).toBeNull();
+    expect(screen.getByTestId('season-setup-review-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
+    expect(screen.getByTestId('probe-region').props.children).toBe('southwest');
+
+    const submitted = create.mock.calls[0]?.[0];
+    if (submitted === undefined) {
+      throw new Error('expected a participation request');
+    }
+    resolveCreate({ created: true, participation: participationFor(submitted) });
+    expect(await screen.findByTestId('season-setup-review-complete')).toBeTruthy();
+    expect(screen.getByTestId('probe-submission').props.children).toBe('complete');
+    expect(screen.queryByTestId('season-setup-review-change-region')).toBeNull();
+    expect(screen.queryByLabelText(seasonSetupCopy.review.changeRegion)).toBeNull();
+    expect(screen.queryByLabelText(authCopy.actions.back)).toBeNull();
+    expect(screen.getByTestId('season-setup-review-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
+    expect(screen.getByTestId('probe-region').props.children).toBe('southwest');
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  async function selectRegionThenReturnToAge(
+    screen: Awaited<ReturnType<typeof openAge>>,
+    regionId: string,
+  ) {
+    await continueFromAge(screen, '10');
+    await chooseRegion(screen, regionId);
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    await screen.findByTestId('season-setup-region-title');
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    await screen.findByTestId('season-setup-age-input');
+  }
+
+  async function reviewWithRegionAlreadyChosen(
+    screen: Awaited<ReturnType<typeof openAge>>,
+    age: string,
+    answer: (view: Awaited<ReturnType<typeof openAge>>) => Promise<void>,
+  ) {
+    await fireEvent.changeText(screen.getByTestId('season-setup-age-input'), age);
+    await fireEvent.press(screen.getByTestId('season-setup-age-continue'));
+    await answer(screen);
+    await screen.findByTestId('season-setup-review-title');
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
+  }
+
+  async function changeToNortheast(
+    screen: Awaited<ReturnType<typeof openAge>>,
+    skippedTitleTestId: string,
+  ) {
+    await fireEvent.press(screen.getByTestId('season-setup-review-change-region'));
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-review-title')).toBeNull();
+    expect(screen.queryByTestId(skippedTitleTestId)).toBeNull();
+    expect(screen.getByTestId('probe-region').props.children).toBe('southwest');
+    expect(
+      screen.getByTestId('season-setup-choice-southwest').props.accessibilityState.selected,
+    ).toBe(true);
+    expect(screen.getByTestId('probe-submission').props.children).toBe('idle');
+
+    await fireEvent.press(screen.getByTestId('season-setup-choice-northeast'));
+    await fireEvent.press(screen.getByTestId('season-setup-region-continue'));
+    await screen.findByTestId('season-setup-review-title');
+  }
+
+  it('opens Region from a skipped Cadet path and confirms the new region id', async () => {
+    const creator = recordingCreator();
+    const screen = await openAge({ participationCreator: creator });
+    await selectRegionThenReturnToAge(screen, 'southwest');
+    await reviewWithRegionAlreadyChosen(screen, '2', async (view) => {
+      await fireEvent.press(await view.findByTestId('season-setup-choice-cadet'));
+      await fireEvent.press(view.getByTestId('season-setup-placement-continue'));
+    });
+
+    expect(screen.getByTestId('season-setup-review-region').props.accessibilityLabel).toBe(
+      'Region, Southwest',
+    );
+    expect(screen.getByText(getDivisionLabel('cadet'))).toBeTruthy();
+    expect(screen.getByTestId('probe-division').props.children).toBe('cadet');
+
+    const firestoreBefore = {
+      getDoc: callCount(getDoc),
+      getDocs: callCount(getDocs),
+      runTransaction: callCount(runTransaction),
+      httpsCallable: callCount(httpsCallable),
+    };
+
+    await changeToNortheast(screen, 'season-setup-placement-title');
+    expect(screen.getByTestId('season-setup-review-region').props.accessibilityLabel).toBe(
+      'Region, Northeast',
+    );
+    expect(screen.getByText(getDivisionLabel('cadet'))).toBeTruthy();
+    expect(screen.getByTestId('probe-division').props.children).toBe('cadet');
+    expect(creator.create).not.toHaveBeenCalled();
+    expect(getDoc).toHaveBeenCalledTimes(firestoreBefore.getDoc);
+    expect(getDocs).toHaveBeenCalledTimes(firestoreBefore.getDocs);
+    expect(runTransaction).toHaveBeenCalledTimes(firestoreBefore.runTransaction);
+    expect(httpsCallable).toHaveBeenCalledTimes(firestoreBefore.httpsCallable);
+    expect(screen.getByTestId('probe-submission').props.children).toBe('idle');
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-confirm'));
+    await waitFor(() => expect(creator.create).toHaveBeenCalledTimes(1));
+    expect(creator.create.mock.calls[0]?.[0]).toEqual({
+      seasonId: '2032',
+      eligibilityAge: 2,
+      regionId: 'northeast',
+      divisionId: 'cadet',
+    });
+  });
+
+  it('opens Region from a skipped First-Year path and keeps the first-year answer', async () => {
+    const creator = recordingCreator();
+    const screen = await openAge({ participationCreator: creator });
+    await selectRegionThenReturnToAge(screen, 'southwest');
+    await reviewWithRegionAlreadyChosen(screen, '16', async (view) => {
+      await fireEvent.press(await view.findByTestId('season-setup-choice-yes'));
+      await fireEvent.press(view.getByTestId('season-setup-first-year-continue'));
+    });
+
+    expect(screen.queryByTestId('season-setup-first-year-title')).toBeNull();
+    expect(screen.getByTestId('probe-first-year').props.children).toBe('true');
+    expect(screen.getByText(getDivisionLabel('intermediate'))).toBeTruthy();
+
+    await changeToNortheast(screen, 'season-setup-first-year-title');
+    expect(screen.getByTestId('probe-first-year').props.children).toBe('true');
+    expect(screen.getByText(getDivisionLabel('intermediate'))).toBeTruthy();
+    expect(screen.getByTestId('season-setup-review-region').props.accessibilityLabel).toBe(
+      'Region, Northeast',
+    );
+    expect(creator.create).not.toHaveBeenCalled();
+    expect(screen.getByTestId('probe-submission').props.children).toBe('idle');
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-confirm'));
+    await waitFor(() => expect(creator.create).toHaveBeenCalledTimes(1));
+    expect(creator.create.mock.calls[0]?.[0]).toEqual({
+      seasonId: '2032',
+      eligibilityAge: 16,
+      regionId: 'northeast',
+      isFirstYearQuizzer: true,
+    });
+  });
+
+  it('opens Region from a skipped Study Track path and keeps the study material', async () => {
+    const creator = recordingCreator();
+    const screen = await openAge({ participationCreator: creator });
+    await selectRegionThenReturnToAge(screen, 'southwest');
+    await reviewWithRegionAlreadyChosen(screen, '25', async (view) => {
+      await fireEvent.press(await view.findByTestId('season-setup-choice-fixture-study-junior'));
+      await fireEvent.press(view.getByTestId('season-setup-study-track-continue'));
+    });
+
+    expect(screen.queryByTestId('season-setup-study-track-title')).toBeNull();
+    expect(screen.getByTestId('probe-material').props.children).toBe('fixture-study-junior');
+    expect(screen.getByTestId('season-setup-review-material').props.accessibilityLabel).toBe(
+      `${seasonSetupCopy.review.studyMaterial}, ${getDivisionLabel('junior')}`,
+    );
+
+    await changeToNortheast(screen, 'season-setup-study-track-title');
+    expect(screen.getByTestId('probe-material').props.children).toBe('fixture-study-junior');
+    expect(screen.getByTestId('season-setup-review-material').props.accessibilityLabel).toBe(
+      `${seasonSetupCopy.review.studyMaterial}, ${getDivisionLabel('junior')}`,
+    );
+    expect(screen.getByTestId('season-setup-review-region').props.accessibilityLabel).toBe(
+      'Region, Northeast',
+    );
+    expect(creator.create).not.toHaveBeenCalled();
+    expect(screen.getByTestId('probe-submission').props.children).toBe('idle');
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-confirm'));
+    await waitFor(() => expect(creator.create).toHaveBeenCalledTimes(1));
+    expect(creator.create.mock.calls[0]?.[0]).toEqual({
+      seasonId: '2032',
+      eligibilityAge: 25,
+      regionId: 'northeast',
+      studyTrackMaterialSetId: 'fixture-study-junior',
+    });
+  });
+
+  it('keeps Review header Back on the previous screen while Change opens Region', async () => {
+    const screen = await openAge();
+    await selectRegionThenReturnToAge(screen, 'southwest');
+    await reviewWithRegionAlreadyChosen(screen, '2', async (view) => {
+      await fireEvent.press(await view.findByTestId('season-setup-choice-cadet'));
+      await fireEvent.press(view.getByTestId('season-setup-placement-continue'));
+    });
+
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('season-setup-placement-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
+    expect(screen.queryByTestId('season-setup-review-title')).toBeNull();
+    expect(screen.getByTestId('probe-division').props.children).toBe('cadet');
+
+    await fireEvent.press(screen.getByTestId('season-setup-placement-continue'));
+    await screen.findByTestId('season-setup-review-title');
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-change-region'));
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
+    expect(screen.queryByTestId('season-setup-review-title')).toBeNull();
+    expect(
+      screen.getByTestId('season-setup-choice-southwest').props.accessibilityState.selected,
+    ).toBe(true);
+    expect(screen.getByTestId('probe-division').props.children).toBe('cadet');
+    expect(screen.getByTestId('probe-region').props.children).toBe('southwest');
   });
 });
 
