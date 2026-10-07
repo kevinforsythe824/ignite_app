@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { Dimensions, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { Dimensions, Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -41,6 +41,7 @@ function rotationForSide(side: CardSide): number {
 
 type SwipeDirection = 'left' | 'right';
 
+const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 /** Horizontal distance that commits a swipe instead of snapping back. */
 const SWIPE_THRESHOLD = 120;
@@ -162,11 +163,15 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     transform: [{ perspective: 1000 }, { rotateY: `${rotation.value}deg` }],
   }));
 
-  // Quote face — reference only (back at 180°).
-  const quoteFaceStyle = useAnimatedStyle(() => ({
-    opacity: rotation.value < 90 ? 0 : 1,
-    transform: [{ perspective: 1000 }, { rotateY: `${rotation.value + 180}deg` }],
-  }));
+  // Quote face — reference only (back at 180°). On Android the visible
+  // face rests at rotateY(0) so the box shadow is not drawn in 3D space.
+  const quoteFaceStyle = useAnimatedStyle(() => {
+    const quoteRotation = IS_ANDROID ? rotation.value - 180 : rotation.value + 180;
+    return {
+      opacity: rotation.value < 90 ? 0 : 1,
+      transform: [{ perspective: 1000 }, { rotateY: `${quoteRotation}deg` }],
+    };
+  });
 
   const correctOverlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
@@ -189,12 +194,12 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.container, style, containerStyle]}>
-        <Animated.View style={[styles.face, locateFaceStyle]}>
+        <Animated.View style={[styles.face, IS_ANDROID ? styles.androidFaceShadow : null, locateFaceStyle]}>
           <CardChrome />
           <FlashcardBack segments={segments} indexCode={card.indexCode} />
         </Animated.View>
 
-        <Animated.View style={[styles.face, quoteFaceStyle]}>
+        <Animated.View style={[styles.face, IS_ANDROID ? styles.androidFaceShadow : null, quoteFaceStyle]}>
           <CardChrome />
           <FlashcardFront card={card} />
         </Animated.View>
@@ -246,6 +251,10 @@ const styles = StyleSheet.create({
     padding: spacing.cardPadding,
     backfaceVisibility: 'hidden',
     ...shadows.card,
+  },
+  androidFaceShadow: {
+    elevation: 0,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)',
   },
   chromeRow: {
     flexDirection: 'row',
