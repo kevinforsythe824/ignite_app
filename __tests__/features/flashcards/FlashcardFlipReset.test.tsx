@@ -9,7 +9,10 @@ jest.mock('../../../src/features/flashcards/hooks/useReducedMotion', () => ({
   useReducedMotion: () => false,
 }));
 
-const mockFlipState: { cells: { value: number }[]; calls: number } = {
+/** rotation, translateX, translateY, opacity, answer lock */
+const mockFlashcardSharedValueCount = 5;
+
+const mockFlipState: { cells: { value: number | boolean }[]; calls: number } = {
   cells: [],
   calls: 0,
 };
@@ -23,8 +26,8 @@ jest.mock('react-native-reanimated', () => {
       View,
       createAnimatedComponent: (Component: unknown) => Component,
     },
-    useSharedValue: (initial: number) => {
-      const index = mockFlipState.calls % 4;
+    useSharedValue: (initial: number | boolean) => {
+      const index = mockFlipState.calls % mockFlashcardSharedValueCount;
       mockFlipState.calls += 1;
       if (mockFlipState.cells[index] === undefined) {
         mockFlipState.cells[index] = { value: initial };
@@ -45,6 +48,7 @@ jest.mock('react-native-reanimated', () => {
       bezier: () => (value: unknown) => value,
     },
     runOnJS: (fn: unknown) => fn,
+    runOnUI: (fn: (...args: never[]) => unknown) => fn,
   };
 });
 

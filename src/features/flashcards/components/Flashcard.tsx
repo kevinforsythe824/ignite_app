@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { Dimensions, Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -7,6 +7,7 @@ import Animated, {
   Extrapolation,
   interpolate,
   runOnJS,
+  runOnUI,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -34,12 +35,18 @@ export interface FlashcardProps {
   style?: StyleProp<ViewStyle>;
 }
 
+/** Imperative left/right swipe. Scoring still happens only after fly-off. */
+export interface FlashcardHandle {
+  swipe: (direction: 'left' | 'right') => void;
+}
+
 /** Locate = verse face (0°); Quote = reference face (180°). */
 function rotationForSide(side: CardSide): number {
   return side === 'quote' ? 180 : 0;
 }
 
 type SwipeDirection = 'left' | 'right';
+type FlyOffSource = 'gesture' | 'programmatic';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -49,27 +56,40 @@ const SWIPE_THRESHOLD = 120;
 const PAN_ACTIVATION_DISTANCE = 10;
 const FLIP_DURATION = 400;
 const FLY_OFF_DURATION = 220;
+/** Button swipes start from rest, so they glide longer than a mid-gesture fly-off. */
+const PROGRAMMATIC_SWIPE_DURATION = 340;
 const FADE_IN_DURATION = 220;
 const MAX_TILT_DEGREES = 8;
 const MAX_OVERLAY_OPACITY = 0.28;
 const CHROME_ICON_SIZE = 22;
 
-export const Flashcard: React.FC<FlashcardProps> = React.memo(({
-  card,
-  segments,
-  defaultSide = 'locate',
-  onSwipeCorrect,
-  onSwipeNeedsWork,
-  style,
-}) => {
+export const Flashcard = React.memo(
+  React.forwardRef<FlashcardHandle, FlashcardProps>(function Flashcard(
+    {
+      card,
+      segments,
+      defaultSide = 'locate',
+      onSwipeCorrect,
+      onSwipeNeedsWork,
+      style,
+    },
+    ref,
+  ) {
   const reducedMotion = useReducedMotion();
   const rotation = useSharedValue(rotationForSide(defaultSide));
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const cardOpacity = useSharedValue(1);
+  /** True from the moment a committed fly-off starts until the next card. */
+  const answerLocked = useSharedValue(false);
+  const didCommitAnswer = useRef(false);
 
   const commitSwipe = useCallback(
     (direction: SwipeDirection) => {
+      if (didCommitAnswer.current) {
+        return;
+      }
+      didCommitAnswer.current = true;
       if (direction === 'right') {
         onSwipeCorrect();
       } else {
@@ -89,11 +109,57 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     cardOpacity.value = withTiming(1, { duration: fadeMs });
   }, [card.cardId, defaultSide, cardOpacity, reducedMotion, rotation, translateX, translateY]);
 
+  useEffect(() => {
+    didCommitAnswer.current = false;
+    answerLocked.value = false;
+  }, [answerLocked, card.cardId]);
+
+  // Finger release and quick-answer buttons share this fly-off. Only duration
+  // and easing differ by source. Scoring runs from the timing callback, after
+  // the card has left the screen.
+  const beginCommittedFlyOff = useCallback((direction: SwipeDirection, source: FlyOffSource) => {
+    'worklet';
+    if (answerLocked.value) {
+      return;
+    }
+    answerLocked.value = true;
+
+    const flyMs = reducedMotion
+      ? 0
+      : source === 'programmatic'
+        ? PROGRAMMATIC_SWIPE_DURATION
+        : FLY_OFF_DURATION;
+    const target = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+
+    translateX.value = withTiming(
+      target,
+      {
+        duration: flyMs,
+        easing: source === 'programmatic' ? Easing.inOut(Easing.cubic) : Easing.out(Easing.quad),
+      },
+      (finished) => {
+        if (finished === true) {
+          cardOpacity.value = 0;
+          runOnJS(commitSwipe)(direction);
+        }
+      },
+    );
+  }, [answerLocked, cardOpacity, commitSwipe, reducedMotion, translateX]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      swipe(direction) {
+        runOnUI(beginCommittedFlyOff)(direction, 'programmatic');
+      },
+    }),
+    [beginCommittedFlyOff],
+  );
+
   // A tap only wins while the finger stays inside the pan's activation radius,
   // so a short press flips and anything more horizontal becomes a swipe.
   const gesture = useMemo(() => {
     const flipMs = reducedMotion ? 0 : FLIP_DURATION;
-    const flyMs = reducedMotion ? 0 : FLY_OFF_DURATION;
 
     const tap = Gesture.Tap()
       .maxDistance(PAN_ACTIVATION_DISTANCE)
@@ -108,10 +174,16 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
     const pan = Gesture.Pan()
       .activeOffsetX([-PAN_ACTIVATION_DISTANCE, PAN_ACTIVATION_DISTANCE])
       .onUpdate((event) => {
+        if (answerLocked.value) {
+          return;
+        }
         translateX.value = event.translationX;
         translateY.value = event.translationY * 0.15;
       })
       .onEnd(() => {
+        if (answerLocked.value) {
+          return;
+        }
         if (Math.abs(translateX.value) < SWIPE_THRESHOLD) {
           if (reducedMotion) {
             translateX.value = 0;
@@ -124,22 +196,11 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
         }
 
         const direction: SwipeDirection = translateX.value > 0 ? 'right' : 'left';
-        const target = direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-
-        translateX.value = withTiming(
-          target,
-          { duration: flyMs, easing: Easing.out(Easing.quad) },
-          (finished) => {
-            if (finished === true) {
-              cardOpacity.value = 0;
-              runOnJS(commitSwipe)(direction);
-            }
-          },
-        );
+        beginCommittedFlyOff(direction, 'gesture');
       });
 
     return Gesture.Exclusive(pan, tap);
-  }, [commitSwipe, cardOpacity, reducedMotion, rotation, translateX, translateY]);
+  }, [answerLocked, beginCommittedFlyOff, reducedMotion, rotation, translateX, translateY]);
 
   const containerStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
@@ -217,7 +278,8 @@ export const Flashcard: React.FC<FlashcardProps> = React.memo(({
       </Animated.View>
     </GestureDetector>
   );
-});
+  }),
+);
 
 /** Decorative chrome only — audio / favourite are not wired yet. */
 const CardChrome = React.memo(function CardChrome() {

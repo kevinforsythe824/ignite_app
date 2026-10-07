@@ -89,6 +89,7 @@ jest.mock('react-native-reanimated', () => {
       bezier: () => (value) => value,
     },
     runOnJS: (fn) => fn,
+    runOnUI: (fn) => fn,
   };
 });
 

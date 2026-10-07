@@ -92,7 +92,7 @@ describe('Flashcard micro-polish presentation', () => {
     expect(flashcardSource).not.toContain('Play verse audio');
     expect(flashcardSource).toContain('useReducedMotion');
     expect(activeSource).toContain(
-      'Tap to flip. Swipe right for correct, swipe left for needs work.',
+      'Tap to flip. Swipe right or press the check button for correct, swipe left or press the X button for needs work.',
     );
   });
 });
