@@ -1,7 +1,8 @@
 # ADR-016: QuizzerSeasonParticipation create-only persistence
 
-- **Status:** Accepted
+- **Status:** Accepted (clarified 2026-10-13)
 - **Date:** 2026-09-30
+- **Clarified:** 2026-10-13
 - **Related PRD:** §§8, 11, 36, 43–44
 - **Related:** ADR-001, ADR-002, ADR-006, ADR-007, ADR-015; [`PARTICIPATION_CORRECTION_RUNBOOK.md`](../../operations/PARTICIPATION_CORRECTION_RUNBOOK.md)
 
@@ -48,3 +49,18 @@ Rules-only writes would either store eligibility inputs or accept a client-suppl
 - Copy the eligibility matrix into `functions/src` — rejected; the two copies would drift.
 - Store age or first-year status so Rules can recompute — rejected; those inputs are not persisted.
 - `users/{uid}/seasons/{seasonId}/participation/main` — rejected; the PRD path is the participation document itself.
+
+## Clarification (2026-10-13) — official eligibility matrix
+
+The 2026-09-30 decision remains in force. Creation stays create-only. Date of birth, eligibility age, and first-year status stay off the stored record. Client writes stay denied. The Cloud Function and the client keep using one shared `resolveParticipationOptions` module. This note does not replace that rationale.
+
+This ADR did not freeze a division matrix. The working eligibility bands then recorded in the PRD are superseded by PRD §8.2. Those earlier bands included ages 2–4 as Cadet or Beginner only, ages 5–8 as Beginner only, ages 12–14 as Intermediate only, and ages 15–18 first-year as Intermediate only.
+
+Current policy:
+
+- The shared resolver implements the official January 1 matrix in PRD §8.2. It is the eligibility source of truth. The matrix is not copied into `functions/src`.
+- First-year means first time ever participating in Bible Quizzing. It is required only for ages 15–18. First-year Yes is a real division choice between Intermediate and Experienced. Neither is auto-selected, so the create request includes `divisionId`. First-year No derives Experienced, so the client omits `divisionId`.
+- Several allowed divisions: the request includes the selected `divisionId`. One allowed division: the client omits `divisionId` and the server derives it.
+- Request fields are not persisted fields. A valid existing record is returned unchanged.
+- Intermediate and Experienced stay separate MaterialSets even though the sponsor confirmed they use the same official Scripture and questions. This clarification adds no sync or sharing requirement.
+- Current MVP implementation assumes a minimum competitive eligibility age of 2, pending explicit sponsor confirmation. That assumption is not a newly confirmed official minimum.

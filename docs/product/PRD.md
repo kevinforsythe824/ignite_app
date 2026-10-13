@@ -12,6 +12,8 @@ Primary Core Experience: Flashcard-based Bible memorization
 Document Purpose: Product, domain, architecture, data, UX, and development source of truth
 Revision Scope: v3.3 preserves the v3.2 product/architecture decisions and incorporates targeted clarifications for the five official division material sets, Cadet eligibility, the age-19+ Study Track, region-aware season participation/tournaments, section-based curriculum organization, annotated scrollable Scripture reading, material-set-aware entitlements, and related Sprint 3+ roadmap adjustments.
 
+Clarification (2026-10-13): §8, the Sprint 3 eligibility bullets, and the MVP eligibility checklist now follow the official January 1 division matrix. The document version is unchanged. The minimum competitive age of 2 remains a provisional MVP assumption pending explicit sponsor confirmation.
+
 
 
 # 1. Document Purpose
@@ -286,61 +288,82 @@ This prevents one division's official structure or annotations from accidentally
 # 8. Division System
 ## 8.1 Official Divisions
 
-Ignite supports five official competitive divisions:
+Ignite supports five official competitive divisions: Cadet, Beginner, Junior, Intermediate, and Experienced.
 
-Cadet
+The official user-facing name is Experienced. Who may select each division in self-service is the January 1 matrix in §8.2. Placements outside that matrix, including Experienced below age 12, are not ordinary self-service onboarding. No admin or coach override is implemented.
 
-Generally ages 2–4. For ages 2–4, Ignite may present both Cadet and Beginner as eligible choices because a parent/coach may determine that the Quizzer is ready for Beginner material.
-
-Beginner
-
-Standard ages 5–8. Ages 2–4 may also select Beginner when appropriate.
-
-Junior
-
-Ages 9–11.
-
-Intermediate
-
-Ages 12–14 and first-year Quizzers ages 15–18.
-
-Experienced
-
-The official user-facing terminology is `Experienced` (not `Experienced`). Standard placement is the approved non-first-year 15–18 flow. Exceptional younger placements may be authorized by the appropriate real-world team/coach process, but Ignite does not expose an ordinary self-service exception option in MVP onboarding.
-
-The exact material for each division may change every season. Lower divisions must not be modeled as simple subsets of Experienced material.
+The exact material for each division may change every season. The five MaterialSets stay independent (§12.1). Sponsor confirmation that Intermediate and Experienced use the same official Scripture and questions does not merge those MaterialSet identities and does not add a sync or sharing requirement.
 
 
 ## 8.2 Competitive Eligibility and January 1 Age Basis
-Competitive division eligibility uses the Quizzer's official age for the season based on the January 1 eligibility basis communicated by WPF.
+Competitive division eligibility uses the Quizzer's January 1 age for the applicable Season. The age is an integer. Ignite does not store a date of birth for this purpose. This question is distinct from the privacy and account-age flow used before persistent profile information is collected.
 
-Ignite does not need to store date of birth for this purpose. During current-season setup, the app may ask for the age that should be used for Bible Quizzing eligibility for that season and explain that users who are unsure should confirm with their Coach.
+Current MVP implementation assumes a minimum competitive eligibility age of 2, pending explicit sponsor confirmation. Under that assumption, an age below 2 cannot continue in self-service. Age 2 is not a newly confirmed official minimum.
 
-Current working eligibility behavior:
-- Age 2–4 → Cadet or Beginner
-- Age 5–8 → Beginner
-- Age 9–11 → Junior
-- Age 12–14 → Intermediate in the normal self-service flow
-- Age 15–18 → Intermediate if first-year Quizzer; otherwise Experienced
+First-year means the first time ever participating in Bible Quizzing, not the first year in a division or age group. The question is required only for ages 15–18. Outside that window it is not asked, and a first-year flag is not sent.
 
-Any officially authorized exceptional placement should be handled through a future controlled/admin/coach override rather than a general user-facing "choose any division" option.
+Official self-service matrix:
+
+- Ages 2–5: Cadet, Beginner, or Junior. Explicit choice. None is auto-selected. First-year is not required.
+- Ages 6–8: Beginner or Junior. Explicit choice. None is auto-selected.
+- Ages 9–11: Junior only. The division is derived. Skip division choice.
+- Ages 12–14: Intermediate or Experienced. Explicit choice. None is auto-selected. No first-year question.
+- Ages 15–18 with no first-year answer: the first-year question is required. Setup cannot continue until it is answered.
+- Ages 15–18, first year ever Yes: Intermediate or Experienced. Explicit choice. Neither is auto-selected.
+- Ages 15–18, first year ever No: Experienced only. The division is derived. Skip division choice.
+- Ages 19+: Study Track (§8.3). This is not a competitive youth division. The user chooses one of the five MaterialSets.
+
+Experienced is never offered below age 12. A placement outside this matrix is not self-service. No correction or override tool is implemented.
+
+### Season Setup sequence
+After base account onboarding, current-season setup is conditional:
+
+Eligibility Age → First-Year (ages 15–18 only) → Division Choice (only when more than one division is eligible) → Region → Review → Confirm → Study.
+
+Age 19+ uses Study Track material choice in place of First-Year and Division Choice, then Region → Review → Confirm → Study. One derived division is not its own step.
+
+Changing answers before create is still Season Setup. It is not a mid-season division change (§8.5).
+
+### January 1 question
+The question year comes from the resolved Season, not from the device's calendar year. The before/after January 1 test uses the canonical Season calendar date in America/Chicago.
+
+- Before January 1 of that season year: "How old will you be on January 1, {year}?"
+- On January 1 and after: "How old were you on January 1, {year}?"
+
+Example, Season 2027: December 31, 2026 asks "How old will you be on January 1, 2027?" January 1, 2027 and January 2, 2027 ask "How old were you on January 1, 2027?"
+
+### First-year question
+Asked only for ages 15–18:
+
+- Question: "Is this your first year ever participating in Bible Quizzing?"
+- Helper: "If you've participated in Bible Quizzing in any division before, choose No."
+
+### Create request and persisted participation
+One shared domain resolver, `resolveParticipationOptions`, is the eligibility source of truth for the client and the Cloud Function. The client does not write the participation document.
+
+The create request and the stored record are different:
+
+- The uid comes from server authentication, not from the client payload.
+- Ages 2–8 and 12–14 send the selected `divisionId` and do not send a first-year flag.
+- Ages 9–11 omit `divisionId`. The server derives Junior.
+- Ages 15–18 include `isFirstYearQuizzer`. Yes also includes the selected `divisionId`. No omits `divisionId`; the server derives Experienced.
+- Study Track sends `studyTrackMaterialSetId` and does not send `divisionId`.
+- When the resolver allows more than one division, the request includes the selected `divisionId`.
+- When the resolver allows exactly one division, the client omits `divisionId` and the server derives it.
+- Creation is create-only. A valid existing record is returned unchanged.
+- The persisted record stores the placement result: competitive `divisionId`, or Study Track `studyTrackMaterialSetId`, plus season and region. It does not store date of birth, eligibility age, or first-year status.
 
 
 ## 8.3 Study Track for Users Age 19+
-Users age 19+ do not join a competitive youth division.
+Users age 19 and older do not join a competitive youth division.
 
-They use a `Study Track` flow.
+They use a Study Track flow. There is no maximum age.
 
-During current-season setup:
-# 1. The user is identified as age 19+.
-# 2. Ignite asks the user to choose a Study Track.
-# 3. The user selects exactly one official division material set: Cadet, Beginner, Junior, Intermediate, or Experienced.
-# 4. That Study Track determines the material offered for purchase/access for the season.
-# 5. The selected Study Track remains locked for that season in the MVP.
+During current-season setup the user chooses exactly one of the five official MaterialSets: Cadet, Beginner, Junior, Intermediate, or Experienced. That choice is study material for the season. It does not make the adult a competitive member of that youth division. Region follows the material choice (§8.4). After create, the selected Study Track remains locked for that season in the MVP.
 
-This supports adults such as Coaches, parents, alumni, or independent Bible memorizers who want to study the exact material used by a specific division without representing the adult as a competitive member of that youth division.
+This supports adults such as Coaches, parents, alumni, or independent Bible memorizers who want to study the material of a specific division.
 
-Multiple Study Tracks/switching tracks are deferred from MVP.
+Multiple Study Tracks or switching tracks are deferred from MVP. Intermediate and Experienced remain two MaterialSet choices even when their official Scripture and questions match (§12.1).
 
 
 ## 8.4 Region Selection
@@ -348,17 +371,19 @@ Region is a first-class season-participation concept.
 
 During current-season setup, users select their official WPF region. The selected region is season-scoped rather than permanent global Quizzer identity so it can change in a future season if the user moves or changes organizations.
 
+While setup is still temporary, a Region choice that is still valid for the Season is kept when age, first-year, division, or Study Track material changes. Changing the resolved Season, or resetting the setup session identity, clears that temporary setup state, including Region.
+
 Region should drive the tournament experience so the app primarily presents tournaments for the user's selected region.
 
 Both competitive Quizzers and age-19+ Study Track users may select a region so parents/Coaches/adult users can see the relevant regional tournament calendar.
 
 
 ## 8.5 Division / Study Track Changes
-A competitive Quizzer's division does not change during an active season in MVP.
-An adult user's selected Study Track does not change during an active season in MVP.
-Division or Study Track may be re-established for the next season.
+Changing Season Setup answers before participation is created is not a mid-season division change. The Quizzer may change age, first-year, division, Study Track material, or Region until create succeeds.
 
-This prevents mid-season transfer/material-entitlement complexity.
+After a valid participation record exists, MVP self-service cannot change division, Study Track, or Region. A later create call returns that record unchanged. Division or Study Track may be established again for the next season. No admin or coach override is implemented.
+
+This prevents mid-season transfer and material-entitlement complexity.
 
 
 # 9. Purchase and Entitlement Model
@@ -482,6 +507,8 @@ Each Season contains independent authoritative material sets for:
 Each material set is imported from its own official source file and owns its own ordering, Card numbering, section membership, annotations, and metadata.
 
 A lower division is not modeled as a filtered subset of another division.
+
+The sponsor has confirmed that Intermediate and Experienced use the same official Scripture and questions. Ignite still keeps two separate MaterialSet identities. That confirmation does not require the sets to sync or share Cards.
 
 
 ## 12.2 Card Is the Canonical Study Unit
@@ -2358,7 +2385,7 @@ Sprint 2 does not own season-scoped division assignment. It establishes the acco
 
 Sprint 3 owns the season-scoped eligibility age, first-year status where applicable, youth division selection/validation, age-19+ Study Track selection, Region selection, MaterialSet resolution, and resulting current-season participation. Date of birth is not required.
 
-Any still-unresolved committee rule, including exceptional Experienced placement criteria, must remain configurable rather than being guessed or scattered as hard-coded UI logic.
+Any still-unresolved committee rule, including Experienced placement outside the official self-service matrix in §8.2, must remain configurable rather than being guessed or scattered as hard-coded UI logic. The minimum competitive age of 2 is a provisional MVP assumption, not a confirmed official minimum (§8.2).
 
 ### Account Lifecycle / Routing
 Sprint 2 should establish routing for:
@@ -2426,8 +2453,8 @@ Establish the authoritative current-season participation model, Region context, 
 - Region selection during current-season setup.
 - Five official competitive divisions: Cadet, Beginner, Junior, Intermediate, Experienced.
 - January 1 competitive age basis without storing date of birth.
-- Cadet/Beginner flexible eligibility for ages 2–4.
-- First-year Quizzer status where required for ages 15–18.
+- Official self-service eligibility in §8.2, including a provisional minimum competitive age of 2.
+- First-year Quizzer status where required for ages 15–18. First-year means first time ever in Bible Quizzing.
 - Youth division eligibility/selection and validation.
 - Age-19+ Study Track selection from Cadet, Beginner, Junior, Intermediate, or Experienced material.
 - One Study Track per active season in MVP.
@@ -2444,36 +2471,16 @@ Establish the authoritative current-season participation model, Region context, 
 - Tournament events remain visible to all divisions/Study Tracks in the user's Region, including Cadet.
 
 ### Season Eligibility, Region & Participation Setup
-Sprint 3 completes current-season participation after base account onboarding.
+Sprint 3 completes current-season participation after base account onboarding. The eligibility matrix, January 1 wording, and create contract are §8.2. This section does not restate that matrix.
 
-Competitive youth flow:
-1. Collect the minimum season-scoped eligibility age using the January 1 basis; date of birth is not required.
-2. Determine eligible division options.
-3. Collect first-year status only where required.
-4. Allow ages 2–4 to select Cadet or Beginner.
-5. Select the user's Region.
-6. Persist the resulting season participation.
+Conditional setup sequence: Eligibility Age → First-Year (ages 15–18 only) → Division Choice (only when more than one division is eligible) → Region → Review → Confirm → Study. Age 19+ chooses one of the five Study Track MaterialSets instead of a youth division, then Region → Review → Confirm → Study. Date of birth is not stored.
 
-Standard working eligibility:
-- 2–4 → Cadet or Beginner
-- 5–8 → Beginner
-- 9–11 → Junior
-- 12–14 → Intermediate in normal self-service onboarding
-- 15–18 → Intermediate when first-year; otherwise Experienced
-
-Authorized exceptional younger Experienced placement is not exposed as ordinary self-service MVP onboarding.
-
-Age-19+ flow:
-1. Identify the user as Study Track rather than competitive youth division.
-2. Select Region.
-3. Choose exactly one Study Track: Cadet, Beginner, Junior, Intermediate, or Experienced.
-4. Persist that material selection for the season.
-5. Keep it locked for the active season in MVP.
+Placements outside the §8.2 matrix are not ordinary self-service onboarding. No correction or override tool is implemented. After create, division and Study Track stay locked for that season (§8.5).
 
 ### Division Material Architecture
 Each Season has five independent authoritative MaterialSets, imported from five independent source files.
 
-Do not assume lower divisions are subsets of another division.
+Do not assume lower divisions are subsets of another division. Intermediate and Experienced stay separate MaterialSets when their official Scripture and questions match (§12.1).
 
 If the same Scripture reference appears in two MaterialSets, each MaterialSet may own a different Card/order number, section, and annotation structure. Those Cards remain independent authoritative learning objects.
 
@@ -3225,7 +3232,7 @@ The MVP should be considered complete when the following are functional and reli
 - Region selection
 - Five official divisions: Cadet, Beginner, Junior, Intermediate, Experienced
 - Season-scoped eligibility age/minimum eligibility information
-- Cadet/Beginner eligible choice for ages 2–4
+- Official January 1 eligibility in §8.2, with a provisional minimum competitive age of 2
 - Youth division selection/validation
 - Age-19+ Study Track selecting one division MaterialSet for the active season
 - One active MaterialSet per user/season in MVP

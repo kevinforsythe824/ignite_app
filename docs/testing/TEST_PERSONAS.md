@@ -81,18 +81,18 @@ Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name 
 | **Sprint** | 2 |
 | **Testing use** | Manual, automated, Security Rules (auth vs profile boundary) |
 
-### S2-003 — Beginner-age Quizzer
+### S2-003 — Beginner or Junior-age Quizzer
 
 | Field | Value |
 |-------|-------|
 | **Persona ID** | `s2-quizzer-beginner-001` |
-| **Intended scenario** | Age-eligible for Beginner division |
-| **Age / eligibility** | Age **7** → eligible: Beginner only (PRD §8.1) |
+| **Intended scenario** | Age-eligible for Beginner or Junior |
+| **Age / eligibility** | Age **7** → Beginner or Junior, explicit choice (PRD §8.2). No first-year question |
 | **Authentication** | Signed in |
 | **Onboarding** | Age collected; division selection in progress or complete |
 | **Season** | Division association pending Sprint 3 season context |
 | **Entitlement** | N/A until Sprint 4 |
-| **Expected routing / result** | Only Beginner offered as eligible division; invalid division choice rejected |
+| **Expected routing / result** | Beginner and Junior offered; neither auto-selected; other divisions rejected |
 | **Security expectation** | Eligibility enforced by app/domain policy, not UI hiding alone |
 | **Sprint** | 2 |
 | **Testing use** | Manual, automated (eligibility unit/domain tests) |
@@ -103,28 +103,28 @@ Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name 
 |-------|-------|
 | **Persona ID** | `s2-quizzer-junior-001` |
 | **Intended scenario** | Age-eligible for Junior division |
-| **Age / eligibility** | Age **10** → eligible: Junior (PRD §8.1) |
+| **Age / eligibility** | Age **10** → Junior derived (PRD §8.2). Skip division choice |
 | **Authentication** | Signed in |
 | **Onboarding** | Age + division flow |
 | **Season** | Pending Sprint 3 |
 | **Entitlement** | N/A until Sprint 4 |
-| **Expected routing / result** | Junior selectable; Beginner not offered if age excludes it |
+| **Expected routing / result** | Junior is derived; division choice is skipped; other divisions are not offered |
 | **Security expectation** | Same as S2-003 |
 | **Sprint** | 2 |
 | **Testing use** | Manual, automated |
 
-### S2-005 — Intermediate Quizzer
+### S2-005 — Intermediate or Experienced Quizzer
 
 | Field | Value |
 |-------|-------|
 | **Persona ID** | `s2-quizzer-intermediate-001` |
-| **Intended scenario** | Age-eligible for Intermediate division |
-| **Age / eligibility** | Age **13** → eligible: Intermediate (PRD §8.1, ages 12–14) |
+| **Intended scenario** | Age-eligible for Intermediate or Experienced |
+| **Age / eligibility** | Age **13** → Intermediate or Experienced, explicit choice (PRD §8.2). No first-year question |
 | **Authentication** | Signed in |
 | **Onboarding** | Age + division flow |
 | **Season** | Pending Sprint 3 |
 | **Entitlement** | N/A until Sprint 4 |
-| **Expected routing / result** | Intermediate selectable |
+| **Expected routing / result** | Intermediate and Experienced offered; neither auto-selected |
 | **Security expectation** | Same as S2-003 |
 | **Sprint** | 2 |
 | **Testing use** | Manual, automated |
@@ -134,36 +134,32 @@ Sprint 2 delivers account creation, sign-in/out, auth persistence, Quizzer name 
 | Field | Value |
 |-------|-------|
 | **Persona ID** | `s2-quizzer-firstyear-15-18-001` |
-| **Intended scenario** | First-year Quizzer in the 15–18 age band eligible for Intermediate |
-| **Age / eligibility** | Age **16**, **first-year** → PRD §8.1 includes first-year Quizzers ages 15–18 in Intermediate |
+| **Intended scenario** | First-year-ever Quizzer in the 15–18 age band |
+| **Age / eligibility** | Age **16**, first year ever **Yes** → Intermediate or Experienced, explicit choice (PRD §8.2). Neither auto-selected |
 | **Authentication** | Signed in |
-| **Onboarding** | Age + first-year/eligibility context + division selection |
+| **Onboarding** | Age, then first-year question, then division choice |
 | **Season** | Pending Sprint 3 |
 | **Entitlement** | N/A until Sprint 4 |
-| **Expected routing / result** | Intermediate offered; Experienced/Senior not auto-selected |
-| **Security expectation** | Eligibility must use explicit product rule once “first-year” is modeled — see **UNRESOLVED** below |
+| **Expected routing / result** | Intermediate and Experienced offered; the create request includes `isFirstYearQuizzer` and the selected `divisionId` |
+| **Security expectation** | First-year is a create-request input for ages 15–18. It is not stored on the participation record (ADR-016) |
 | **Sprint** | 2 |
 | **Testing use** | Manual, automated |
 
-**UNRESOLVED:** How the product records “first-year” vs returning/advanced 15–18 eligibility is not fully specified. Do not guess Experienced/Senior vs Intermediate boundaries beyond PRD §8.1 wording.
-
-### S2-007 — Experienced / Senior eligibility placeholder
+### S2-007 — Experienced, not first year
 
 | Field | Value |
 |-------|-------|
 | **Persona ID** | `s2-quizzer-experienced-placeholder-001` |
-| **Intended scenario** | Placeholder for advanced Quizzers ages 12–18 |
-| **Age / eligibility** | Age **17**, **advanced / non-first-year** — **UNRESOLVED official rule** |
+| **Intended scenario** | Ages 15–18 who have participated in Bible Quizzing before |
+| **Age / eligibility** | Age **17**, first year ever **No** → Experienced derived (PRD §8.2). Skip division choice |
 | **Authentication** | Signed in |
-| **Onboarding** | Blocked or incomplete until product owner confirms eligibility logic |
+| **Onboarding** | Age, then first-year No, then Region. No division choice |
 | **Season** | Pending Sprint 3 |
 | **Entitlement** | N/A until Sprint 4 |
-| **Expected routing / result** | **Do not automate expected division outcome yet.** Document-only until Experienced/Senior rule is decided (ADR Open Decisions) |
-| **Security expectation** | N/A until rule is accepted |
-| **Sprint** | 2 (planning/manual only until rule closed) |
-| **Testing use** | Manual (exploratory only); **not** automated until rule is canonical |
-
-**UNRESOLVED:** Exact rule distinguishing first-year Intermediate vs Experienced/Senior (PRD §8, ADR Open Decisions).
+| **Expected routing / result** | Experienced is derived. The create request includes `isFirstYearQuizzer: false` and omits `divisionId` |
+| **Security expectation** | Server derives Experienced. First-year status is not stored on the participation record (ADR-016) |
+| **Sprint** | 2 |
+| **Testing use** | Manual, automated |
 
 ### S2-008 — Adult assisting a Quizzer
 
@@ -346,13 +342,13 @@ These describe routing after a ready Quizzer profile. Entitlement stays unavaila
 
 | Persona | Eligibility | Season / participation | Expected routing |
 |---------|-------------|------------------------|------------------|
-| Age 3 Cadet | Age 3, Cadet chosen | Current Season, no participation yet | Season Setup, then competitive Cadet |
-| Age 3 Beginner | Age 3, Beginner chosen | Current Season, no participation yet | Season Setup, then competitive Beginner |
-| Age 7 Beginner | Age 7 | Current Season, no participation yet | Season Setup, Beginner only |
-| Age 10 Junior | Age 10 | Current Season, no participation yet | Season Setup, Junior only |
-| Age 13 Intermediate | Age 13 | Current Season, no participation yet | Season Setup, Intermediate only |
-| Age 16 first-year Intermediate | Age 16, first year | Current Season, no participation yet | Season Setup, Intermediate |
-| Age 16 Experienced | Age 16, not first year | Current Season, no participation yet | Season Setup, Experienced |
+| Age 3 Cadet | Age 3; Cadet, Beginner, or Junior eligible; Cadet chosen | Current Season, no participation yet | Season Setup, then competitive Cadet |
+| Age 3 Beginner | Age 3; Cadet, Beginner, or Junior eligible; Beginner chosen | Current Season, no participation yet | Season Setup, then competitive Beginner |
+| Age 7 Beginner or Junior | Age 7; Beginner or Junior choice | Current Season, no participation yet | Season Setup, chosen division |
+| Age 10 Junior | Age 10 | Current Season, no participation yet | Season Setup, Junior derived |
+| Age 13 Intermediate or Experienced | Age 13; choice; no first-year question | Current Season, no participation yet | Season Setup, chosen division |
+| Age 16 first-year choice | Age 16, first year ever Yes | Current Season, no participation yet | Season Setup, Intermediate or Experienced chosen |
+| Age 16 Experienced | Age 16, first year ever No | Current Season, no participation yet | Season Setup, Experienced derived |
 | Adult Study Track | Age 19 or older | Current Season, no participation yet | Season Setup, chosen Study Track MaterialSet |
 | No current Season | Any ready profile | No date-valid selectable Season, even if an older participation exists | NoCurrentSeason. Not Main. Not the old Season's Study material |
 | Returning participant | Profile ready | Valid participation for the current Season | Skip Season Setup. Study loads that participation's MaterialSet |
@@ -567,7 +563,6 @@ Committed rules (not yet a statement about what is deployed) require a signed-in
 
 | Dependency | Affected personas | Where tracked |
 |------------|-------------------|---------------|
-| Experienced/Senior vs first-year 15–18 eligibility | `s2-quizzer-firstyear-15-18-001`, `s2-quizzer-experienced-placeholder-001` | PRD §8; ADR Open Decisions |
 | Authentication methods | All Sprint 2 auth personas | PRD §42; ADR Open Decisions |
 | Account deletion / retention | All persisted personas | Playbook §10; ADR Open Decisions |
 | Store product mapping | All Sprint 4 entitlement personas | PRD §9; ADR Open Decisions |

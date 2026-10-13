@@ -105,7 +105,7 @@ Archived seasons remain available as **historical/read-only** learning context w
 
 - Division is **season-scoped** (PRD §8). A Quizzer’s division does **not** change mid-season in V1; it may change when the **next** season is established.
 - Returning users need explicit **new-season setup** (age/eligibility, division selection) per playbook §10 and Sprint 2 personas (e.g. `s2-returning-authenticated-001`).
-- Standard MVP/self-service eligibility is defined by the PRD: ages 15–18 are Intermediate when first-year and Experienced otherwise. Exceptional placements outside the standard self-service rules are not implemented in MVP onboarding and remain a future controlled/admin/coach concern ([ADR Open Decisions](../architecture/decisions/README.md)).
+- Self-service eligibility is the official January 1 matrix in [PRD §8.2](../product/PRD.md). Placements outside that matrix stay out of MVP self-service and remain a future controlled/admin/coach concern ([ADR Open Decisions](../architecture/decisions/README.md)).
 
 ---
 

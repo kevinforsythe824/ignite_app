@@ -4,6 +4,8 @@ Foundation for correcting a QuizzerSeasonParticipation record after it has been 
 
 **Status:** Required before public production launch. Phase 3 does not ship the tool, a Settings editor, or a client update path.
 
+The October 2026 eligibility clarification does not rewrite existing participation records. Create stays create-only, and a valid existing record is still returned unchanged.
+
 **Sources:** [ADR-016](../architecture/decisions/ADR-016-quizzer-season-participation.md), [PRD](../product/PRD.md) §§8, 43, [ACCOUNT_DELETION_RUNBOOK.md](ACCOUNT_DELETION_RUNBOOK.md).
 
 ## What the normal client can do
