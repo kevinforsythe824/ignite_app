@@ -25,9 +25,9 @@ describe('FirstYearScreen', () => {
     await fireEvent.press(screen.getByTestId('season-setup-choice-yes'));
     expect(screen.getByTestId('probe-first-year').props.children).toBe('true');
     expect(screen.getByTestId('probe-division').props.children).toBe('none');
-    expect(screen.getByTestId('season-setup-first-year-division').props.children).toBe(
-      seasonSetupCopy.firstYear.divisionOutcome(getDivisionLabel('intermediate')),
-    );
+    expect(screen.getByTestId('probe-placement').props.children).toBe('needsDivisionChoice');
+    expect(screen.queryByTestId('season-setup-first-year-division')).toBeNull();
+    expect(screen.queryByText(seasonSetupCopy.firstYear.divisionOutcome(getDivisionLabel('intermediate')))).toBeNull();
     expect(screen.getByTestId('season-setup-choice-yes').props.accessibilityState.selected).toBe(
       true,
     );
@@ -38,6 +38,7 @@ describe('FirstYearScreen', () => {
     await fireEvent.press(screen.getByTestId('season-setup-choice-no'));
     expect(screen.getByTestId('probe-first-year').props.children).toBe('false');
     expect(screen.getByTestId('probe-division').props.children).toBe('none');
+    expect(screen.getByTestId('probe-placement-division').props.children).toBe('experienced');
     expect(screen.getByTestId('season-setup-first-year-division').props.children).toBe(
       seasonSetupCopy.firstYear.divisionOutcome(getDivisionLabel('experienced')),
     );

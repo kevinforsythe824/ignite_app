@@ -61,8 +61,9 @@ export const INITIAL_SEASON_SETUP_STATE: SeasonSetupWizardState = emptyWizardSta
 
 /**
  * Derived placement from resolveParticipationOptions.
- * A multi-division age uses the stored choice. A single allowed division
- * comes from the resolver, even if a stale choice is still on the state.
+ * After a required first-year answer, one allowed division is derived.
+ * Several allowed divisions stay unresolved until the stored choice is in that allow-list.
+ * A single allowed division comes from the resolver, even if a stale choice is still on the state.
  */
 export function deriveSeasonSetupPlacement(state: SeasonSetupWizardState): SeasonSetupPlacement {
   if (typeof state.eligibilityAge !== 'number') {
@@ -81,11 +82,7 @@ export function deriveSeasonSetupPlacement(state: SeasonSetupWizardState): Seaso
     if (resolved.status !== 'eligible' || resolved.participationType !== 'competitive') {
       return { status: 'unresolved' };
     }
-    const divisionId = resolved.allowedDivisionIds[0];
-    if (resolved.allowedDivisionIds.length !== 1 || divisionId === undefined) {
-      return { status: 'unresolved' };
-    }
-    return { status: 'competitive', divisionId };
+    return competitivePlacement(resolved.allowedDivisionIds, state.competitiveDivisionId);
   }
 
   if (probe.status !== 'eligible') {
@@ -102,8 +99,15 @@ export function deriveSeasonSetupPlacement(state: SeasonSetupWizardState): Seaso
     };
   }
 
-  if (probe.allowedDivisionIds.length === 1) {
-    const divisionId = probe.allowedDivisionIds[0];
+  return competitivePlacement(probe.allowedDivisionIds, state.competitiveDivisionId);
+}
+
+function competitivePlacement(
+  allowedDivisionIds: readonly DivisionId[],
+  competitiveDivisionId: DivisionId | null,
+): SeasonSetupPlacement {
+  if (allowedDivisionIds.length === 1) {
+    const divisionId = allowedDivisionIds[0];
     if (divisionId === undefined) {
       return { status: 'unresolved' };
     }
@@ -111,11 +115,11 @@ export function deriveSeasonSetupPlacement(state: SeasonSetupWizardState): Seaso
   }
 
   if (
-    state.competitiveDivisionId !== null &&
-    isDivisionId(state.competitiveDivisionId) &&
-    probe.allowedDivisionIds.includes(state.competitiveDivisionId)
+    competitiveDivisionId !== null &&
+    isDivisionId(competitiveDivisionId) &&
+    allowedDivisionIds.includes(competitiveDivisionId)
   ) {
-    return { status: 'competitive', divisionId: state.competitiveDivisionId };
+    return { status: 'competitive', divisionId: competitiveDivisionId };
   }
   return { status: 'needsDivisionChoice' };
 }
@@ -127,10 +131,25 @@ function optionsForAge(eligibilityAge: number | null) {
   return resolveParticipationOptions({ eligibilityAge });
 }
 
+/** Full wizard context, including a first-year answer when one is stored. */
+function optionsForWizard(state: SeasonSetupWizardState) {
+  if (typeof state.eligibilityAge !== 'number') {
+    return optionsForAge(state.eligibilityAge);
+  }
+  if (typeof state.isFirstYearQuizzer === 'boolean') {
+    return resolveParticipationOptions({
+      eligibilityAge: state.eligibilityAge,
+      isFirstYearQuizzer: state.isFirstYearQuizzer,
+    });
+  }
+  return optionsForAge(state.eligibilityAge);
+}
+
 /**
  * Pure temporary wizard transitions. Does not choose a screen or call Firebase.
- * Changing age drops division, first-year, and Study Track selection.
- * Region stays until reset or a different resolved Season id.
+ * Changing age drops division, first-year, and Study Track selection, and keeps region.
+ * Changing the first-year answer drops a stored competitive division and keeps region.
+ * A competitive division is stored only when the current allow-list has more than one option.
  * submissionCompleted is ignored unless the participation request is ready.
  */
 export function seasonSetupWizardReducer(
@@ -162,11 +181,12 @@ export function seasonSetupWizardReducer(
       return {
         ...state,
         isFirstYearQuizzer: action.isFirstYearQuizzer,
+        competitiveDivisionId: null,
         submission: { status: 'idle' },
       };
     }
     case 'setCompetitiveDivision': {
-      const options = optionsForAge(state.eligibilityAge);
+      const options = optionsForWizard(state);
       if (
         options.status !== 'eligible' ||
         options.participationType !== 'competitive' ||

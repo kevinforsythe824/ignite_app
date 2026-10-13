@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
+import { authCopy } from '../../../src/features/auth/copy/authCopy';
 import { seasonSetupCopy } from '../../../src/features/season/copy/seasonSetupCopy';
 import { SeasonSetupFlow } from '../../../src/features/season/composition/SeasonSetupFlow';
 import type { SeasonSetupFlowProps } from '../../../src/features/season/composition/SeasonSetupFlow';
@@ -264,13 +265,94 @@ describe('SeasonSetupFlow participation', () => {
     expect(Object.keys(request).sort()).toEqual(['eligibilityAge', 'regionId', 'seasonId']);
   });
 
-  it('confirms age 16 through first year, region, and review', async () => {
-    const request = await confirmPath('16', async (screen) => {
-      await fireEvent.press(await screen.findByTestId('season-setup-choice-yes'));
-      await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
+  it('confirms age 7 and age 13 with an explicit division and no first-year flag', async () => {
+    const beginner = await confirmPath('7', async (screen) => {
+      await fireEvent.press(await screen.findByTestId('season-setup-choice-beginner'));
+      await fireEvent.press(screen.getByTestId('season-setup-placement-continue'));
     });
-    expect(request).toMatchObject({ eligibilityAge: 16, isFirstYearQuizzer: true });
-    expect(request).not.toHaveProperty('divisionId');
+    expect(beginner).toMatchObject({ eligibilityAge: 7, divisionId: 'beginner' });
+    expect(beginner).not.toHaveProperty('isFirstYearQuizzer');
+
+    const experienced = await confirmPath('13', async (screen) => {
+      expect(screen.queryByTestId('season-setup-first-year-title')).toBeNull();
+      await fireEvent.press(await screen.findByTestId('season-setup-choice-experienced'));
+      await fireEvent.press(screen.getByTestId('season-setup-placement-continue'));
+    });
+    expect(experienced).toMatchObject({ eligibilityAge: 13, divisionId: 'experienced' });
+    expect(experienced).not.toHaveProperty('isFirstYearQuizzer');
+  });
+
+  it('confirms age 16 yes with a chosen division and age 16 no without divisionId', async () => {
+    const firstYear = await confirmPath('16', async (screen) => {
+      await fireEvent.press(await screen.findByTestId('season-setup-choice-yes'));
+      expect(screen.queryByTestId('season-setup-first-year-division')).toBeNull();
+      await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
+      expect(await screen.findByTestId('season-setup-placement-title')).toBeTruthy();
+      await fireEvent.press(screen.getByTestId('season-setup-choice-intermediate'));
+      await fireEvent.press(screen.getByTestId('season-setup-placement-continue'));
+    });
+    expect(firstYear).toEqual({
+      seasonId: '2032',
+      eligibilityAge: 16,
+      regionId: 'northwest',
+      isFirstYearQuizzer: true,
+      divisionId: 'intermediate',
+    });
+
+    const returning = await confirmPath('16', async (screen) => {
+      await fireEvent.press(await screen.findByTestId('season-setup-choice-no'));
+      await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
+      expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+      expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
+    });
+    expect(returning).toEqual({
+      seasonId: '2032',
+      eligibilityAge: 16,
+      regionId: 'northwest',
+      isFirstYearQuizzer: false,
+    });
+    expect(returning).not.toHaveProperty('divisionId');
+  });
+
+  it('clears Intermediate when yes becomes no and keeps a selected region', async () => {
+    const create = jest.fn(async (request: CreateQuizzerSeasonParticipationRequest) => ({
+      created: true,
+      participation: participationFor(request),
+    }));
+    const screen = await renderFlow({
+      catalogRepository: { loadCatalog: jest.fn(async () => catalogFor('2032')) },
+      participationCreator: { create },
+    });
+    await enterAge(screen, '16');
+    await fireEvent.press(await screen.findByTestId('season-setup-choice-yes'));
+    await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
+    await fireEvent.press(await screen.findByTestId('season-setup-choice-intermediate'));
+    await fireEvent.press(screen.getByTestId('season-setup-placement-continue'));
+    await screen.findByTestId('season-setup-region-title');
+    await fireEvent.press(screen.getByTestId('season-setup-choice-northwest'));
+
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('season-setup-placement-title')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('season-setup-first-year-title')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('season-setup-choice-no'));
+    await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
+
+    expect(await screen.findByTestId('season-setup-review-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
+    expect(screen.getByText(getDivisionLabel('experienced'))).toBeTruthy();
+    expect(screen.queryByText(getDivisionLabel('intermediate'))).toBeNull();
+    expect(screen.getByText('Northwest')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('season-setup-review-confirm'));
+    await screen.findByTestId('season-setup-review-complete');
+    expect(create.mock.calls[0]?.[0]).toEqual({
+      seasonId: '2032',
+      eligibilityAge: 16,
+      regionId: 'northwest',
+      isFirstYearQuizzer: false,
+    });
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty('divisionId');
   });
 
   it('confirms age 25 through study track without rendering the material set id', async () => {

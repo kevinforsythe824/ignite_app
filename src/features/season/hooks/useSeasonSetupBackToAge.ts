@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 
 import type { SeasonSetupStackParamList } from '../navigation/types';
 
-/** Pops back to Eligibility Age so the native stack plays the reverse transition. */
+/** Pops the previous Season Setup screen so the native stack plays the reverse transition. */
 export function useSeasonSetupBackToAge(): () => void {
   const navigation =
     useNavigation<NativeStackNavigationProp<SeasonSetupStackParamList>>();

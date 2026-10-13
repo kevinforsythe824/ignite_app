@@ -34,6 +34,13 @@ export type CreateQuizzerSeasonParticipationRequest =
       seasonId: string;
       eligibilityAge: number;
       regionId: string;
+      isFirstYearQuizzer: boolean;
+      divisionId: DivisionId;
+    }
+  | {
+      seasonId: string;
+      eligibilityAge: number;
+      regionId: string;
       studyTrackMaterialSetId: string;
     };
 
@@ -78,9 +85,6 @@ function buildFirstYear(
   if (isPresent(state.studyTrackMaterialSetId)) {
     return invalid('competitiveWithStudyTrack');
   }
-  if (isPresent(state.competitiveDivisionId)) {
-    return invalid('stalePlacement');
-  }
   if (!isPresent(state.isFirstYearQuizzer)) {
     return invalid('firstYearRequired');
   }
@@ -95,13 +99,39 @@ function buildFirstYear(
   if (resolved.status !== 'eligible' || resolved.participationType !== 'competitive') {
     return invalid('invalidEligibilityAge');
   }
+
+  let divisionId: DivisionId | undefined;
   if (resolved.allowedDivisionIds.length !== 1) {
+    if (!isPresent(state.competitiveDivisionId)) {
+      return invalid('missingDivisionChoice');
+    }
+    if (
+      !isDivisionId(state.competitiveDivisionId) ||
+      !resolved.allowedDivisionIds.includes(state.competitiveDivisionId)
+    ) {
+      return invalid('divisionNotAllowed');
+    }
+    divisionId = state.competitiveDivisionId;
+  } else if (isPresent(state.competitiveDivisionId)) {
     return invalid('stalePlacement');
   }
 
   const regionId = requireRegion(state);
   if (typeof regionId !== 'string') {
     return regionId;
+  }
+
+  if (divisionId !== undefined) {
+    return {
+      status: 'ready',
+      request: {
+        seasonId,
+        eligibilityAge,
+        regionId,
+        isFirstYearQuizzer: state.isFirstYearQuizzer,
+        divisionId,
+      },
+    };
   }
   return {
     status: 'ready',

@@ -3,13 +3,14 @@ import { resolveParticipationOptions } from '../../../../../src/features/season/
 
 describe('resolveParticipationOptions', () => {
   it.each([
+    { age: -1, expected: { status: 'invalid', reason: 'ineligibleAge' } },
     { age: 1, expected: { status: 'invalid', reason: 'ineligibleAge' } },
     {
       age: 2,
       expected: {
         status: 'eligible',
         participationType: 'competitive',
-        allowedDivisionIds: ['cadet', 'beginner'],
+        allowedDivisionIds: ['cadet', 'beginner', 'junior'],
       },
     },
     {
@@ -17,7 +18,7 @@ describe('resolveParticipationOptions', () => {
       expected: {
         status: 'eligible',
         participationType: 'competitive',
-        allowedDivisionIds: ['cadet', 'beginner'],
+        allowedDivisionIds: ['cadet', 'beginner', 'junior'],
       },
     },
     {
@@ -25,7 +26,15 @@ describe('resolveParticipationOptions', () => {
       expected: {
         status: 'eligible',
         participationType: 'competitive',
-        allowedDivisionIds: ['beginner'],
+        allowedDivisionIds: ['cadet', 'beginner', 'junior'],
+      },
+    },
+    {
+      age: 6,
+      expected: {
+        status: 'eligible',
+        participationType: 'competitive',
+        allowedDivisionIds: ['beginner', 'junior'],
       },
     },
     {
@@ -33,7 +42,7 @@ describe('resolveParticipationOptions', () => {
       expected: {
         status: 'eligible',
         participationType: 'competitive',
-        allowedDivisionIds: ['beginner'],
+        allowedDivisionIds: ['beginner', 'junior'],
       },
     },
     {
@@ -57,7 +66,7 @@ describe('resolveParticipationOptions', () => {
       expected: {
         status: 'eligible',
         participationType: 'competitive',
-        allowedDivisionIds: ['intermediate'],
+        allowedDivisionIds: ['intermediate', 'experienced'],
       },
     },
     {
@@ -65,54 +74,57 @@ describe('resolveParticipationOptions', () => {
       expected: {
         status: 'eligible',
         participationType: 'competitive',
-        allowedDivisionIds: ['intermediate'],
+        allowedDivisionIds: ['intermediate', 'experienced'],
       },
     },
   ])('age $age', ({ age, expected }) => {
     expect(resolveParticipationOptions({ eligibilityAge: age })).toEqual(expected);
   });
 
-  it('age 15 first-year is Intermediate', () => {
-    expect(
-      resolveParticipationOptions({ eligibilityAge: 15, isFirstYearQuizzer: true }),
-    ).toEqual({
-      status: 'eligible',
-      participationType: 'competitive',
-      allowedDivisionIds: ['intermediate'],
-    });
+  it('ages 12 and 14 ignore the first-year flag and still allow Intermediate and Experienced', () => {
+    for (const age of [12, 14]) {
+      expect(
+        resolveParticipationOptions({ eligibilityAge: age, isFirstYearQuizzer: true }),
+      ).toEqual({
+        status: 'eligible',
+        participationType: 'competitive',
+        allowedDivisionIds: ['intermediate', 'experienced'],
+      });
+      expect(
+        resolveParticipationOptions({ eligibilityAge: age, isFirstYearQuizzer: false }),
+      ).toEqual({
+        status: 'eligible',
+        participationType: 'competitive',
+        allowedDivisionIds: ['intermediate', 'experienced'],
+      });
+    }
   });
 
-  it('age 15 returning is Experienced', () => {
-    expect(
-      resolveParticipationOptions({ eligibilityAge: 15, isFirstYearQuizzer: false }),
-    ).toEqual({
-      status: 'eligible',
-      participationType: 'competitive',
-      allowedDivisionIds: ['experienced'],
-    });
+  it('ages 15 and 18 first-year allow Intermediate and Experienced', () => {
+    for (const age of [15, 18]) {
+      expect(
+        resolveParticipationOptions({ eligibilityAge: age, isFirstYearQuizzer: true }),
+      ).toEqual({
+        status: 'eligible',
+        participationType: 'competitive',
+        allowedDivisionIds: ['intermediate', 'experienced'],
+      });
+    }
   });
 
-  it('age 18 first-year is Intermediate', () => {
-    expect(
-      resolveParticipationOptions({ eligibilityAge: 18, isFirstYearQuizzer: true }),
-    ).toEqual({
-      status: 'eligible',
-      participationType: 'competitive',
-      allowedDivisionIds: ['intermediate'],
-    });
+  it('ages 15 and 18 returning allow Experienced only', () => {
+    for (const age of [15, 18]) {
+      expect(
+        resolveParticipationOptions({ eligibilityAge: age, isFirstYearQuizzer: false }),
+      ).toEqual({
+        status: 'eligible',
+        participationType: 'competitive',
+        allowedDivisionIds: ['experienced'],
+      });
+    }
   });
 
-  it('age 18 returning is Experienced', () => {
-    expect(
-      resolveParticipationOptions({ eligibilityAge: 18, isFirstYearQuizzer: false }),
-    ).toEqual({
-      status: 'eligible',
-      participationType: 'competitive',
-      allowedDivisionIds: ['experienced'],
-    });
-  });
-
-  it('age 15–18 without first-year is invalid', () => {
+  it('ages 15 and 18 without first-year are invalid', () => {
     expect(resolveParticipationOptions({ eligibilityAge: 15 })).toEqual({
       status: 'invalid',
       reason: 'firstYearRequired',
@@ -129,7 +141,7 @@ describe('resolveParticipationOptions', () => {
       participationType: 'studyTrack',
       allowedDivisionIds: OFFICIAL_DIVISION_IDS,
     });
-    expect(resolveParticipationOptions({ eligibilityAge: 30 })).toEqual({
+    expect(resolveParticipationOptions({ eligibilityAge: 40 })).toEqual({
       status: 'eligible',
       participationType: 'studyTrack',
       allowedDivisionIds: OFFICIAL_DIVISION_IDS,
@@ -156,14 +168,7 @@ describe('resolveParticipationOptions', () => {
     });
   });
 
-  it('has no exceptional younger Experienced path', () => {
-    expect(
-      resolveParticipationOptions({ eligibilityAge: 14, isFirstYearQuizzer: false }),
-    ).toEqual({
-      status: 'eligible',
-      participationType: 'competitive',
-      allowedDivisionIds: ['intermediate'],
-    });
+  it('never offers Experienced below age 12', () => {
     expect(
       resolveParticipationOptions({ eligibilityAge: 11, isFirstYearQuizzer: false }),
     ).toEqual({

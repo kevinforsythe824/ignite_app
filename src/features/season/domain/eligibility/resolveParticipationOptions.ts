@@ -2,16 +2,28 @@ import { OFFICIAL_DIVISION_IDS, type DivisionId } from '../division';
 import type { ParticipationType } from '../quizzerSeasonParticipation';
 
 /**
- * Eligibility age bands (PRD §8.2–8.3). Named policy constants — not UI literals.
+ * Official eligibility age bands (integer January 1 age). Named policy constants — not UI literals.
  * Caller supplies January 1 eligibility age; this module does no DOB math.
+ *
+ * First-year means first year ever participating in Bible Quizzing, not first year in a division.
+ * The flag is required only for ages 15–18. Outside that window it is ignored.
+ * Experienced is never offered below age 12.
+ * The resolver returns an allow-list only; it does not auto-select a division.
  */
+/** Ages under 2 remain provisional pending official sponsor confirmation. */
 const MIN_COMPETITIVE_AGE = 2;
-const CADET_OR_BEGINNER_MAX_AGE = 4;
-const BEGINNER_ONLY_MAX_AGE = 8;
+/** Ages 2–5: Cadet, Beginner, or Junior. */
+const CADET_BEGINNER_OR_JUNIOR_MAX_AGE = 5;
+/** Ages 6–8: Beginner or Junior. */
+const BEGINNER_OR_JUNIOR_MAX_AGE = 8;
+/** Ages 9–11: Junior only. */
 const JUNIOR_MAX_AGE = 11;
-const INTERMEDIATE_STANDARD_MAX_AGE = 14;
+/** Ages 12–14: Intermediate or Experienced. First-year flag is ignored. */
+const INTERMEDIATE_OR_EXPERIENCED_MAX_AGE = 14;
+/** Ages 15–18 require the first-year-ever flag. */
 const FIRST_YEAR_WINDOW_MIN_AGE = 15;
 const FIRST_YEAR_WINDOW_MAX_AGE = 18;
+/** Age ≥ 19: Study Track. No max-age cap. */
 const STUDY_TRACK_MIN_AGE = 19;
 
 export type EligibilityInvalidReason = 'ineligibleAge' | 'firstYearRequired' | 'nonIntegerAge';
@@ -19,7 +31,7 @@ export type EligibilityInvalidReason = 'ineligibleAge' | 'firstYearRequired' | '
 export interface EligibilityInput {
   /** January 1 season-scoped eligibility age. Not a stored DOB. */
   eligibilityAge: number;
-  /** Required only for ages 15–18. */
+  /** Required only for ages 15–18. Ignored outside that window. */
   isFirstYearQuizzer?: boolean;
 }
 
@@ -45,8 +57,7 @@ function competitive(allowedDivisionIds: readonly DivisionId[]): EligibilityResu
 
 /**
  * Pure, deterministic eligibility. No React, no Firebase, no DOB.
- * Age ≥ 19 is Study Track with no invented max-age cap.
- * There is no exceptional younger Experienced path.
+ * Age ≥ 19 is Study Track with the official division allow-list and no max-age cap.
  */
 export function resolveParticipationOptions(input: EligibilityInput): EligibilityResult {
   const { eligibilityAge, isFirstYearQuizzer } = input;
@@ -67,20 +78,20 @@ export function resolveParticipationOptions(input: EligibilityInput): Eligibilit
     };
   }
 
-  if (eligibilityAge <= CADET_OR_BEGINNER_MAX_AGE) {
-    return competitive(['cadet', 'beginner']);
+  if (eligibilityAge <= CADET_BEGINNER_OR_JUNIOR_MAX_AGE) {
+    return competitive(['cadet', 'beginner', 'junior']);
   }
 
-  if (eligibilityAge <= BEGINNER_ONLY_MAX_AGE) {
-    return competitive(['beginner']);
+  if (eligibilityAge <= BEGINNER_OR_JUNIOR_MAX_AGE) {
+    return competitive(['beginner', 'junior']);
   }
 
   if (eligibilityAge <= JUNIOR_MAX_AGE) {
     return competitive(['junior']);
   }
 
-  if (eligibilityAge <= INTERMEDIATE_STANDARD_MAX_AGE) {
-    return competitive(['intermediate']);
+  if (eligibilityAge <= INTERMEDIATE_OR_EXPERIENCED_MAX_AGE) {
+    return competitive(['intermediate', 'experienced']);
   }
 
   if (
@@ -90,7 +101,7 @@ export function resolveParticipationOptions(input: EligibilityInput): Eligibilit
     if (isFirstYearQuizzer === undefined) {
       return invalid('firstYearRequired');
     }
-    return competitive(isFirstYearQuizzer ? ['intermediate'] : ['experienced']);
+    return competitive(isFirstYearQuizzer ? ['intermediate', 'experienced'] : ['experienced']);
   }
 
   return invalid('ineligibleAge');

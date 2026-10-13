@@ -44,69 +44,46 @@ function expectRequestKeys(
 }
 
 describe('buildCreateParticipationRequest', () => {
-  it('sends divisionId only for a real ages 2–4 choice', () => {
-    const result = buildCreateParticipationRequest(
-      wizard({
-        resolvedSeasonId: SEASON_ID,
-        eligibilityAge: 3,
-        regionId: REGION_ID,
-        competitiveDivisionId: 'cadet',
-      }),
-    );
-    expect(result.status).toBe('ready');
-    if (result.status !== 'ready') {
-      return;
+  it('sends an explicit eligible divisionId for multi-choice competitive ages', () => {
+    const cases = [
+      { eligibilityAge: 3, divisionId: 'cadet' as const },
+      { eligibilityAge: 3, divisionId: 'beginner' as const },
+      { eligibilityAge: 3, divisionId: 'junior' as const },
+      { eligibilityAge: 5, divisionId: 'junior' as const },
+      { eligibilityAge: 7, divisionId: 'beginner' as const },
+      { eligibilityAge: 7, divisionId: 'junior' as const },
+      { eligibilityAge: 13, divisionId: 'experienced' as const },
+      { eligibilityAge: 13, divisionId: 'intermediate' as const },
+    ];
+    for (const { eligibilityAge, divisionId } of cases) {
+      const result = buildCreateParticipationRequest(
+        wizard({
+          resolvedSeasonId: SEASON_ID,
+          eligibilityAge,
+          regionId: REGION_ID,
+          competitiveDivisionId: divisionId,
+        }),
+      );
+      expect(result).toEqual({
+        status: 'ready',
+        request: {
+          seasonId: SEASON_ID,
+          eligibilityAge,
+          regionId: REGION_ID,
+          divisionId,
+        },
+      });
+      if (result.status === 'ready') {
+        expectRequestKeys(result.request, ['seasonId', 'eligibilityAge', 'regionId', 'divisionId'], [
+          'isFirstYearQuizzer',
+          'studyTrackMaterialSetId',
+        ]);
+      }
     }
-    expectRequestKeys(result.request, ['seasonId', 'eligibilityAge', 'regionId', 'divisionId'], [
-      'isFirstYearQuizzer',
-      'studyTrackMaterialSetId',
-    ]);
-    expect(result.request).toEqual({
-      seasonId: SEASON_ID,
-      eligibilityAge: 3,
-      regionId: REGION_ID,
-      divisionId: 'cadet',
-    });
-    expect(
-      buildCreateParticipationRequest(
-        wizard({
-          resolvedSeasonId: SEASON_ID,
-          eligibilityAge: 2,
-          regionId: REGION_ID,
-          competitiveDivisionId: 'beginner',
-        }),
-      ),
-    ).toEqual({
-      status: 'ready',
-      request: {
-        seasonId: SEASON_ID,
-        eligibilityAge: 2,
-        regionId: REGION_ID,
-        divisionId: 'beginner',
-      },
-    });
-    expect(
-      buildCreateParticipationRequest(
-        wizard({
-          resolvedSeasonId: SEASON_ID,
-          eligibilityAge: 4,
-          regionId: REGION_ID,
-          competitiveDivisionId: 'cadet',
-        }),
-      ),
-    ).toEqual({
-      status: 'ready',
-      request: {
-        seasonId: SEASON_ID,
-        eligibilityAge: 4,
-        regionId: REGION_ID,
-        divisionId: 'cadet',
-      },
-    });
   });
 
-  it('omits divisionId for single-option ages 5–14', () => {
-    for (const eligibilityAge of [5, 8, 10, 13, 14]) {
+  it('omits divisionId for single-option ages 9–11 and returning 15–18', () => {
+    for (const eligibilityAge of [9, 10, 11]) {
       const result = buildCreateParticipationRequest(
         wizard({
           resolvedSeasonId: SEASON_ID,
@@ -124,52 +101,87 @@ describe('buildCreateParticipationRequest', () => {
         'studyTrackMaterialSetId',
       ]);
     }
-  });
 
-  it('sends isFirstYearQuizzer for ages 15–18 and still omits divisionId', () => {
-    const result = buildCreateParticipationRequest(
+    const returning = buildCreateParticipationRequest(
       wizard({
         resolvedSeasonId: SEASON_ID,
         eligibilityAge: 16,
         regionId: REGION_ID,
-        isFirstYearQuizzer: true,
+        isFirstYearQuizzer: false,
       }),
     );
-    expect(result).toEqual({
+    expect(returning).toEqual({
       status: 'ready',
       request: {
         seasonId: SEASON_ID,
         eligibilityAge: 16,
         regionId: REGION_ID,
-        isFirstYearQuizzer: true,
+        isFirstYearQuizzer: false,
       },
     });
-    if (result.status === 'ready') {
+    if (returning.status === 'ready') {
       expectRequestKeys(
-        result.request,
+        returning.request,
         ['seasonId', 'eligibilityAge', 'regionId', 'isFirstYearQuizzer'],
         ['divisionId', 'studyTrackMaterialSetId'],
       );
+    }
+  });
+
+  it('sends first-year yes with an explicit division and rejects a missing or stale choice', () => {
+    for (const divisionId of ['intermediate', 'experienced'] as const) {
+      const result = buildCreateParticipationRequest(
+        wizard({
+          resolvedSeasonId: SEASON_ID,
+          eligibilityAge: 16,
+          regionId: REGION_ID,
+          isFirstYearQuizzer: true,
+          competitiveDivisionId: divisionId,
+        }),
+      );
+      expect(result).toEqual({
+        status: 'ready',
+        request: {
+          seasonId: SEASON_ID,
+          eligibilityAge: 16,
+          regionId: REGION_ID,
+          isFirstYearQuizzer: true,
+          divisionId,
+        },
+      });
+      if (result.status === 'ready') {
+        expectRequestKeys(
+          result.request,
+          ['seasonId', 'eligibilityAge', 'regionId', 'isFirstYearQuizzer', 'divisionId'],
+          ['studyTrackMaterialSetId'],
+        );
+        expect(result.request).not.toHaveProperty('uid');
+        expect(result.request).not.toHaveProperty('dateOfBirth');
+      }
     }
 
     expect(
       buildCreateParticipationRequest(
         wizard({
           resolvedSeasonId: SEASON_ID,
-          eligibilityAge: 18,
+          eligibilityAge: 16,
           regionId: REGION_ID,
-          isFirstYearQuizzer: false,
+          isFirstYearQuizzer: true,
         }),
       ),
-    ).toEqual({
-      status: 'ready',
-      request: {
-        seasonId: SEASON_ID,
-        eligibilityAge: 18,
-        regionId: REGION_ID,
-        isFirstYearQuizzer: false,
-      },
-    });
+    ).toEqual({ status: 'invalid', reason: 'missingDivisionChoice' });
+
+    expect(
+      buildCreateParticipationRequest(
+        wizard({
+          resolvedSeasonId: SEASON_ID,
+          eligibilityAge: 16,
+          regionId: REGION_ID,
+          isFirstYearQuizzer: false,
+          competitiveDivisionId: 'intermediate',
+        }),
+      ),
+    ).toEqual({ status: 'invalid', reason: 'stalePlacement' });
   });
 
   it('copies an opaque Study Track id and omits division and first-year', () => {
@@ -259,7 +271,7 @@ describe('buildCreateParticipationRequest', () => {
           resolvedSeasonId: SEASON_ID,
           eligibilityAge: 3,
           regionId: REGION_ID,
-          competitiveDivisionId: 'junior',
+          competitiveDivisionId: 'experienced',
         }),
       ),
     ).toEqual({ status: 'invalid', reason: 'divisionNotAllowed' });

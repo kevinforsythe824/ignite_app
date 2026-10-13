@@ -30,7 +30,14 @@ function isPlacementChoiceSatisfied(state: SeasonSetupWizardState): boolean {
   if (typeof state.eligibilityAge !== 'number' || state.competitiveDivisionId === null) {
     return false;
   }
-  const options = resolveParticipationOptions({ eligibilityAge: state.eligibilityAge });
+  const options = resolveParticipationOptions(
+    typeof state.isFirstYearQuizzer === 'boolean'
+      ? {
+          eligibilityAge: state.eligibilityAge,
+          isFirstYearQuizzer: state.isFirstYearQuizzer,
+        }
+      : { eligibilityAge: state.eligibilityAge },
+  );
   return (
     options.status === 'eligible' &&
     options.participationType === 'competitive' &&
@@ -106,8 +113,9 @@ function plan(steps: SeasonSetupStepId[], state: SeasonSetupWizardState): Season
 
 /**
  * Step sequence from wizard state and resolveParticipationOptions.
- * Ages 15–18 stop at firstYear until that answer exists, then continue
- * through region and review. A single derived division is not its own step.
+ * Ages 15–18 stop at firstYear until that answer exists. Several allowed
+ * divisions then require an explicit choice before region. One allowed
+ * division continues to region. A single derived division is not its own step.
  * Review is current only when the participation request is ready.
  * Complete also requires submission status complete.
  */
@@ -132,8 +140,11 @@ export function deriveSeasonSetupSteps(state: SeasonSetupWizardState): SeasonSet
       eligibilityAge,
       isFirstYearQuizzer: state.isFirstYearQuizzer,
     });
-    if (resolved.status !== 'eligible') {
+    if (resolved.status !== 'eligible' || resolved.participationType !== 'competitive') {
       return { steps, currentStep: 'firstYear' };
+    }
+    if (resolved.allowedDivisionIds.length > 1) {
+      steps.push('placementChoice');
     }
     steps.push('region', 'review');
     return plan(steps, state);

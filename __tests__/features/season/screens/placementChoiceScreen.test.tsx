@@ -19,11 +19,13 @@ describe('PlacementChoiceScreen', () => {
     expect(screen.getByText(seasonSetupCopy.placement.helper)).toBeTruthy();
     expect(screen.getByText(getDivisionLabel('cadet'))).toBeTruthy();
     expect(screen.getByText(getDivisionLabel('beginner'))).toBeTruthy();
-    expect(screen.queryByText(getDivisionLabel('junior'))).toBeNull();
+    expect(screen.getByText(getDivisionLabel('junior'))).toBeTruthy();
     expect(screen.queryByText(getDivisionLabel('intermediate'))).toBeNull();
     expect(screen.queryByText(getDivisionLabel('experienced'))).toBeNull();
     expect(screen.queryByText(seasonSetupCopy.studyTrack.title)).toBeNull();
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.queryByText(seasonSetupCopy.firstYear.question)).toBeNull();
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    expect(screen.getByTestId('probe-division').props.children).toBe('none');
 
     const continueButton = screen.getByTestId('season-setup-placement-continue');
     expect(continueButton.props.accessibilityState.disabled).toBe(true);
@@ -50,5 +52,30 @@ describe('PlacementChoiceScreen', () => {
     expect(await screen.findByTestId('season-setup-age-input')).toBeTruthy();
     expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
     expect(screen.getByTestId('season-setup-age-input').props.value).toBe('3');
+  });
+
+  it('offers Beginner and Junior at age 7 and Intermediate or Experienced at age 13', async () => {
+    const ageSeven = await openPlacement('7');
+    expect(await ageSeven.findByTestId('season-setup-placement-title')).toBeTruthy();
+    expect(ageSeven.queryByText(getDivisionLabel('cadet'))).toBeNull();
+    expect(ageSeven.getByText(getDivisionLabel('beginner'))).toBeTruthy();
+    expect(ageSeven.getByText(getDivisionLabel('junior'))).toBeTruthy();
+    expect(ageSeven.queryByText(seasonSetupCopy.firstYear.question)).toBeNull();
+    expect(ageSeven.getByTestId('probe-division').props.children).toBe('none');
+    expect(ageSeven.getByTestId('season-setup-placement-continue').props.accessibilityState.disabled).toBe(
+      true,
+    );
+
+    const ageThirteen = await openPlacement('13');
+    expect(await ageThirteen.findByTestId('season-setup-placement-title')).toBeTruthy();
+    expect(ageThirteen.queryByTestId('season-setup-first-year-title')).toBeNull();
+    expect(ageThirteen.getByText(getDivisionLabel('intermediate'))).toBeTruthy();
+    expect(ageThirteen.getByText(getDivisionLabel('experienced'))).toBeTruthy();
+    expect(ageThirteen.queryByText(getDivisionLabel('junior'))).toBeNull();
+    expect(ageThirteen.getByTestId('probe-division').props.children).toBe('none');
+
+    await fireEvent.press(ageThirteen.getByLabelText(authCopy.actions.back));
+    expect(await ageThirteen.findByTestId('season-setup-age-input')).toBeTruthy();
+    expect(ageThirteen.queryByTestId('season-setup-placement-title')).toBeNull();
   });
 });

@@ -39,21 +39,84 @@ describe('SeasonSetupNavigator', () => {
     expect(screen.getByTestId('probe-step').props.children).toBe('region');
   });
 
-  it('walks age 16 through first year to the region boundary', async () => {
-    const screen = await enterAge('16');
-    expect(await screen.findByTestId('season-setup-first-year-title')).toBeTruthy();
-    expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
-    expect(screen.queryByTestId('season-setup-region-title')).toBeNull();
+  it('walks age 13 from division choice back to age', async () => {
+    const screen = await enterAge('13');
+    expect(await screen.findByTestId('season-setup-placement-title')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-first-year-title')).toBeNull();
+    expect(screen.getByTestId('probe-division').props.children).toBe('none');
+    expect(screen.getByText(getDivisionLabel('intermediate'))).toBeTruthy();
+    expect(screen.getByText(getDivisionLabel('experienced'))).toBeTruthy();
 
-    await fireEvent.press(screen.getByTestId('season-setup-choice-yes'));
-    expect(screen.getByTestId('season-setup-first-year-division').props.children).toBe(
-      seasonSetupCopy.firstYear.divisionOutcome(getDivisionLabel('intermediate')),
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('season-setup-age-input')).toBeTruthy();
+    expect(screen.queryByTestId('season-setup-placement-title')).toBeNull();
+  });
+
+  it('walks age 16 yes through division choice and age 16 no to region', async () => {
+    const yes = await enterAge('16');
+    expect(await yes.findByTestId('season-setup-first-year-title')).toBeTruthy();
+    expect(yes.queryByTestId('season-setup-placement-title')).toBeNull();
+    expect(yes.queryByTestId('season-setup-first-year-division')).toBeNull();
+
+    await fireEvent.press(yes.getByTestId('season-setup-choice-yes'));
+    expect(yes.queryByTestId('season-setup-first-year-division')).toBeNull();
+    expect(yes.getByTestId('probe-division').props.children).toBe('none');
+    await fireEvent.press(yes.getByTestId('season-setup-first-year-continue'));
+    expect(await yes.findByTestId('season-setup-placement-title')).toBeTruthy();
+    expect(yes.getByTestId('season-setup-placement-continue').props.accessibilityState.disabled).toBe(
+      true,
     );
-    await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
-    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+
+    await fireEvent.press(yes.getByLabelText(authCopy.actions.back));
+    expect(await yes.findByTestId('season-setup-first-year-title')).toBeTruthy();
+    expect(yes.queryByTestId('season-setup-placement-title')).toBeNull();
+
+    await fireEvent.press(yes.getByTestId('season-setup-choice-yes'));
+    await fireEvent.press(yes.getByTestId('season-setup-first-year-continue'));
+    await fireEvent.press(await yes.findByTestId('season-setup-choice-intermediate'));
+    await fireEvent.press(yes.getByTestId('season-setup-placement-continue'));
+    expect(await yes.findByTestId('season-setup-region-title')).toBeTruthy();
+    expect(yes.getByTestId('probe-division').props.children).toBe('intermediate');
+
+    const no = await enterAge('16');
+    await fireEvent.press(await no.findByTestId('season-setup-choice-no'));
+    expect(no.getByTestId('season-setup-first-year-division').props.children).toBe(
+      seasonSetupCopy.firstYear.divisionOutcome(getDivisionLabel('experienced')),
+    );
+    await fireEvent.press(no.getByTestId('season-setup-first-year-continue'));
+    expect(await no.findByTestId('season-setup-region-title')).toBeTruthy();
+    expect(no.queryByTestId('season-setup-placement-title')).toBeNull();
+    expect(no.getByTestId('probe-division').props.children).toBe('none');
+    expect(no.getByTestId('probe-placement-division').props.children).toBe('experienced');
 
     expect(getDoc).not.toHaveBeenCalled();
     expect(httpsCallable).not.toHaveBeenCalled();
+  });
+
+  it('does not preselect a division when returning age 16 changes to yes', async () => {
+    const screen = await enterAge('16');
+    await fireEvent.press(await screen.findByTestId('season-setup-choice-no'));
+    await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
+    expect(await screen.findByTestId('season-setup-region-title')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('season-setup-first-year-title')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('season-setup-choice-yes'));
+    expect(screen.queryByTestId('season-setup-first-year-division')).toBeNull();
+    expect(screen.getByTestId('probe-division').props.children).toBe('none');
+    await fireEvent.press(screen.getByTestId('season-setup-first-year-continue'));
+
+    expect(await screen.findByTestId('season-setup-placement-title')).toBeTruthy();
+    expect(screen.getByTestId('probe-division').props.children).toBe('none');
+    expect(screen.getByTestId('season-setup-choice-intermediate').props.accessibilityState.selected).toBe(
+      false,
+    );
+    expect(screen.getByTestId('season-setup-choice-experienced').props.accessibilityState.selected).toBe(
+      false,
+    );
+    expect(screen.getByTestId('season-setup-placement-continue').props.accessibilityState.disabled).toBe(
+      true,
+    );
   });
 
   it('walks an adult age through the injected Study Track id to the region boundary', async () => {

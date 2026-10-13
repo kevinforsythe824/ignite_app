@@ -19,7 +19,7 @@ export function PlacementChoiceScreen(): React.JSX.Element {
   const { wizard, steps, setCompetitiveDivision } = useSeasonSetup();
   const advance = useSeasonSetupAdvance();
   const backToAge = useSeasonSetupBackToAge();
-  const resolved = resolvePlacementChoices(wizard.eligibilityAge);
+  const resolved = resolvePlacementChoices(wizard.eligibilityAge, wizard.isFirstYearQuizzer);
   const choices = resolved.status === 'ready' ? resolved.choices : [];
   const applies = steps.steps.includes('placementChoice') && resolved.status === 'ready';
   const selected =

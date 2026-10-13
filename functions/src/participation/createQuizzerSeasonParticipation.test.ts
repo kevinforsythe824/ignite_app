@@ -133,7 +133,7 @@ function deps(
 function request(overrides: Record<string, unknown> = {}) {
   return {
     seasonId: SEASON_ID,
-    eligibilityAge: 8,
+    eligibilityAge: 10,
     regionId: 'northwest',
     ...overrides,
   };
@@ -155,14 +155,22 @@ async function failureReason(
 describe('createQuizzerSeasonParticipation', () => {
   it.each([
     [2, 'cadet', 'cadet'],
-    [2, 'beginner', 'beginner'],
+    [3, 'cadet', 'cadet'],
+    [3, 'beginner', 'beginner'],
+    [3, 'junior', 'junior'],
     [4, 'beginner', 'beginner'],
-    [5, undefined, 'beginner'],
-    [8, undefined, 'beginner'],
+    [5, 'cadet', 'cadet'],
+    [5, 'beginner', 'beginner'],
+    [5, 'junior', 'junior'],
+    [7, 'beginner', 'beginner'],
+    [7, 'junior', 'junior'],
     [9, undefined, 'junior'],
+    [10, undefined, 'junior'],
     [11, undefined, 'junior'],
-    [12, undefined, 'intermediate'],
-    [14, undefined, 'intermediate'],
+    [12, 'intermediate', 'intermediate'],
+    [13, 'intermediate', 'intermediate'],
+    [13, 'experienced', 'experienced'],
+    [14, 'experienced', 'experienced'],
   ] as const)('creates competitive participation for age %s', async (age, choice, divisionId) => {
     const participation = memoryParticipation();
     const payload: Record<string, unknown> = request({ eligibilityAge: age });
@@ -188,29 +196,47 @@ describe('createQuizzerSeasonParticipation', () => {
   });
 
   it.each([
-    [15, true, 'intermediate'],
-    [15, false, 'experienced'],
-    [18, true, 'intermediate'],
-    [18, false, 'experienced'],
+    [15, 'intermediate'],
+    [16, 'intermediate'],
+    [16, 'experienced'],
+    [18, 'experienced'],
   ] as const)(
-    'derives age %s first-year %s as %s and rejects a client division',
-    async (age, isFirstYearQuizzer, divisionId) => {
+    'creates first-year age %s as %s when the client sends that division',
+    async (age, divisionId) => {
       const participation = memoryParticipation();
       const result = await createQuizzerSeasonParticipation(
         deps({ participation }),
-        request({ eligibilityAge: age, isFirstYearQuizzer }),
+        request({ eligibilityAge: age, isFirstYearQuizzer: true, divisionId }),
       );
+      expect(result.created).toBe(true);
       expect(result.participation).toMatchObject({
         participationType: 'competitive',
         divisionId,
+      });
+      expect(participation.created[0]).not.toHaveProperty('isFirstYearQuizzer');
+      expect(participation.created[0]).not.toHaveProperty('eligibilityAge');
+    },
+  );
+
+  it.each([15, 16, 18] as const)(
+    'derives returning age %s as experienced and rejects a client division',
+    async (age) => {
+      const participation = memoryParticipation();
+      const result = await createQuizzerSeasonParticipation(
+        deps({ participation }),
+        request({ eligibilityAge: age, isFirstYearQuizzer: false }),
+      );
+      expect(result.participation).toMatchObject({
+        participationType: 'competitive',
+        divisionId: 'experienced',
       });
       expect(participation.created[0]).not.toHaveProperty('isFirstYearQuizzer');
 
       const override = await failureReason(
         request({
           eligibilityAge: age,
-          isFirstYearQuizzer,
-          divisionId,
+          isFirstYearQuizzer: false,
+          divisionId: 'experienced',
         }),
       );
       expect(override.reason).toBe('invalid-division-choice');
@@ -262,11 +288,23 @@ describe('createQuizzerSeasonParticipation', () => {
       ).reason,
     ).toBe('invalid-division-choice');
     expect(
+      (await failureReason(request({ eligibilityAge: 16, isFirstYearQuizzer: true }))).reason,
+    ).toBe('invalid-division-choice');
+    expect(
       (
         await failureReason(
-          request({ eligibilityAge: 15, isFirstYearQuizzer: true, divisionId: 'experienced' }),
+          request({ eligibilityAge: 16, isFirstYearQuizzer: true, divisionId: 'junior' }),
         )
       ).reason,
+    ).toBe('invalid-division-choice');
+    expect((await failureReason(request({ eligibilityAge: 7 }))).reason).toBe(
+      'invalid-division-choice',
+    );
+    expect((await failureReason(request({ eligibilityAge: 13 }))).reason).toBe(
+      'invalid-division-choice',
+    );
+    expect(
+      (await failureReason(request({ eligibilityAge: 7, divisionId: 'experienced' }))).reason,
     ).toBe('invalid-division-choice');
     expect(
       (
@@ -293,7 +331,7 @@ describe('createQuizzerSeasonParticipation', () => {
       (await failureReason(request({ eligibilityAge: 19, studyTrackMaterialSetId: 'missing' })))
         .reason,
     ).toBe('invalid-study-track-material-set');
-    expect((await failureReason(request({ eligibilityAge: 8, divisionId: 'beginner' }))).reason).toBe(
+    expect((await failureReason(request({ eligibilityAge: 10, divisionId: 'junior' }))).reason).toBe(
       'invalid-division-choice',
     );
   });
@@ -358,7 +396,7 @@ describe('createQuizzerSeasonParticipation', () => {
     expect(dev.created).toBe(true);
     expect(dev.participation).toMatchObject({
       participationType: 'competitive',
-      divisionId: 'beginner',
+      divisionId: 'junior',
     });
 
     expect(seasonSelectionPolicyForEnvironment('dev')).toBe(DEV_SEASON_SELECTION_POLICY);
@@ -444,7 +482,11 @@ describe('createQuizzerSeasonParticipation', () => {
       },
     ];
     expect(
-      (await failureReason(request(), { catalog: catalog({ materialSets: duplicate }) })).reason,
+      (
+        await failureReason(request({ eligibilityAge: 8, divisionId: 'beginner' }), {
+          catalog: catalog({ materialSets: duplicate }),
+        })
+      ).reason,
     ).toBe('material-set-config-invalid');
 
     const studyCross = await failureReason(

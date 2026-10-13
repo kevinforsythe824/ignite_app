@@ -79,7 +79,24 @@ describe('deriveSeasonSetupSteps', () => {
     expect(plan.currentStep).toBe('region');
   });
 
-  it('stops age 16 on First Year until it is answered, then continues to region', () => {
+  it('requires a division choice at ages 5, 7, and 13', () => {
+    for (const eligibilityAge of [5, 7, 13]) {
+      expect(
+        deriveSeasonSetupSteps(apply([{ type: 'setEligibilityAge', eligibilityAge }])),
+      ).toEqual({
+        steps: ['eligibilityAge', 'placementChoice', 'region', 'review'],
+        currentStep: 'placementChoice',
+      });
+    }
+    const ageThirteen = apply([
+      { type: 'setEligibilityAge', eligibilityAge: 13 },
+      { type: 'setCompetitiveDivision', divisionId: 'experienced' },
+    ]);
+    expect(deriveSeasonSetupSteps(ageThirteen).currentStep).toBe('region');
+    expect(deriveSeasonSetupSteps(ageThirteen).steps).not.toContain('firstYear');
+  });
+
+  it('stops age 16 on First Year, then branches on the answer', () => {
     const unanswered = apply([{ type: 'setEligibilityAge', eligibilityAge: 16 }]);
     expect(unanswered.isFirstYearQuizzer).toBeNull();
     expect(deriveSeasonSetupSteps(unanswered)).toEqual({
@@ -87,15 +104,38 @@ describe('deriveSeasonSetupSteps', () => {
       currentStep: 'firstYear',
     });
 
-    const answered = seasonSetupWizardReducer(unanswered, {
+    const firstYear = seasonSetupWizardReducer(unanswered, {
+      type: 'setFirstYearQuizzer',
+      isFirstYearQuizzer: true,
+    });
+    expect(deriveSeasonSetupSteps(firstYear)).toEqual({
+      steps: ['eligibilityAge', 'firstYear', 'placementChoice', 'region', 'review'],
+      currentStep: 'placementChoice',
+    });
+
+    const chosen = seasonSetupWizardReducer(firstYear, {
+      type: 'setCompetitiveDivision',
+      divisionId: 'intermediate',
+    });
+    expect(deriveSeasonSetupSteps(chosen).currentStep).toBe('region');
+
+    const returning = seasonSetupWizardReducer(chosen, {
       type: 'setFirstYearQuizzer',
       isFirstYearQuizzer: false,
     });
-    expect(deriveSeasonSetupSteps(answered)).toEqual({
+    expect(returning.competitiveDivisionId).toBeNull();
+    expect(deriveSeasonSetupSteps(returning)).toEqual({
       steps: ['eligibilityAge', 'firstYear', 'region', 'review'],
       currentStep: 'region',
     });
-    expect(deriveSeasonSetupSteps(answered).steps).not.toContain('placementChoice');
+    expect(deriveSeasonSetupSteps(returning).steps).not.toContain('placementChoice');
+
+    const again = seasonSetupWizardReducer(returning, {
+      type: 'setFirstYearQuizzer',
+      isFirstYearQuizzer: true,
+    });
+    expect(again.competitiveDivisionId).toBeNull();
+    expect(deriveSeasonSetupSteps(again).currentStep).toBe('placementChoice');
   });
 
   it('walks age 25 through Study Track, region, and review', () => {
@@ -163,6 +203,27 @@ describe('deriveSeasonSetupSteps', () => {
       currentStep: 'region',
     });
     expect(stale.competitiveDivisionId).toBe('junior');
+  });
+
+  it('does not surface review when a returning 15–18 answer still has a stored division', () => {
+    const stale: SeasonSetupWizardState = {
+      ...INITIAL_SEASON_SETUP_STATE,
+      resolvedSeasonId: SEASON_ID,
+      eligibilityAge: 16,
+      isFirstYearQuizzer: false,
+      competitiveDivisionId: 'intermediate',
+      regionId: REGION_ID,
+      submission: { status: 'complete' },
+    };
+    expect(buildCreateParticipationRequest(stale)).toEqual({
+      status: 'invalid',
+      reason: 'stalePlacement',
+    });
+    expect(deriveSeasonSetupSteps(stale)).toEqual({
+      steps: ['eligibilityAge', 'firstYear', 'region'],
+      currentStep: 'region',
+    });
+    expect(stale.competitiveDivisionId).toBe('intermediate');
   });
 
   it('does not treat a stale first-year answer outside 15–18 as review-ready', () => {

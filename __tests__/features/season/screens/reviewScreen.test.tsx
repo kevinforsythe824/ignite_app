@@ -126,11 +126,15 @@ describe('ReviewScreen', () => {
     expect(screen.getByTestId('probe-division').props.children).toBe('none');
   });
 
-  it('shows the domain-derived division for a first-year yes and no', async () => {
+  it('shows the chosen division after first-year yes and derived Experienced after no', async () => {
     const yes = await openAge();
     await continueFromAge(yes, '16');
     await fireEvent.press(await yes.findByTestId('season-setup-choice-yes'));
     await fireEvent.press(yes.getByTestId('season-setup-first-year-continue'));
+    expect(await yes.findByTestId('season-setup-placement-title')).toBeTruthy();
+    expect(yes.getByTestId('probe-division').props.children).toBe('none');
+    await fireEvent.press(yes.getByTestId('season-setup-choice-intermediate'));
+    await fireEvent.press(yes.getByTestId('season-setup-placement-continue'));
     await chooseRegion(yes);
     expect(yes.getByText(getDivisionLabel('intermediate'))).toBeTruthy();
     expectNoSensitiveReviewText(yes, '16');
@@ -139,6 +143,7 @@ describe('ReviewScreen', () => {
     await continueFromAge(no, '16');
     await fireEvent.press(await no.findByTestId('season-setup-choice-no'));
     await fireEvent.press(no.getByTestId('season-setup-first-year-continue'));
+    expect(no.queryByTestId('season-setup-placement-title')).toBeNull();
     await chooseRegion(no);
     expect(no.getByTestId('season-setup-review-material').props.accessibilityLabel).toBe(
       `${seasonSetupCopy.review.division}, ${getDivisionLabel('experienced')}`,
@@ -441,6 +446,8 @@ describe('Review change region', () => {
     await reviewWithRegionAlreadyChosen(screen, '16', async (view) => {
       await fireEvent.press(await view.findByTestId('season-setup-choice-yes'));
       await fireEvent.press(view.getByTestId('season-setup-first-year-continue'));
+      await fireEvent.press(await view.findByTestId('season-setup-choice-intermediate'));
+      await fireEvent.press(view.getByTestId('season-setup-placement-continue'));
     });
 
     expect(screen.queryByTestId('season-setup-first-year-title')).toBeNull();
@@ -463,6 +470,7 @@ describe('Review change region', () => {
       eligibilityAge: 16,
       regionId: 'northeast',
       isFirstYearQuizzer: true,
+      divisionId: 'intermediate',
     });
   });
 

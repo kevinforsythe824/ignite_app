@@ -17,14 +17,13 @@ export const seasonSetupCopy = {
   },
   placement: {
     title: 'Choose a division',
-    helper:
-      'For ages 2–4, a parent or Coach can choose the material level that is the best fit.',
+    helper: "Choose the division you'll compete in this season.",
     unavailable: "Division choices aren't available right now.",
   },
   firstYear: {
     title: 'First year',
-    question: 'Is this your first year participating in Bible Quizzing?',
-    helper: "If you're unsure, check with your Coach.",
+    question: 'Is this your first year ever participating in Bible Quizzing?',
+    helper: "If you've participated in Bible Quizzing in any division before, choose No.",
     yes: 'Yes',
     no: 'No',
     unavailable: "This question isn't available right now.",

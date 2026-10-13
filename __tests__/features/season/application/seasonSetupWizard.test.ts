@@ -75,26 +75,101 @@ describe('seasonSetupWizardReducer', () => {
     expect(deriveSeasonSetupPlacement(next)).toEqual({ status: 'needsStudyTrack' });
   });
 
-  it('recalculates ages 15–18 from the first-year answer without storing a division', () => {
+  it('requires an explicit division after first-year yes and derives Experienced after no', () => {
     const firstYear = apply([
       { type: 'setEligibilityAge', eligibilityAge: 16 },
       { type: 'setFirstYearQuizzer', isFirstYearQuizzer: true },
+      { type: 'setRegion', regionId: REGION_ID },
     ]);
     expect(firstYear.competitiveDivisionId).toBeNull();
-    expect(deriveSeasonSetupPlacement(firstYear)).toEqual({
+    expect(firstYear.regionId).toBe(REGION_ID);
+    expect(deriveSeasonSetupPlacement(firstYear)).toEqual({ status: 'needsDivisionChoice' });
+
+    const beforeAnswer = seasonSetupWizardReducer(firstYear, {
+      type: 'setCompetitiveDivision',
+      divisionId: 'intermediate',
+    });
+    expect(beforeAnswer.competitiveDivisionId).toBe('intermediate');
+    expect(beforeAnswer.regionId).toBe(REGION_ID);
+    expect(deriveSeasonSetupPlacement(beforeAnswer)).toEqual({
       status: 'competitive',
       divisionId: 'intermediate',
     });
 
-    const returning = seasonSetupWizardReducer(firstYear, {
+    const repeatedYes = seasonSetupWizardReducer(beforeAnswer, {
+      type: 'setFirstYearQuizzer',
+      isFirstYearQuizzer: true,
+    });
+    expect(repeatedYes).toBe(beforeAnswer);
+    expect(repeatedYes.competitiveDivisionId).toBe('intermediate');
+
+    const returning = seasonSetupWizardReducer(beforeAnswer, {
       type: 'setFirstYearQuizzer',
       isFirstYearQuizzer: false,
     });
     expect(returning.competitiveDivisionId).toBeNull();
+    expect(returning.regionId).toBe(REGION_ID);
     expect(deriveSeasonSetupPlacement(returning)).toEqual({
       status: 'competitive',
       divisionId: 'experienced',
     });
+    expect(
+      seasonSetupWizardReducer(returning, {
+        type: 'setCompetitiveDivision',
+        divisionId: 'intermediate',
+      }),
+    ).toBe(returning);
+
+    const freshYes = seasonSetupWizardReducer(returning, {
+      type: 'setFirstYearQuizzer',
+      isFirstYearQuizzer: true,
+    });
+    expect(freshYes.competitiveDivisionId).toBeNull();
+    expect(freshYes.regionId).toBe(REGION_ID);
+    expect(deriveSeasonSetupPlacement(freshYes)).toEqual({ status: 'needsDivisionChoice' });
+  });
+
+  it('offers three divisions at age 5 and Beginner or Junior at age 7', () => {
+    const ageFive = apply([{ type: 'setEligibilityAge', eligibilityAge: 5 }]);
+    expect(deriveSeasonSetupPlacement(ageFive)).toEqual({ status: 'needsDivisionChoice' });
+    for (const divisionId of ['cadet', 'beginner', 'junior'] as const) {
+      const chosen = seasonSetupWizardReducer(ageFive, {
+        type: 'setCompetitiveDivision',
+        divisionId,
+      });
+      expect(chosen.competitiveDivisionId).toBe(divisionId);
+      expect(deriveSeasonSetupPlacement(chosen)).toEqual({ status: 'competitive', divisionId });
+    }
+    expect(
+      seasonSetupWizardReducer(ageFive, {
+        type: 'setCompetitiveDivision',
+        divisionId: 'experienced',
+      }).competitiveDivisionId,
+    ).toBeNull();
+
+    const ageSeven = apply([
+      { type: 'setEligibilityAge', eligibilityAge: 7 },
+      { type: 'setRegion', regionId: REGION_ID },
+    ]);
+    expect(deriveSeasonSetupPlacement(ageSeven)).toEqual({ status: 'needsDivisionChoice' });
+    const beginner = seasonSetupWizardReducer(ageSeven, {
+      type: 'setCompetitiveDivision',
+      divisionId: 'beginner',
+    });
+    expect(beginner.regionId).toBe(REGION_ID);
+    expect(deriveSeasonSetupPlacement(beginner).status).toBe('competitive');
+    const junior = seasonSetupWizardReducer(ageSeven, {
+      type: 'setCompetitiveDivision',
+      divisionId: 'junior',
+    });
+    expect(junior.competitiveDivisionId).toBe('junior');
+    expect(junior.regionId).toBe(REGION_ID);
+    expect(
+      seasonSetupWizardReducer(ageSeven, {
+        type: 'setCompetitiveDivision',
+        divisionId: 'cadet',
+      }).competitiveDivisionId,
+    ).toBeNull();
   });
 
   it('stores a competitive division only when the resolver offers a choice', () => {
@@ -135,10 +210,23 @@ describe('seasonSetupWizardReducer', () => {
       { type: 'setEligibilityAge', eligibilityAge: 13 },
     ]);
     expect(withRegion.regionId).toBe(REGION_ID);
-    expect(deriveSeasonSetupPlacement(withRegion)).toEqual({
-      status: 'competitive',
-      divisionId: 'intermediate',
+    expect(deriveSeasonSetupPlacement(withRegion)).toEqual({ status: 'needsDivisionChoice' });
+    const chosen = seasonSetupWizardReducer(withRegion, {
+      type: 'setCompetitiveDivision',
+      divisionId: 'experienced',
     });
+    expect(chosen.regionId).toBe(REGION_ID);
+    expect(chosen.isFirstYearQuizzer).toBeNull();
+    expect(deriveSeasonSetupPlacement(chosen)).toEqual({
+      status: 'competitive',
+      divisionId: 'experienced',
+    });
+    expect(
+      seasonSetupWizardReducer(withRegion, {
+        type: 'setFirstYearQuizzer',
+        isFirstYearQuizzer: true,
+      }),
+    ).toBe(withRegion);
     expect(seasonSetupWizardReducer(withRegion, { type: 'setRegion', regionId: 'bad/id' })).toBe(
       withRegion,
     );
@@ -204,13 +292,28 @@ describe('seasonSetupWizardReducer', () => {
     );
   });
 
-  it('derives Junior and Intermediate without a stored division, and copies an opaque Study Track id', () => {
+  it('derives Junior, requires a choice at 13, and copies an opaque Study Track id', () => {
     expect(deriveSeasonSetupPlacement(apply([{ type: 'setEligibilityAge', eligibilityAge: 10 }]))).toEqual(
       { status: 'competitive', divisionId: 'junior' },
     );
-    expect(deriveSeasonSetupPlacement(apply([{ type: 'setEligibilityAge', eligibilityAge: 13 }]))).toEqual(
-      { status: 'competitive', divisionId: 'intermediate' },
-    );
+    const ageThirteen = apply([
+      { type: 'setEligibilityAge', eligibilityAge: 13 },
+      { type: 'setRegion', regionId: REGION_ID },
+    ]);
+    expect(ageThirteen.competitiveDivisionId).toBeNull();
+    expect(deriveSeasonSetupPlacement(ageThirteen)).toEqual({ status: 'needsDivisionChoice' });
+    const agedAway = seasonSetupWizardReducer(ageThirteen, {
+      type: 'setCompetitiveDivision',
+      divisionId: 'intermediate',
+    });
+    const cleared = seasonSetupWizardReducer(agedAway, {
+      type: 'setEligibilityAge',
+      eligibilityAge: 16,
+    });
+    expect(cleared.competitiveDivisionId).toBeNull();
+    expect(cleared.isFirstYearQuizzer).toBeNull();
+    expect(cleared.regionId).toBe(REGION_ID);
+    expect(deriveSeasonSetupPlacement(cleared)).toEqual({ status: 'needsFirstYear' });
     const studyTrack = apply([
       { type: 'setEligibilityAge', eligibilityAge: 25 },
       { type: 'setStudyTrackMaterialSet', studyTrackMaterialSetId: STUDY_TRACK_ID },

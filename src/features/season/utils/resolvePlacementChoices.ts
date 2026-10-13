@@ -13,16 +13,23 @@ export type PlacementChoicesResult =
 /**
  * Choice rows for a multi-division competitive age.
  * Labels and membership come from the resolver and getDivisionLabel.
+ * Pass a first-year answer when the wizard has one. Age-only calls stay
+ * correct for bands that do not require that answer.
  * A single derived division is not a choice list.
  */
 export function resolvePlacementChoices(
   eligibilityAge: number | null,
+  isFirstYearQuizzer?: boolean | null,
 ): PlacementChoicesResult {
   if (typeof eligibilityAge !== 'number') {
     return { status: 'unavailable' };
   }
 
-  const resolved = resolveParticipationOptions({ eligibilityAge });
+  const resolved = resolveParticipationOptions(
+    typeof isFirstYearQuizzer === 'boolean'
+      ? { eligibilityAge, isFirstYearQuizzer }
+      : { eligibilityAge },
+  );
   if (
     resolved.status !== 'eligible' ||
     resolved.participationType !== 'competitive' ||
