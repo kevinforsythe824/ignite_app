@@ -1,19 +1,24 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { spacing, typography } from '../../../shared/theme';
 import { AuthPrimaryButton } from '../components/AuthPrimaryButton';
 import { AuthScreenLayout } from '../components/AuthScreenLayout';
+import { AuthTextField } from '../components/AuthTextField';
 import { authCopy } from '../copy/authCopy';
 import type {
   AccountCreationStackParamList,
   AuthStackParamList,
 } from '../navigation/types';
+import {
+  parsePrivacyAgeInput,
+  resolvePrivacyAgeRoute,
+} from '../validation/privacyAgeValidation';
 import { parentalConsentCopy } from '../../parentalConsent/copy/parentalConsentCopy';
-import { useParentalConsent } from '../../parentalConsent/hooks/useParentalConsent';
 import { ParentalConsentError } from '../../parentalConsent/errors/parentalConsentError';
+import { useParentalConsent } from '../../parentalConsent/hooks/useParentalConsent';
 
 /**
  * Privacy boundary before email/password collection.
@@ -31,8 +36,20 @@ export function PrivacyAgeScreen(): React.JSX.Element {
     clearSession,
   } = useParentalConsent();
   const [busy, setBusy] = useState(false);
+  const submittingRef = useRef(false);
   const [showThirteenPrompt, setShowThirteenPrompt] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [ageText, setAgeText] = useState('');
+  const [touched, setTouched] = useState(false);
+
+  const isHydrated = session.hydrateStatus === 'ready';
+  const parsed = parsePrivacyAgeInput(ageText);
+  const isValidAge = parsed.status === 'integer';
+  const ageRoute = isValidAge ? resolvePrivacyAgeRoute(parsed.age) : null;
+  const showInlineValidationError = touched && !isValidAge;
+  const inlineValidationError = showInlineValidationError
+    ? authCopy.privacyAge.wholeNumber
+    : undefined;
 
   const handleBack = () => {
     if (navigation.canGoBack()) {
@@ -43,6 +60,10 @@ export function PrivacyAgeScreen(): React.JSX.Element {
   };
 
   const resumeUnderThirteen = async () => {
+    if (submittingRef.current) {
+      return;
+    }
+    submittingRef.current = true;
     setBusy(true);
     setErrorMessage(undefined);
     try {
@@ -88,11 +109,15 @@ export function PrivacyAgeScreen(): React.JSX.Element {
           : parentalConsentCopy.errors.unexpected,
       );
     } finally {
+      submittingRef.current = false;
       setBusy(false);
     }
   };
 
   const handleThirteenOrOlder = () => {
+    if (submittingRef.current) {
+      return;
+    }
     if (needsFreshConsent) {
       void resumeUnderThirteen();
       return;
@@ -101,7 +126,35 @@ export function PrivacyAgeScreen(): React.JSX.Element {
       setShowThirteenPrompt(true);
       return;
     }
-    navigation.navigate('CreateAccount');
+    submittingRef.current = true;
+    setBusy(true);
+    try {
+      navigation.navigate('CreateAccount');
+    } finally {
+      submittingRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  const handleAgeChange = (value: string) => {
+    setAgeText(value);
+    setTouched(true);
+  };
+
+  const handleFreshContinue = () => {
+    setTouched(true);
+    if (!isHydrated || busy || submittingRef.current) {
+      return;
+    }
+    const next = parsePrivacyAgeInput(ageText);
+    if (next.status !== 'integer') {
+      return;
+    }
+    if (resolvePrivacyAgeRoute(next.age) === 'under13') {
+      void resumeUnderThirteen();
+      return;
+    }
+    handleThirteenOrOlder();
   };
 
   const confirmStartOver = () => {
@@ -132,16 +185,15 @@ export function PrivacyAgeScreen(): React.JSX.Element {
   return (
     <AuthScreenLayout canvas="brand" onBack={handleBack}>
       <View style={styles.header}>
-        <Text style={styles.title}>{authCopy.privacyAge.title}</Text>
+        <Text
+          accessibilityRole="header"
+          style={styles.title}
+          testID="auth-privacy-age-question"
+        >
+          {authCopy.privacyAge.title}
+        </Text>
         <Text style={styles.supporting}>{authCopy.privacyAge.supporting}</Text>
       </View>
-      <Text
-        accessibilityRole="header"
-        style={styles.question}
-        testID="auth-privacy-age-question"
-      >
-        {authCopy.privacyAge.question}
-      </Text>
 
       {showThirteenPrompt ? (
         <View style={styles.prompt} testID="auth-privacy-age-active-prompt">
@@ -179,14 +231,14 @@ export function PrivacyAgeScreen(): React.JSX.Element {
             onPress={() => {
               void resumeUnderThirteen();
             }}
-            disabled={busy || session.hydrateStatus !== 'ready'}
+            disabled={busy || !isHydrated}
           />
           <AuthPrimaryButton
             testID="auth-privacy-age-thirteen-or-older"
             label={authCopy.privacyAge.thirteenOrOlder}
             variant="secondary"
             onPress={handleThirteenOrOlder}
-            disabled={busy || session.hydrateStatus !== 'ready'}
+            disabled={busy || !isHydrated}
           />
           {!needsFreshConsent ? (
             <AuthPrimaryButton
@@ -194,27 +246,44 @@ export function PrivacyAgeScreen(): React.JSX.Element {
               label={parentalConsentCopy.privacyAge.startOver}
               variant="secondary"
               onPress={confirmStartOver}
-              disabled={busy || session.hydrateStatus !== 'ready'}
+              disabled={busy || !isHydrated}
             />
           ) : null}
         </View>
       ) : (
         <View style={styles.actions}>
-          <AuthPrimaryButton
-            testID="auth-privacy-age-thirteen-or-older"
-            accentTone="auth"
-            label={authCopy.privacyAge.thirteenOrOlder}
-            onPress={handleThirteenOrOlder}
-            disabled={busy || session.hydrateStatus !== 'ready'}
-          />
-          <AuthPrimaryButton
-            testID="auth-privacy-age-under-thirteen"
-            label={authCopy.privacyAge.underThirteen}
-            variant="secondary"
-            onPress={() => {
-              void resumeUnderThirteen();
+          <AuthTextField
+            appearance="system"
+            label={authCopy.privacyAge.fieldLabel}
+            value={ageText}
+            onChangeText={handleAgeChange}
+            onBlur={() => {
+              setTouched(true);
             }}
-            disabled={busy || session.hydrateStatus !== 'ready'}
+            onSubmitEditing={handleFreshContinue}
+            error={inlineValidationError}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            autoCorrect={false}
+            autoCapitalize="none"
+            editable={!busy}
+            testID="auth-privacy-age-input"
+          />
+          {ageRoute === 'under13' ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={styles.notice}
+              testID="auth-privacy-age-under-thirteen-notice"
+            >
+              {authCopy.privacyAge.underThirteenVerificationNotice}
+            </Text>
+          ) : null}
+          <AuthPrimaryButton
+            testID="auth-privacy-age-continue"
+            accentTone="auth"
+            label={authCopy.privacyAge.continue}
+            onPress={handleFreshContinue}
+            disabled={busy || !isHydrated || !isValidAge}
           />
         </View>
       )}
@@ -237,13 +306,12 @@ const styles = StyleSheet.create({
   supporting: {
     ...typography.brandTagline,
   },
-  question: {
-    ...typography.title,
-    marginTop: spacing.md,
-  },
   actions: {
     gap: spacing.md,
     marginTop: spacing.lg,
+  },
+  notice: {
+    ...typography.bodySecondary,
   },
   prompt: {
     gap: spacing.md,

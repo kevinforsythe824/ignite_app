@@ -1,6 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { fireEvent, render, userEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, userEvent, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { AuthProvider, AuthenticationError } from '../../../src/features/auth';
@@ -10,6 +10,7 @@ import { CreateAccountScreen } from '../../../src/features/auth/screens/CreateAc
 import { ForgotPasswordScreen } from '../../../src/features/auth/screens/ForgotPasswordScreen';
 import { SignInScreen } from '../../../src/features/auth/screens/SignInScreen';
 import { ParentalConsentProvider } from '../../../src/features/parentalConsent';
+import type { ConsentClientSession } from '../../../src/features/parentalConsent/domain/consentClientSession';
 import { quizzerProfileCopy } from '../../../src/features/profile/copy/quizzerProfileCopy';
 import { QuizzerProfileProvider } from '../../../src/features/profile/state/QuizzerProfileProvider';
 import { createAuthRepositoryFake } from '../../../test-utils/authRepositoryFake';
@@ -21,12 +22,15 @@ const Stack = createNativeStackNavigator();
 
 async function renderAuthFlow(
   repository: ReturnType<typeof createAuthRepositoryFake>,
+  options?: {
+    secureStore?: ReturnType<typeof createConsentSecureStoreFake>;
+  },
 ) {
   return render(
     <AuthProvider repository={repository}>
       <ParentalConsentProvider
         repository={createParentalConsentRepositoryFake()}
-        secureStore={createConsentSecureStoreFake()}
+        secureStore={options?.secureStore ?? createConsentSecureStoreFake()}
       >
         <NavigationContainer>
           <AuthNavigator />
@@ -81,16 +85,35 @@ describe('AuthNavigator screens', () => {
     expect(screen.getByLabelText(authCopy.fields.password)).toBeTruthy();
   });
 
-  it('opens Create Account through PrivacyAge then the credential form', async () => {
+  it('opens Create Account through PrivacyAge then the credential form for age 13 and 19', async () => {
+    const user = userEvent.setup();
     const repository = createAuthRepositoryFake();
     const screen = await renderAuthFlow(repository);
 
-    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    await user.press(await screen.findByTestId('auth-welcome-create-account'));
 
     expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
+    expect(screen.getByText('How old is the Quizzer today?')).toBeTruthy();
+    expect(screen.getByText('This helps us set up the account correctly.')).toBeTruthy();
+    expect(screen.getByLabelText('Current age')).toBeTruthy();
+    expect(screen.getByTestId('auth-privacy-age-continue')).toBeTruthy();
+    expect(screen.queryByTestId('auth-privacy-age-thirteen-or-older')).toBeNull();
+    expect(screen.queryByTestId('auth-privacy-age-under-thirteen')).toBeNull();
     expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+    expect(
+      screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+    ).toBe(true);
 
-    fireEvent.press(screen.getByTestId('auth-privacy-age-thirteen-or-older'));
+    await user.type(screen.getByTestId('auth-privacy-age-input'), '13');
+    expect(screen.queryByTestId('auth-privacy-age-under-thirteen-notice')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
 
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
     expect(screen.getByText(authCopy.createAccount.title)).toBeTruthy();
@@ -101,19 +124,182 @@ describe('AuthNavigator screens', () => {
     expect(screen.getByLabelText(authCopy.fields.confirmPassword)).toBeTruthy();
   });
 
-  it('routes the under-13 path to parent consent intro before Create Account', async () => {
+  it('opens Create Account for older standard ages (e.g. 19) without under-13 notice', async () => {
+    const user = userEvent.setup();
     const repository = createAuthRepositoryFake();
     const screen = await renderAuthFlow(repository);
 
-    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
-    fireEvent.press(await screen.findByTestId('auth-privacy-age-under-thirteen'));
+    await user.press(await screen.findByTestId('auth-welcome-create-account'));
+    expect(await screen.findByTestId('auth-privacy-age-input')).toBeTruthy();
+    await user.type(screen.getByTestId('auth-privacy-age-input'), '19');
+    expect(screen.queryByTestId('auth-privacy-age-under-thirteen-notice')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
+    expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
+  });
+
+  it('routes under-13 ages (12 and 0) to parent consent intro with verification notice and no error', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderAuthFlow(repository);
+
+    await user.press(await screen.findByTestId('auth-welcome-create-account'));
+    expect(await screen.findByTestId('auth-privacy-age-input')).toBeTruthy();
+    expect(
+      screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+    ).toBe(true);
+
+    await user.type(screen.getByTestId('auth-privacy-age-input'), '12');
+    expect(
+      screen.getByText('Parent or guardian verification is required.'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
 
     expect(await screen.findByTestId('consent-intro-title')).toBeTruthy();
     expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
     expect(repository.signUp).not.toHaveBeenCalled();
+
+    await user.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('auth-privacy-age-input')).toBeTruthy();
+    await user.clear(screen.getByTestId('auth-privacy-age-input'));
+    await user.type(screen.getByTestId('auth-privacy-age-input'), '0');
+    expect(
+      screen.getByText('Parent or guardian verification is required.'),
+    ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
+    expect(await screen.findByTestId('consent-intro-title')).toBeTruthy();
   });
 
-  it('does not expose email or name fields on the PrivacyAge screen', async () => {
+  it('blocks empty and invalid age input, shows inline validation error, and clears it when corrected', async () => {
+    const user = userEvent.setup();
+    const repository = createAuthRepositoryFake();
+    const screen = await renderAuthFlow(repository);
+
+    await user.press(await screen.findByTestId('auth-welcome-create-account'));
+    const input = () => screen.getByTestId('auth-privacy-age-input');
+    const continueButton = () => screen.getByTestId('auth-privacy-age-continue');
+
+    expect(await screen.findByTestId('auth-privacy-age-input')).toBeTruthy();
+    expect(continueButton().props.accessibilityState?.disabled).toBe(true);
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    await act(async () => {
+      fireEvent(input(), 'submitEditing');
+    });
+    expect(screen.getByRole('alert').props.children).toBe(
+      authCopy.privacyAge.wholeNumber,
+    );
+    expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+    expect(screen.queryByTestId('consent-intro-title')).toBeNull();
+
+    for (const invalid of ['12.5', '-1', '01', '12abc', '1e2']) {
+      await act(async () => {
+        fireEvent.changeText(input(), invalid);
+      });
+      expect(continueButton().props.accessibilityState?.disabled).toBe(true);
+      expect(screen.getByRole('alert').props.children).toBe(
+        authCopy.privacyAge.wholeNumber,
+      );
+      expect(screen.queryByTestId('auth-privacy-age-under-thirteen-notice')).toBeNull();
+      await act(async () => {
+        fireEvent.press(continueButton());
+        fireEvent(input(), 'submitEditing');
+      });
+      expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+      expect(screen.queryByTestId('consent-intro-title')).toBeNull();
+    }
+
+    await act(async () => {
+      fireEvent.changeText(input(), '12');
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(
+      screen.getByText('Parent or guardian verification is required.'),
+    ).toBeTruthy();
+    await waitFor(() => {
+      expect(continueButton().props.accessibilityState?.disabled).toBe(false);
+    });
+
+    await act(async () => {
+      fireEvent.changeText(input(), '12.5');
+    });
+    expect(screen.getByRole('alert').props.children).toBe(
+      authCopy.privacyAge.wholeNumber,
+    );
+
+    await act(async () => {
+      fireEvent.changeText(input(), '13');
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByTestId('auth-privacy-age-under-thirteen-notice')).toBeNull();
+    expect(continueButton().props.accessibilityState?.disabled).toBe(false);
+
+    await act(async () => {
+      fireEvent(input(), 'submitEditing');
+    });
+    expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
+  });
+
+  it('guards against submit during consent hydration and rapid repeated Continue presses', async () => {
+    const repository = createAuthRepositoryFake();
+    let resolveHydrate: (value: ConsentClientSession | null) => void = () => undefined;
+    const secureStore = createConsentSecureStoreFake();
+    secureStore.read = jest.fn(
+      () =>
+        new Promise<ConsentClientSession | null>((resolve) => {
+          resolveHydrate = resolve;
+        }),
+    );
+
+    const screen = await renderAuthFlow(repository, { secureStore });
+    await act(async () => {
+      fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    });
+
+    const input = await screen.findByTestId('auth-privacy-age-input');
+    const continueButton = screen.getByTestId('auth-privacy-age-continue');
+
+    await act(async () => {
+      fireEvent.changeText(input, '13');
+    });
+    expect(continueButton.props.accessibilityState?.disabled).toBe(true);
+    await act(async () => {
+      fireEvent.press(continueButton);
+      fireEvent(input, 'submitEditing');
+    });
+    expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+
+    await act(async () => {
+      resolveHydrate(null);
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('auth-privacy-age-continue'));
+    });
+
+    expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
+  });
+
+  it('does not expose email, date of birth, or name fields on the PrivacyAge screen', async () => {
     const repository = createAuthRepositoryFake();
     const screen = await renderAuthFlow(repository);
 
@@ -122,15 +308,19 @@ describe('AuthNavigator screens', () => {
 
     expect(screen.queryByLabelText(authCopy.fields.email)).toBeNull();
     expect(screen.queryByTestId('auth-create-account-email')).toBeNull();
+    expect(screen.queryByLabelText(/date of birth/i)).toBeNull();
+    expect(screen.queryByLabelText(/birthday/i)).toBeNull();
     expect(screen.queryByLabelText(quizzerProfileCopy.name.firstName)).toBeNull();
     expect(screen.queryByLabelText(quizzerProfileCopy.name.lastName)).toBeNull();
     expect(screen.queryByTestId('quizzer-name-first')).toBeNull();
     expect(screen.queryByTestId('quizzer-name-last')).toBeNull();
   });
 
-  it('does not persist the privacy-age choice through auth or profile writes', async () => {
+  it('does not persist the privacy-age choice through auth, consent store, or profile writes', async () => {
+    const user = userEvent.setup();
     const authRepository = createAuthRepositoryFake();
     const profileRepository = createQuizzerProfileRepositoryFake();
+    const secureStore = createConsentSecureStoreFake();
     const asyncStorage = require('@react-native-async-storage/async-storage') as {
       createAsyncStorage: jest.Mock;
     };
@@ -145,7 +335,7 @@ describe('AuthNavigator screens', () => {
       <AuthProvider repository={authRepository}>
         <ParentalConsentProvider
           repository={createParentalConsentRepositoryFake()}
-          secureStore={createConsentSecureStoreFake()}
+          secureStore={secureStore}
         >
           <QuizzerProfileProvider repository={profileRepository}>
             <NavigationContainer>
@@ -156,30 +346,44 @@ describe('AuthNavigator screens', () => {
       </AuthProvider>,
     );
 
-    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
+    await user.press(await screen.findByTestId('auth-welcome-create-account'));
     expect(await screen.findByTestId('auth-privacy-age-question')).toBeTruthy();
     expect(screen.getByText(authCopy.privacyAge.supporting)).toBeTruthy();
+    await waitFor(() => {
+      expect(secureStore.read).toHaveBeenCalled();
+    });
 
     jest.clearAllMocks();
     setItem.mockClear();
 
-    fireEvent.press(screen.getByTestId('auth-privacy-age-under-thirteen'));
+    await user.type(screen.getByTestId('auth-privacy-age-input'), '12');
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
     expect(await screen.findByTestId('consent-intro-title')).toBeTruthy();
 
     expect(authRepository.signUp).not.toHaveBeenCalled();
     expect(authRepository.signIn).not.toHaveBeenCalled();
     expect(profileRepository.getProfile).not.toHaveBeenCalled();
     expect(profileRepository.provisionProfile).not.toHaveBeenCalled();
+    expect(secureStore.write).not.toHaveBeenCalled();
     expect(setItem).not.toHaveBeenCalled();
 
-    fireEvent.press(screen.getByLabelText(authCopy.actions.back));
-    fireEvent.press(await screen.findByTestId('auth-privacy-age-thirteen-or-older'));
+    await user.press(screen.getByLabelText(authCopy.actions.back));
+    expect(await screen.findByTestId('auth-privacy-age-input')).toBeTruthy();
+    await user.clear(screen.getByTestId('auth-privacy-age-input'));
+    await user.type(screen.getByTestId('auth-privacy-age-input'), '13');
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
 
     expect(authRepository.signUp).not.toHaveBeenCalled();
     expect(authRepository.signIn).not.toHaveBeenCalled();
     expect(profileRepository.getProfile).not.toHaveBeenCalled();
     expect(profileRepository.provisionProfile).not.toHaveBeenCalled();
+    expect(secureStore.write).not.toHaveBeenCalled();
     expect(setItem).not.toHaveBeenCalled();
   });
 
@@ -473,24 +677,37 @@ describe('AuthNavigator screens', () => {
   });
 
   it('does not stack Sign In and Create Account when switching between them', async () => {
+    const user = userEvent.setup();
     const repository = createAuthRepositoryFake();
     const screen = await renderAuthFlow(repository);
 
-    fireEvent.press(await screen.findByTestId('auth-welcome-create-account'));
-    fireEvent.press(await screen.findByTestId('auth-privacy-age-thirteen-or-older'));
+    await user.press(await screen.findByTestId('auth-welcome-create-account'));
+    await user.type(await screen.findByTestId('auth-privacy-age-input'), '13');
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
     expect(await screen.findByTestId('auth-create-account-sign-in')).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId('auth-create-account-sign-in'));
+    await user.press(screen.getByTestId('auth-create-account-sign-in'));
     expect(await screen.findByTestId('auth-sign-in-create-account')).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId('auth-sign-in-create-account'));
-    fireEvent.press(await screen.findByTestId('auth-privacy-age-thirteen-or-older'));
+    await user.press(screen.getByTestId('auth-sign-in-create-account'));
+    await user.type(await screen.findByTestId('auth-privacy-age-input'), '13');
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+    await user.press(screen.getByTestId('auth-privacy-age-continue'));
     expect(await screen.findByTestId('auth-create-account-sign-in')).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId('auth-create-account-sign-in'));
+    await user.press(screen.getByTestId('auth-create-account-sign-in'));
     expect(await screen.findByTestId('auth-sign-in-submit')).toBeTruthy();
 
-    fireEvent.press(screen.getByLabelText(authCopy.actions.back));
+    await user.press(screen.getByLabelText(authCopy.actions.back));
     expect(await screen.findByTestId('auth-welcome-create-account')).toBeTruthy();
     expect(screen.queryByTestId('auth-sign-in-submit')).toBeNull();
     expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();

@@ -20,9 +20,13 @@ async function renderFlow(options?: {
   auth?: ReturnType<typeof createAuthRepositoryFake>;
   secureStore?: ReturnType<typeof createConsentSecureStoreFake>;
   consentRepository?: ReturnType<typeof createParentalConsentRepositoryFake>;
+  secureStoreOut?: { current?: ReturnType<typeof createConsentSecureStoreFake> };
 }) {
   const auth = options?.auth ?? createAuthRepositoryFake();
   const secureStore = options?.secureStore ?? createConsentSecureStoreFake();
+  if (options?.secureStoreOut) {
+    options.secureStoreOut.current = secureStore;
+  }
   const consentRepository =
     options?.consentRepository ?? createParentalConsentRepositoryFake();
 
@@ -39,6 +43,9 @@ async function renderFlow(options?: {
   await waitFor(() => {
     expect(screen.getByTestId('auth-welcome-create-account')).toBeTruthy();
   });
+  await waitFor(() => {
+    expect(secureStore.read).toHaveBeenCalled();
+  });
 
   return { screen, auth, secureStore, consentRepository };
 }
@@ -50,12 +57,6 @@ async function openPrivacyAge(
   await waitFor(() => {
     expect(screen.getByTestId('auth-privacy-age-question')).toBeTruthy();
   });
-  await waitFor(() => {
-    expect(
-      screen.getByTestId('auth-privacy-age-thirteen-or-older').props.accessibilityState
-        ?.disabled,
-    ).not.toBe(true);
-  });
 }
 
 describe('parental consent account-creation flow', () => {
@@ -65,6 +66,7 @@ describe('parental consent account-creation flow', () => {
 
     expect(screen.getByText(authCopy.privacyAge.title)).toBeTruthy();
     expect(screen.getByText(authCopy.privacyAge.supporting)).toBeTruthy();
+    expect(screen.getByLabelText(authCopy.privacyAge.fieldLabel)).toBeTruthy();
     expect(screen.queryByLabelText(authCopy.fields.email)).toBeNull();
     expect(screen.queryByTestId('auth-create-account-email')).toBeNull();
     expect(screen.queryByTestId('auth-create-account-password')).toBeNull();
@@ -73,7 +75,14 @@ describe('parental consent account-creation flow', () => {
   it('routes under-13 to intro then parent email only', async () => {
     const { screen } = await renderFlow();
     await openPrivacyAge(screen);
-    fireEvent.press(screen.getByTestId('auth-privacy-age-under-thirteen'));
+
+    fireEvent.changeText(screen.getByTestId('auth-privacy-age-input'), '12');
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+    fireEvent.press(screen.getByTestId('auth-privacy-age-continue'));
 
     expect(await screen.findByTestId('consent-intro-title')).toBeTruthy();
     fireEvent.press(screen.getByTestId('consent-intro-continue'));
@@ -83,7 +92,7 @@ describe('parental consent account-creation flow', () => {
     expect(screen.queryByLabelText(authCopy.fields.password)).toBeNull();
   });
 
-  it('does not bypass active consent via 13+ without Start over', async () => {
+  it('does not bypass active consent via 13+ without Start over and hides fresh age input', async () => {
     const secureStore = createConsentSecureStoreFake({
       version: 1,
       requestId: 'req-1',
@@ -101,6 +110,13 @@ describe('parental consent account-creation flow', () => {
     await openPrivacyAge(screen);
 
     expect(screen.getByTestId('auth-privacy-age-restore')).toBeTruthy();
+    expect(screen.queryByTestId('auth-privacy-age-input')).toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-thirteen-or-older').props.accessibilityState
+          ?.disabled,
+      ).not.toBe(true);
+    });
     fireEvent.press(screen.getByTestId('auth-privacy-age-thirteen-or-older'));
     expect(await screen.findByTestId('auth-privacy-age-active-prompt')).toBeTruthy();
     expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
@@ -122,6 +138,12 @@ describe('parental consent account-creation flow', () => {
     });
     const { screen } = await renderFlow({ secureStore, consentRepository });
     await openPrivacyAge(screen);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue-approval').props.accessibilityState
+          ?.disabled,
+      ).not.toBe(true);
+    });
     fireEvent.press(screen.getByTestId('auth-privacy-age-continue-approval'));
 
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
@@ -143,10 +165,44 @@ describe('parental consent account-creation flow', () => {
     });
     const { screen } = await renderFlow({ secureStore, consentRepository });
     await openPrivacyAge(screen);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue-approval').props.accessibilityState
+          ?.disabled,
+      ).not.toBe(true);
+    });
     fireEvent.press(screen.getByTestId('auth-privacy-age-continue-approval'));
 
     expect(await screen.findByTestId('consent-recovery-title')).toBeTruthy();
     expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
+  });
+
+  it('routes revoked or expired active consent to ConsentRecovery', async () => {
+    for (const status of ['revoked', 'expired'] as const) {
+      const secureStore = createConsentSecureStoreFake({
+        version: 1,
+        requestId: `req-${status}`,
+        clientSessionToken: `token-${status}`,
+      });
+      const consentRepository = createParentalConsentRepositoryFake({
+        initialSnapshot: {
+          status,
+          maskedParentEmail: 'p***@example.com',
+          expiresAt: new Date(Date.now() + 1000).toISOString(),
+          bindingState: 'unbound',
+        },
+      });
+      const { screen } = await renderFlow({ secureStore, consentRepository });
+      await openPrivacyAge(screen);
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('auth-privacy-age-continue-approval').props.accessibilityState
+            ?.disabled,
+        ).not.toBe(true);
+      });
+      fireEvent.press(screen.getByTestId('auth-privacy-age-continue-approval'));
+      expect(await screen.findByTestId('consent-recovery-title')).toBeTruthy();
+    }
   });
 
   it('EXISTING ACCOUNT START-OVER RECOVERY: Start over keeps recovery UID and never opens CreateAccount', async () => {
@@ -172,6 +228,11 @@ describe('parental consent account-creation flow', () => {
 
     const { screen } = await renderFlow({ secureStore, consentRepository });
     await openPrivacyAge(screen);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-start-over').props.accessibilityState?.disabled,
+      ).not.toBe(true);
+    });
 
     fireEvent.press(screen.getByTestId('auth-privacy-age-start-over'));
 
@@ -180,6 +241,7 @@ describe('parental consent account-creation flow', () => {
     });
     expect(secureStore.peek()?.needsFreshConsent).toBe(true);
     expect(secureStore.peek()?.requestId).toBeUndefined();
+    expect(screen.queryByTestId('auth-privacy-age-input')).toBeNull();
     expect(screen.queryByTestId('auth-create-account-submit')).toBeNull();
 
     fireEvent.press(screen.getByTestId('auth-privacy-age-continue-approval'));
@@ -192,7 +254,13 @@ describe('parental consent account-creation flow', () => {
   it('13+ signup path unchanged: Create Account opens without consent session', async () => {
     const { screen } = await renderFlow();
     await openPrivacyAge(screen);
-    fireEvent.press(screen.getByTestId('auth-privacy-age-thirteen-or-older'));
+    fireEvent.changeText(screen.getByTestId('auth-privacy-age-input'), '13');
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('auth-privacy-age-continue').props.accessibilityState?.disabled,
+      ).toBe(false);
+    });
+    fireEvent.press(screen.getByTestId('auth-privacy-age-continue'));
     expect(await screen.findByTestId('auth-create-account-submit')).toBeTruthy();
   });
 

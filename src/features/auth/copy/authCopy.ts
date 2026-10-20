@@ -71,10 +71,12 @@ export const authCopy = {
     continue: 'Continue',
   },
   privacyAge: {
-    title: 'How old is the Quizzer?',
-    supporting:
-      'If a parent is creating an account for a Quizzer under 13, choose Under 13. Ignite does not collect a date of birth here.',
-    question: 'Choose the path that matches the Quizzer’s age.',
+    title: 'How old is the Quizzer today?',
+    supporting: 'This helps us set up the account correctly.',
+    fieldLabel: 'Current age',
+    continue: 'Continue',
+    underThirteenVerificationNotice: 'Parent or guardian verification is required.',
+    wholeNumber: 'Enter the Quizzer’s age as a whole number.',
     thirteenOrOlder: '13 or older',
     underThirteen: 'Under 13',
   },
