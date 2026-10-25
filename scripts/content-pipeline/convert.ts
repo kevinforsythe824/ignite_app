@@ -175,6 +175,9 @@ function convertWorkbook(
     if (card.indexCode) {
       record.indexCode = card.indexCode;
     }
+    if (card.studyContext) {
+      record.studyContext = { ...card.studyContext };
+    }
     cardRecords.push(record);
   });
 
@@ -231,6 +234,9 @@ function convertWorkbook(
     };
     if (annotation.notes) {
       record.notes = annotation.notes;
+    }
+    if (annotation.frequencyTier !== undefined) {
+      record.frequencyTier = annotation.frequencyTier;
     }
 
     const logicalKey = annotationLogicalKey({
@@ -401,8 +407,14 @@ export function convertWorkbooksToPackage(
 
   materialSets.sort(compareMaterialSets);
 
+  const authoredSchema = first.package.schemaVersion;
+  const schemaVersion =
+    typeof authoredSchema === 'string' && authoredSchema.length > 0
+      ? authoredSchema
+      : CONTENT_SCHEMA_VERSION;
+
   const ir: ContentIR = {
-    schemaVersion: CONTENT_SCHEMA_VERSION,
+    schemaVersion,
     sourceVersion: first.package.sourceVersion,
     season: toSeason(first),
     materialSets,

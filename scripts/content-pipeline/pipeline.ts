@@ -5,6 +5,7 @@ import {
   CONVERTER_VERSION,
   DEFAULT_PACKAGE_ROOT,
   DEFAULT_SYNTHETIC_SOURCE_DIR,
+  isSupportedContentSchemaVersion,
 } from './constants';
 import { convertWorkbooksToPackage } from './convert';
 import { formatValidationIssues } from './errors';
@@ -34,9 +35,32 @@ function collectErrors(groups: readonly ValidationIssue[][]): ValidationIssue[] 
   return groups.flat().filter((item) => item.severity === 'error');
 }
 
+function reportedSchemaVersion(
+  workbooks: readonly AuthoringWorkbookData[],
+  content?: ContentPackage,
+): string {
+  if (content?.schemaVersion) {
+    return content.schemaVersion;
+  }
+  const authored = workbooks.find((workbook) => workbook.package.schemaVersion)?.package.schemaVersion;
+  if (isSupportedContentSchemaVersion(authored)) {
+    return authored;
+  }
+  return CONTENT_SCHEMA_VERSION;
+}
+
+export interface PipelineRunOptions {
+  generatedAt?: string;
+  /**
+   * Default true. False is only for a local official draft that does not yet
+   * include every division. Import and package generation leave this unset.
+   */
+  requireAllOfficialDivisions?: boolean;
+}
+
 export function runPipelineFromWorkbooks(
   workbooks: readonly AuthoringWorkbookData[],
-  options: { generatedAt?: string } = {},
+  options: PipelineRunOptions = {},
 ): PipelineResult {
   const sourceErrors = [
     ...workbooks.flatMap((workbook) => validateSourceWorkbook(workbook)),
@@ -49,7 +73,7 @@ export function runPipelineFromWorkbooks(
       workbooks: [...workbooks],
       report: {
         status: 'failed',
-        schemaVersion: CONTENT_SCHEMA_VERSION,
+        schemaVersion: reportedSchemaVersion(workbooks),
         seasonId: workbooks[0]?.package.seasonId,
         errors: sourceErrors,
         warnings: [],
@@ -64,7 +88,7 @@ export function runPipelineFromWorkbooks(
       workbooks: [...workbooks],
       report: {
         status: 'failed',
-        schemaVersion: CONTENT_SCHEMA_VERSION,
+        schemaVersion: reportedSchemaVersion(workbooks, converted.content),
         seasonId: workbooks[0]?.package.seasonId,
         errors: converted.errors,
         warnings: [],
@@ -72,7 +96,9 @@ export function runPipelineFromWorkbooks(
     };
   }
 
-  const packageErrors = validateContentPackage(converted.content);
+  const packageErrors = validateContentPackage(converted.content, {
+    requireAllOfficialDivisions: options.requireAllOfficialDivisions,
+  });
   const reconciliation = reconcileSourceToPackage(workbooks, converted.content);
   const errors = collectErrors([packageErrors, reconciliation.errors]);
   const status = errors.length === 0 ? 'passed' : 'failed';
@@ -119,7 +145,7 @@ export function runPipelineFromWorkbooks(
     manifest,
     report: {
       status,
-      schemaVersion: CONTENT_SCHEMA_VERSION,
+      schemaVersion: reportedSchemaVersion(workbooks, converted.content),
       seasonId: converted.content.season.seasonId,
       errors,
       warnings: [],

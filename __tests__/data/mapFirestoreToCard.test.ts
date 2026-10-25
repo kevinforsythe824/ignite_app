@@ -398,6 +398,85 @@ describe('mapFirestoreCardToDomain validation', () => {
     }
   });
 
+  it('preserves studyContext battlefield number or text and omits blank fields', () => {
+    const numeric = mapFirestoreCardToDomain(
+      canonicalDocument({
+        studyContext: { battlefield: 4, topic: 'Hope', thematicQuestion: 'What remains?' },
+      }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+    const textual = mapFirestoreCardToDomain(
+      canonicalDocument({
+        studyContext: { battlefield: 'North', topic: '  Hope  ' },
+      }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+    const absent = mapFirestoreCardToDomain(
+      canonicalDocument(),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+
+    expect(numeric.studyContext).toEqual({
+      battlefield: 4,
+      topic: 'Hope',
+      thematicQuestion: 'What remains?',
+    });
+    expect(typeof numeric.studyContext?.battlefield).toBe('number');
+    expect(textual.studyContext).toEqual({ battlefield: 'North', topic: '  Hope  ' });
+    expect(typeof textual.studyContext?.battlefield).toBe('string');
+    expect(textual.studyContext).not.toHaveProperty('thematicQuestion');
+    expect(absent).not.toHaveProperty('studyContext');
+    expect(numeric.quizMetadata).toBeUndefined();
+  });
+
+  it('preserves a frequency tier and leaves other annotations without one', () => {
+    const card = mapFirestoreCardToDomain(
+      canonicalDocument({
+        annotations: [
+          { ...phraseAnnotation('frequency', 'ann-frequency'), frequencyTier: 4 },
+          phraseAnnotation('uniqueBeginning', 'ann-begin'),
+        ],
+      }),
+      SEASON_ID,
+      MATERIAL_SET_ID,
+      CARD_ID,
+    );
+
+    expect(card.annotations?.[0]).toMatchObject({ type: 'frequency', frequencyTier: 4 });
+    expect(card.annotations?.[1]).not.toHaveProperty('frequencyTier');
+  });
+
+  it('rejects malformed studyContext and invalid frequency tiers', () => {
+    const cases: unknown[] = [
+      { studyContext: null },
+      { studyContext: [] },
+      { studyContext: { battlefield: '' } },
+      { studyContext: { battlefield: '3', topic: 1 } },
+      { studyContext: { questionHint: 'quiz' } },
+      { annotations: [{ ...phraseAnnotation('highlight'), frequencyTier: 1 }] },
+      { annotations: [{ ...phraseAnnotation('frequency'), frequencyTier: 0 }] },
+      { annotations: [{ ...phraseAnnotation('frequency'), frequencyTier: 6 }] },
+      { annotations: [{ ...phraseAnnotation('frequency'), frequencyTier: '4' }] },
+    ];
+
+    for (const overrides of cases) {
+      expect(() =>
+        mapFirestoreCardToDomain(
+          canonicalDocument(overrides as Record<string, unknown>),
+          SEASON_ID,
+          MATERIAL_SET_ID,
+          CARD_ID,
+        ),
+      ).toThrow(InvalidCurriculumDocumentError);
+    }
+  });
+
   it('does not silently produce a Card from a non-object document', () => {
     expect(() =>
       mapFirestoreCardToDomain(null, SEASON_ID, MATERIAL_SET_ID, CARD_ID),

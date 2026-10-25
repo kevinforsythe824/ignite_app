@@ -39,6 +39,7 @@ const AUTHORITATIVE_FIELDS = {
     'sectionId',
     'indexCode',
     'tags',
+    'studyContext',
     'quizMetadata',
     'crossReferences',
     'annotations',
@@ -86,6 +87,7 @@ function projectAnnotations(value: unknown): unknown {
       annotationId: record.annotationId,
       cardId: record.cardId,
       type: record.type,
+      frequencyTier: record.frequencyTier,
       sourceTarget: sourceTarget
         ? definedFields({
             strategy: sourceTarget.strategy,
@@ -152,9 +154,24 @@ function projectProvenanceForEquality(value: unknown): Record<string, unknown> |
   return projected;
 }
 
+function projectStudyContext(value: unknown): unknown {
+  const record = asRecord(value);
+  if (!record) {
+    return value;
+  }
+  return definedFields({
+    battlefield: record.battlefield,
+    topic: record.topic,
+    thematicQuestion: record.thematicQuestion,
+  });
+}
+
 function projectField(field: string, value: unknown): unknown {
   if (field === 'annotations') {
     return projectAnnotations(value);
+  }
+  if (field === 'studyContext') {
+    return projectStudyContext(value);
   }
   if (field === 'quizMetadata') {
     return projectQuizMetadata(value);

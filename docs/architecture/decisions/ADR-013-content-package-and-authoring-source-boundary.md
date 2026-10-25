@@ -68,3 +68,11 @@ The 2026-09-18 decision remains the historical record of the Ignite workbook, pa
 5. Intermediate and Experienced stay distinct MaterialSets produced from the one Senior sponsor workbook.
 6. Annotation conversion and content schema 1.1.0 are later slices. Slice A only reads Verse List rows into sponsor source data.
 7. Replacing DEV curriculum is not authorized in Slice A.
+
+## Amendment (2026-10-24) — content schema 1.1.0
+
+Slice B applies the schema split. Synthetic Ignite workbooks still convert at schema `1.0.0` (`CONTENT_SCHEMA_VERSION`). Official sponsor mapping writes schema `1.1.0` (`OFFICIAL_CONTENT_SCHEMA_VERSION`). Both versions validate. An unknown version fails closed.
+
+Optional `studyContext` stores battlefield, topic, and thematic question. A blank sponsor cell is omitted. Thematic questions are study metadata, not quiz hints. Battlefield keeps the sponsor cell's number or text. `frequencyTier` is required on `frequency` annotations in a `1.1.0` package and must be 1, 2, 3, 4, or 5. Schema `1.0.0` frequency annotations stay valid without a tier. Other annotation types do not receive a tier.
+
+This slice does not generate official annotations. Official cards carry an empty annotations array until annotation generation. A four-MaterialSet draft is not a complete season package. The importer still requires every official division, so that draft is not applied. Cadet remains absent until its workbook exists.

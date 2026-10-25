@@ -1,3 +1,4 @@
+import type { CardStudyContext } from '../../src/features/flashcards/domain/card';
 import type { CurriculumSection } from '../../src/features/season/domain/curriculumSection';
 import type { DivisionId } from '../../src/features/season/domain/division';
 import type { MaterialSet } from '../../src/features/season/domain/materialSet';
@@ -51,6 +52,11 @@ export interface CardRow {
   cardId?: string;
   indexCode?: string;
   tags?: string;
+  /**
+   * Sponsor study organization. Omitted when battlefield, topic, and question are blank.
+   * thematicQuestion is not quiz metadata.
+   */
+  studyContext?: CardStudyContext;
   /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
   sourceRow?: number;
 }
@@ -75,6 +81,11 @@ export interface AnnotationRow {
    */
   occurrenceIndexMalformed?: boolean;
   notes?: string;
+  /**
+   * Frequency class. Required on frequency annotations when the package schema is 1.1.0.
+   * Absent on other annotation types. Not invented for a blank cell.
+   */
+  frequencyTier?: number;
   /** Parsed Excel row. Tooling only — omitted from ContentPackage and fingerprints. */
   sourceRow?: number;
 }
@@ -154,6 +165,11 @@ export interface ContentAnnotationRecord {
   sourceTarget: AnnotationSourceTarget;
   resolvedTarget: ResolvedAnnotationSpan;
   notes?: string;
+  /**
+   * Set only when the source annotation has a frequency tier.
+   * Package validation requires 1–5 on schema 1.1.0 frequency annotations.
+   */
+  frequencyTier?: number;
 }
 
 export interface ContentQuizMetadata {
@@ -182,6 +198,8 @@ export interface ContentCardRecord {
   annotations: ContentAnnotationRecord[];
   quizMetadata?: Omit<ContentQuizMetadata, 'cardId'>;
   crossReferences: ContentCrossReference[];
+  /** Omitted when the sponsor row had no study metadata. */
+  studyContext?: CardStudyContext;
 }
 
 export interface ContentMaterialSetRecord extends MaterialSet {

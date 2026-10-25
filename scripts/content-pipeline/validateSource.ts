@@ -7,7 +7,9 @@ import {
   isSupportedContentSchemaVersion,
   isSyntheticAnnotationType,
 } from './constants';
+import { frequencyTierIssues } from './frequencyTierValidation';
 import { issue } from './errors';
+import { studyContextIssues } from './studyContextValidation';
 import { deriveCardId } from './identifiers';
 import { isRejectedOccurrenceIndex } from './occurrenceIndex';
 import { resolveAnnotationTarget } from './resolveAnnotationTarget';
@@ -15,9 +17,10 @@ import { seasonIdSegmentIssue } from './seasonIdPath';
 import { toolingSourceRow } from './sourceRow';
 import type { AuthoringWorkbookData, ValidationIssue } from './types';
 import { isDivisionId } from '../../src/features/season/domain/division';
+import { isIsoCalendarDate } from '../../src/features/season/domain/isoCalendarDate';
 import { SEASON_STATUSES } from '../../src/features/season/domain/season';
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
 function requireText(
   value: string | undefined,
@@ -97,9 +100,16 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
     }
   }
 
+  // Real calendar dates, same helper as season catalog rows. A YYYY-MM-DD
+  // shape such as 2027-02-31 is rejected. startDate must be on or before
+  // endDate. igniteAvailabilityDate versus endDate stays a catalog rule and
+  // is not applied here.
   for (const field of ['startDate', 'endDate', 'sourceMaterialReleaseDate', 'igniteAvailabilityDate'] as const) {
     const value = normalizedPackageMetadataValue(field, pkg[field]);
-    if (value && !ISO_DATE.test(value)) {
+    if (!value) {
+      continue;
+    }
+    if (!ISO_DATE_SHAPE.test(value)) {
       errors.push(
         issue({
           code: 'invalid_date',
@@ -107,10 +117,44 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
           sheet: 'Package',
           row: packageRow,
           field,
-          reason: `${field} must be an ISO date (YYYY-MM-DD) when provided.`,
+          reason: `${field} must be an ISO calendar date (YYYY-MM-DD) when provided.`,
+        }),
+      );
+      continue;
+    }
+    if (!isIsoCalendarDate(value)) {
+      errors.push(
+        issue({
+          code: 'invalid_date',
+          workbook,
+          sheet: 'Package',
+          row: packageRow,
+          field,
+          reason: `${field} "${value}" is not a real calendar date.`,
         }),
       );
     }
+  }
+
+  const startDate = normalizedPackageMetadataValue('startDate', pkg.startDate);
+  const endDate = normalizedPackageMetadataValue('endDate', pkg.endDate);
+  if (
+    startDate &&
+    endDate &&
+    isIsoCalendarDate(startDate) &&
+    isIsoCalendarDate(endDate) &&
+    startDate > endDate
+  ) {
+    errors.push(
+      issue({
+        code: 'invalid_date_range',
+        workbook,
+        sheet: 'Package',
+        row: packageRow,
+        field: 'endDate',
+        reason: `Season endDate ${endDate} is before startDate ${startDate}. startDate must be on or before endDate.`,
+      }),
+    );
   }
 
   const ms = data.materialSet;
@@ -275,6 +319,14 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
       );
     }
 
+    errors.push(
+      ...studyContextIssues(card.studyContext, {
+        workbook,
+        sheet: 'Cards',
+        row,
+      }),
+    );
+
     if (!card.sectionId) {
       errors.push(
         issue({
@@ -333,6 +385,14 @@ export function validateSourceWorkbook(data: AuthoringWorkbookData): ValidationI
       sheet: 'Annotations',
       row,
     });
+
+    errors.push(
+      ...frequencyTierIssues(annotation, data.package.schemaVersion, {
+        workbook,
+        sheet: 'Annotations',
+        row,
+      }),
+    );
 
     if (!annotation.type) {
       errors.push(

@@ -1,10 +1,12 @@
 import {
   PHRASE_OCCURRENCE_STRATEGY,
+  isFrequencyTier,
   type Card,
   type CardAnnotation,
   type CardAnnotationSourceTarget,
   type CardCrossReference,
   type CardQuizMetadata,
+  type CardStudyContext,
 } from '../domain/card';
 
 /** Thrown when Firestore curriculum data cannot become a valid domain value. */
@@ -244,6 +246,25 @@ function mapAnnotation(
     }
     annotation.notes = raw.notes;
   }
+  if (Object.prototype.hasOwnProperty.call(raw, 'frequencyTier') && raw.frequencyTier !== undefined) {
+    if (type !== 'frequency') {
+      fail(
+        'annotations.frequencyTier',
+        'is only valid on frequency annotations',
+        seasonId,
+        cardId,
+      );
+    }
+    if (!isFrequencyTier(raw.frequencyTier)) {
+      fail(
+        'annotations.frequencyTier',
+        'must be an integer from 1 through 5',
+        seasonId,
+        cardId,
+      );
+    }
+    annotation.frequencyTier = raw.frequencyTier;
+  }
   return annotation;
 }
 
@@ -353,6 +374,83 @@ function mapQuizMetadata(
   return metadata;
 }
 
+function requirePresentText(
+  value: unknown,
+  field: string,
+  seasonId: string,
+  cardId: string,
+): string {
+  if (typeof value !== 'string') {
+    fail(field, 'must be a string', seasonId, cardId);
+  }
+  if (value.length === 0) {
+    fail(field, 'must be a non-empty string', seasonId, cardId);
+  }
+  return value;
+}
+
+function mapBattlefield(
+  value: unknown,
+  seasonId: string,
+  cardId: string,
+): string | number {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      fail('studyContext.battlefield', 'must be a finite number', seasonId, cardId);
+    }
+    return value;
+  }
+  if (typeof value === 'string') {
+    return requirePresentText(value, 'studyContext.battlefield', seasonId, cardId);
+  }
+  fail('studyContext.battlefield', 'must be a string or a number', seasonId, cardId);
+}
+
+const STUDY_CONTEXT_FIELDS = new Set(['battlefield', 'topic', 'thematicQuestion']);
+
+function mapStudyContext(
+  value: unknown,
+  seasonId: string,
+  cardId: string,
+): CardStudyContext | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    fail('studyContext', 'must be an object', seasonId, cardId);
+  }
+  const raw = value as Record<string, unknown>;
+  for (const key of Object.keys(raw)) {
+    if (!STUDY_CONTEXT_FIELDS.has(key)) {
+      fail(`studyContext.${key}`, 'is not a study context field', seasonId, cardId);
+    }
+  }
+
+  const studyContext: CardStudyContext = {};
+  if ('battlefield' in raw && raw.battlefield !== undefined) {
+    studyContext.battlefield = mapBattlefield(raw.battlefield, seasonId, cardId);
+  }
+  if ('topic' in raw && raw.topic !== undefined) {
+    studyContext.topic = requirePresentText(raw.topic, 'studyContext.topic', seasonId, cardId);
+  }
+  if ('thematicQuestion' in raw && raw.thematicQuestion !== undefined) {
+    studyContext.thematicQuestion = requirePresentText(
+      raw.thematicQuestion,
+      'studyContext.thematicQuestion',
+      seasonId,
+      cardId,
+    );
+  }
+  if (
+    studyContext.battlefield === undefined &&
+    studyContext.topic === undefined &&
+    studyContext.thematicQuestion === undefined
+  ) {
+    return undefined;
+  }
+  return studyContext;
+}
+
 function mapIndexCode(
   value: unknown,
   seasonId: string,
@@ -401,6 +499,11 @@ export function mapFirestoreCardToDomain(
 
   const indexCode = mapIndexCode(data.indexCode, resolvedSeasonId, resolvedCardId);
   const quizMetadata = mapQuizMetadata(data.quizMetadata, resolvedSeasonId, resolvedCardId);
+  const studyContext = mapStudyContext(
+    data.studyContext,
+    resolvedSeasonId,
+    resolvedCardId,
+  );
 
   const card: Card = {
     seasonId: resolvedSeasonId,
@@ -437,6 +540,9 @@ export function mapFirestoreCardToDomain(
   }
   if (quizMetadata !== undefined) {
     card.quizMetadata = quizMetadata;
+  }
+  if (studyContext !== undefined) {
+    card.studyContext = studyContext;
   }
   return card;
 }

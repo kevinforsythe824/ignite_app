@@ -1,8 +1,8 @@
 import type { DivisionId } from '../../src/features/season/domain/division';
 
 /**
- * One MaterialSet a sponsor workbook will feed later.
- * Slice A records the association only. It does not build MaterialSet records.
+ * One MaterialSet a sponsor workbook feeds.
+ * The profile lists the association. Mapping copies each verse list once per target.
  */
 export interface SponsorMaterialSetTarget {
   readonly divisionId: DivisionId;

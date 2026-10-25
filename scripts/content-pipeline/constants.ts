@@ -4,12 +4,20 @@ import { OFFICIAL_DIVISION_IDS } from '../../src/features/season/domain/division
  * Content-pipeline contract versions.
  * These identify the authoring workbook and generated-package schemas,
  * not official WPF season identifiers.
+ *
+ * CONTENT_SCHEMA_VERSION is the schema the synthetic Ignite converter writes.
+ * Official sponsor mapping writes OFFICIAL_CONTENT_SCHEMA_VERSION.
+ * Both stay in SUPPORTED_CONTENT_SCHEMA_VERSIONS. Unknown versions fail closed.
  */
 export const CONTENT_SCHEMA_VERSION = '1.0.0';
+export const OFFICIAL_CONTENT_SCHEMA_VERSION = '1.1.0';
 export const WORKBOOK_SCHEMA_VERSION = '1.0.0';
 export const CONVERTER_VERSION = '1.0.0';
 
-export const SUPPORTED_CONTENT_SCHEMA_VERSIONS = [CONTENT_SCHEMA_VERSION] as const;
+export const SUPPORTED_CONTENT_SCHEMA_VERSIONS = [
+  CONTENT_SCHEMA_VERSION,
+  OFFICIAL_CONTENT_SCHEMA_VERSION,
+] as const;
 
 export const REQUIRED_WORKBOOK_SHEETS = [
   'README',

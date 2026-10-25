@@ -6,30 +6,45 @@ import {
 import { isDivisionId, OFFICIAL_DIVISION_IDS } from '../../src/features/season/domain/division';
 import { SEASON_STATUSES } from '../../src/features/season/domain/season';
 import {
-  CONTENT_SCHEMA_VERSION,
+  SUPPORTED_CONTENT_SCHEMA_VERSIONS,
   isSupportedContentSchemaVersion,
   isSyntheticAnnotationType,
   PHRASE_OCCURRENCE_STRATEGY,
 } from './constants';
 import { issue } from './errors';
+import { frequencyTierIssues } from './frequencyTierValidation';
 import { annotationLogicalKey } from './identifiers';
 import { resolveAnnotationTarget } from './resolveAnnotationTarget';
 import { seasonIdSegmentIssue } from './seasonIdPath';
+import { studyContextIssues } from './studyContextValidation';
 import type { ContentPackage, ValidationIssue } from './types';
+
+export interface ContentPackageValidationOptions {
+  /**
+   * Default true. A complete season package must include every official division.
+   * The importer uses that default, so a draft that is still missing Cadet cannot
+   * be loaded for apply. Local official-draft checks pass false.
+   */
+  requireAllOfficialDivisions?: boolean;
+}
 
 /**
  * Package/domain validation is independent of workbook parsing.
  * Reuses Phase 1 helpers; does not expand isSeasonSelectable into routing.
  */
-export function validateContentPackage(content: ContentPackage): ValidationIssue[] {
+export function validateContentPackage(
+  content: ContentPackage,
+  options: ContentPackageValidationOptions = {},
+): ValidationIssue[] {
   const errors: ValidationIssue[] = [];
+  const requireAllOfficialDivisions = options.requireAllOfficialDivisions !== false;
 
   if (!isSupportedContentSchemaVersion(content.schemaVersion)) {
     errors.push(
       issue({
         code: 'unsupported_schema_version',
         field: 'schemaVersion',
-        reason: `Unsupported package schemaVersion "${content.schemaVersion}". Expected ${CONTENT_SCHEMA_VERSION}.`,
+        reason: `Unsupported package schemaVersion "${String(content.schemaVersion)}". Supported versions: ${SUPPORTED_CONTENT_SCHEMA_VERSIONS.join(', ')}.`,
       }),
     );
   }
@@ -78,11 +93,18 @@ export function validateContentPackage(content: ContentPackage): ValidationIssue
     );
   }
 
-  if (content.materialSets.length !== OFFICIAL_DIVISION_IDS.length) {
+  if (requireAllOfficialDivisions && content.materialSets.length !== OFFICIAL_DIVISION_IDS.length) {
     errors.push(
       issue({
         code: 'material_set_count',
         reason: `A season package must contain exactly ${OFFICIAL_DIVISION_IDS.length} independent MaterialSets; found ${content.materialSets.length}.`,
+      }),
+    );
+  } else if (!requireAllOfficialDivisions && content.materialSets.length === 0) {
+    errors.push(
+      issue({
+        code: 'material_set_count',
+        reason: 'A package must contain at least one MaterialSet.',
       }),
     );
   }
@@ -225,6 +247,12 @@ export function validateContentPackage(content: ContentPackage): ValidationIssue
         );
       }
 
+      errors.push(
+        ...studyContextIssues(card.studyContext, {
+          cardId: card.cardId,
+        }),
+      );
+
       const cardKey = makeCardKey(card.seasonId, card.materialSetId, card.cardId);
       if (seenCardKeys.has(cardKey)) {
         errors.push(
@@ -283,6 +311,12 @@ export function validateContentPackage(content: ContentPackage): ValidationIssue
             seenLogicalAnnotations.add(logicalKey);
           }
         }
+
+        errors.push(
+          ...frequencyTierIssues(annotation, content.schemaVersion, {
+            cardId: card.cardId,
+          }),
+        );
 
         if (!isSyntheticAnnotationType(annotation.type)) {
           errors.push(
@@ -375,15 +409,17 @@ export function validateContentPackage(content: ContentPackage): ValidationIssue
     }
   }
 
-  for (const divisionId of OFFICIAL_DIVISION_IDS) {
-    if (!seenDivisions.has(divisionId) && content.materialSets.length === OFFICIAL_DIVISION_IDS.length) {
-      errors.push(
-        issue({
-          code: 'missing_division_material_set',
-          field: 'divisionId',
-          reason: `Season package is missing a MaterialSet for division "${divisionId}".`,
-        }),
-      );
+  if (requireAllOfficialDivisions) {
+    for (const divisionId of OFFICIAL_DIVISION_IDS) {
+      if (!seenDivisions.has(divisionId) && content.materialSets.length === OFFICIAL_DIVISION_IDS.length) {
+        errors.push(
+          issue({
+            code: 'missing_division_material_set',
+            field: 'divisionId',
+            reason: `Season package is missing a MaterialSet for division "${divisionId}".`,
+          }),
+        );
+      }
     }
   }
 

@@ -30,6 +30,18 @@ export interface CardAnnotationSourceTarget {
  * Embedded card annotation. Presentation is later work — Study does not
  * render these or translate them into matchedRules.
  */
+/** Frequency class on a frequency annotation. Other annotation types do not carry a tier. */
+export const FREQUENCY_TIER_VALUES = [1, 2, 3, 4, 5] as const;
+
+export type FrequencyTier = (typeof FREQUENCY_TIER_VALUES)[number];
+
+export function isFrequencyTier(value: unknown): value is FrequencyTier {
+  return (
+    typeof value === 'number' &&
+    (FREQUENCY_TIER_VALUES as readonly number[]).includes(value)
+  );
+}
+
 export interface CardAnnotation {
   annotationId: string;
   /** Required. Must equal the owning card's cardId. */
@@ -38,6 +50,11 @@ export interface CardAnnotation {
   sourceTarget: CardAnnotationSourceTarget;
   resolvedTarget: CardAnnotationSpan;
   notes?: string;
+  /**
+   * Present on frequency annotations in content schema 1.1.0.
+   * Schema 1.0.0 frequency annotations may omit it. Other types never have it.
+   */
+  frequencyTier?: FrequencyTier;
 }
 
 export interface CardQuizMetadata {
@@ -49,6 +66,22 @@ export interface CardCrossReference {
   toReference?: string;
   toCardId?: string;
   notes?: string;
+}
+
+/**
+ * Battlefield stays a number or text, matching the sponsor cell.
+ * A blank cell is omitted. It is not stored as 0 or an empty string.
+ */
+export type StudyBattlefield = string | number;
+
+/**
+ * Sponsor study organization stored on the card.
+ * thematicQuestion is the sponsor Question column. It is not a quiz hint.
+ */
+export interface CardStudyContext {
+  battlefield?: StudyBattlefield;
+  topic?: string;
+  thematicQuestion?: string;
 }
 
 export interface Card {
@@ -73,6 +106,8 @@ export interface Card {
   annotations?: CardAnnotation[];
   quizMetadata?: CardQuizMetadata;
   crossReferences?: CardCrossReference[];
+  /** Omitted when the sponsor row had no battlefield, topic, or thematic question. */
+  studyContext?: CardStudyContext;
 }
 
 /**

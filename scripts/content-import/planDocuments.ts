@@ -31,6 +31,7 @@ function cardDocumentData(card: ContentCardRecord): Record<string, unknown> {
     sectionId: card.sectionId,
     indexCode: card.indexCode,
     tags: [...card.tags],
+    studyContext: card.studyContext ? { ...card.studyContext } : undefined,
     quizMetadata: card.quizMetadata,
     crossReferences: card.crossReferences.map((item) => ({ ...item })),
     annotations: card.annotations.map((annotation) => ({
