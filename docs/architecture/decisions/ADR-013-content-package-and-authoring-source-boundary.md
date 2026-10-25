@@ -56,3 +56,15 @@ A durable authoring-source vs generated-package boundary keeps corrections in hu
 ## Amendment (2026-10-02) — live test-season writer retired
 
 The consequence that `scripts/firestore-seed/` remains a test-curriculum importer described the live writer that stored `seasons/test-season`. That writer is retired and exits before Firebase initialization. Local fixture helpers in that folder may still build in-memory test documents. Live curriculum writes use the content import workflow. Current procedure is in [`ENVIRONMENTS.md`](../../operations/ENVIRONMENTS.md) and [`CONTENT_PUBLISHING_RUNBOOK.md`](../../operations/CONTENT_PUBLISHING_RUNBOOK.md). The decision above is otherwise unchanged.
+
+## Amendment (2026-10-24) — sponsor workbooks are authoritative for official curriculum
+
+The 2026-09-18 decision remains the historical record of the Ignite workbook, package, fingerprint, and importer boundary. Synthetic and other Ignite-shaped workbooks still use that path. For official curriculum, the source-of-truth sentence in that decision is superseded as follows. Slice A does not change package schema, annotation mapping, or DEV contents.
+
+1. Sponsor Excel workbooks are authoritative for official curriculum.
+2. An Ignite authoring-shaped representation may be generated from those workbooks. It is not a second manually maintained source.
+3. Package generation, validation, fingerprints, and the importer boundary stay as decided above.
+4. The Cadet workbook is a separate sponsor file and is still pending. Slice A does not invent Cadet cards.
+5. Intermediate and Experienced stay distinct MaterialSets produced from the one Senior sponsor workbook.
+6. Annotation conversion and content schema 1.1.0 are later slices. Slice A only reads Verse List rows into sponsor source data.
+7. Replacing DEV curriculum is not authorized in Slice A.
