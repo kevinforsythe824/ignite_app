@@ -3,6 +3,7 @@ import path from 'node:path';
 import ExcelJS from 'exceljs';
 import { OFFICIAL_CONTENT_SCHEMA_VERSION } from './constants';
 import { issue } from './errors';
+import { generateSponsorAnnotations } from './generateSponsorAnnotations';
 import { mapSponsorVerseListToWorkbooks } from './mapSponsorVerseList';
 import {
   official2027DraftSeason,
@@ -12,18 +13,23 @@ import {
 import type { PipelineResult } from './pipeline';
 import { runPipelineFromWorkbooks } from './pipeline';
 import { readSponsorRulesVersion } from './readSponsorSummary';
+import { interpretSponsorCell } from './sponsorCell';
+import { readSponsorFrequencyWords } from './readSponsorFrequencyWords';
 import { readSponsorVerseListWorkbook } from './readSponsorVerseList';
 import {
+  WPFBQ_2027_CADET_WORKBOOK_SOURCE,
   WPFBQ_2027_SPONSOR_PROFILE,
   type SponsorSourceProfile,
   type SponsorWorkbookSource,
 } from './sponsorSourceProfile';
+import type { SponsorFrequencyWords } from './sponsorFrequencyTypes';
 import type { SponsorVerseList } from './sponsorSourceTypes';
 import type { AuthoringWorkbookData, ValidationIssue } from './types';
 
 export interface SponsorWorkbookLoad {
   readonly source: SponsorWorkbookSource;
   readonly verseList: SponsorVerseList;
+  readonly frequencyWords: SponsorFrequencyWords;
   readonly rulesVersion: string;
 }
 
@@ -99,15 +105,116 @@ async function readSponsorSourceOnce(
 
   const verse = readSponsorVerseListWorkbook(workbook, workbookName);
   const rules = readSponsorRulesVersion(workbook, workbookName);
-  const errors = [...(verse.ok ? [] : verse.errors), ...(rules.ok ? [] : rules.errors)];
-  if (!verse.ok || !rules.ok || errors.length > 0) {
+  const frequency = readSponsorFrequencyWords(workbook, workbookName);
+  const identity = sponsorCorpusIdentityIssue(workbook, workbookName);
+  const errors = [
+    ...(identity ? [identity] : []),
+    ...(verse.ok ? [] : verse.errors),
+    ...(rules.ok ? [] : rules.errors),
+    ...(frequency.ok ? [] : frequency.errors),
+  ];
+  if (!verse.ok || !rules.ok || !frequency.ok || errors.length > 0) {
     return { ok: false, parsed: true, errors };
   }
   return {
     ok: true,
     parsed: true,
-    load: { source, verseList: verse.verseList, rulesVersion: rules.rulesVersion },
+    load: {
+      source,
+      verseList: verse.verseList,
+      frequencyWords: frequency.frequencyWords,
+      rulesVersion: rules.rulesVersion,
+    },
   };
+}
+
+const OFFICIAL_SPONSOR_FILE_NAME = /^WPFBQ_\d{4}_([A-Za-z]+)_Data_Workbook\.xlsx$/i;
+
+/**
+ * Official WPFBQ filenames identify a division. A directory prefix or letter
+ * case still resolves to that file. Any other division, or an unrecognized
+ * official-pattern name, fails before the workbook is read. Fixture names that
+ * do not use this pattern stay explicit profile configuration.
+ */
+function officialSponsorFileIssue(source: SponsorWorkbookSource): ValidationIssue | undefined {
+  const baseName = path.basename(source.fileName);
+  if (!OFFICIAL_SPONSOR_FILE_NAME.test(baseName)) {
+    return undefined;
+  }
+  const approved = [...WPFBQ_2027_SPONSOR_PROFILE.sources, WPFBQ_2027_CADET_WORKBOOK_SOURCE].find(
+    (item) => path.basename(item.fileName).toLowerCase() === baseName.toLowerCase(),
+  );
+  if (!approved) {
+    return issue({
+      code: 'unrecognized_sponsor_workbook',
+      workbook: baseName,
+      field: 'fileName',
+      reason: `Workbook "${baseName}" is not an authorized 2027 sponsor file.`,
+    });
+  }
+  const allowedDivisions = new Set(approved.materialSets.map((target) => target.divisionId));
+  for (const target of source.materialSets) {
+    if (!allowedDivisions.has(target.divisionId)) {
+      return issue({
+        code: 'workbook_division_mismatch',
+        workbook: baseName,
+        field: 'divisionId',
+        reason: `Workbook "${baseName}" cannot be associated with division "${target.divisionId}".`,
+      });
+    }
+    if (!target.materialSetId.startsWith(`${target.divisionId}-`)) {
+      return issue({
+        code: 'workbook_division_mismatch',
+        workbook: baseName,
+        field: 'materialSetId',
+        reason: `MaterialSet "${target.materialSetId}" does not belong to division "${target.divisionId}" for workbook "${baseName}".`,
+      });
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Official workbooks title themselves in Summary, for example
+ * "WPFBQ 2027 — Beginner Corpus". A file whose title names a different
+ * division is not read as that other division. Fixtures with no corpus title
+ * stay on the explicit profile.
+ */
+function sponsorCorpusIdentityIssue(
+  workbook: ExcelJS.Workbook,
+  workbookName: string,
+): ValidationIssue | undefined {
+  const baseName = path.basename(workbookName);
+  const token = OFFICIAL_SPONSOR_FILE_NAME.exec(baseName)?.[1]?.toLowerCase();
+  if (!token) {
+    return undefined;
+  }
+  const sheet = workbook.getWorksheet('Summary');
+  if (!sheet) {
+    return undefined;
+  }
+  let corpus: string | undefined;
+  sheet.eachRow((row) => {
+    row.eachCell({ includeEmpty: false }, (cell) => {
+      if (corpus !== undefined) {
+        return;
+      }
+      const value = interpretSponsorCell(cell.value);
+      if (value.status === 'text' && value.text.includes('Corpus')) {
+        corpus = value.text;
+      }
+    });
+  });
+  if (corpus === undefined || corpus.toLowerCase().includes(token)) {
+    return undefined;
+  }
+  return issue({
+    code: 'workbook_division_mismatch',
+    workbook: baseName,
+    sheet: 'Summary',
+    field: 'fileName',
+    reason: `Summary "${corpus}" does not match sponsor file "${baseName}".`,
+  });
 }
 
 function rulesVersionErrors(loads: readonly SponsorWorkbookLoad[]): ValidationIssue[] {
@@ -127,10 +234,11 @@ function rulesVersionErrors(loads: readonly SponsorWorkbookLoad[]): ValidationIs
 }
 
 /**
- * Reads each profile workbook once, maps every MaterialSet target, and runs
- * validate → convert → package validation → reconcile → fingerprint.
- * Cadet is included only when the profile lists it. The draft is not written
- * and is not treated as a complete importable season package.
+ * Reads each profile workbook once, generates official annotations, maps every
+ * MaterialSet target, and runs validate → convert → package validation →
+ * reconcile → fingerprint. Cadet is included only when the profile lists it.
+ * The draft is not written and is not treated as a complete importable season
+ * package. requireAllOfficialDivisions stays false only on this path.
  */
 export async function buildOfficialSponsorDraft(input: {
   directory: string;
@@ -172,6 +280,11 @@ export async function buildOfficialSponsorDraft(input: {
   let workbookReadCount = 0;
 
   for (const source of profile.sources) {
+    const fileIssue = officialSponsorFileIssue(source);
+    if (fileIssue) {
+      readErrors.push(fileIssue);
+      continue;
+    }
     const parsed = await readSponsorSourceOnce(input.directory, source);
     if (parsed.parsed) {
       workbookReadCount += 1;
@@ -228,10 +341,19 @@ export async function buildOfficialSponsorDraft(input: {
   const workbooks: AuthoringWorkbookData[] = [];
   const mapErrors: ValidationIssue[] = [];
   for (const load of loads) {
+    const generated = generateSponsorAnnotations({
+      verseList: load.verseList,
+      frequencyWords: load.frequencyWords,
+    });
+    if (!generated.ok) {
+      mapErrors.push(...generated.errors);
+      continue;
+    }
     const mapped = mapSponsorVerseListToWorkbooks({
       verseList: load.verseList,
       materialSets: load.source.materialSets,
       season,
+      annotationsByCardNumber: generated.annotationsByCardNumber,
     });
     if (!mapped.ok) {
       mapErrors.push(...mapped.errors);

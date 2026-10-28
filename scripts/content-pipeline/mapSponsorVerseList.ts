@@ -6,7 +6,7 @@ import type { OfficialDraftPackageInput } from './officialDraftPackage';
 import type { SponsorMaterialSetTarget } from './sponsorSourceProfile';
 import type { SponsorVerseList, SponsorVerseListRow } from './sponsorSourceTypes';
 import { SPONSOR_VERSE_LIST_SHEET } from './sponsorSourceTypes';
-import type { AuthoringWorkbookData, CardRow, SectionRow, ValidationIssue } from './types';
+import type { AnnotationRow, AuthoringWorkbookData, CardRow, SectionRow, ValidationIssue } from './types';
 
 const SECTION_ID_FALLBACK = 'section';
 
@@ -93,12 +93,66 @@ function buildSections(verseList: SponsorVerseList): BuiltSections {
   return { sections, sectionIdByTitle, errors };
 }
 
+function cloneAnnotationsForTarget(
+  verseList: SponsorVerseList,
+  annotationsByCardNumber: ReadonlyMap<number, readonly AnnotationRow[]> | undefined,
+): AnnotationRow[] {
+  const annotations: AnnotationRow[] = [];
+  for (const row of verseList.rows) {
+    const cardAnnotations = annotationsByCardNumber?.get(row.seq) ?? [];
+    for (const annotation of cardAnnotations) {
+      annotations.push({ ...annotation });
+    }
+  }
+  return annotations;
+}
+
+function annotationCardErrors(
+  verseList: SponsorVerseList,
+  annotationsByCardNumber: ReadonlyMap<number, readonly AnnotationRow[]> | undefined,
+): ValidationIssue[] {
+  if (!annotationsByCardNumber) {
+    return [];
+  }
+  const seqs = new Set(verseList.rows.map((row) => row.seq));
+  const errors: ValidationIssue[] = [];
+  for (const [cardNumber, cardAnnotations] of annotationsByCardNumber) {
+    if (!seqs.has(cardNumber)) {
+      errors.push(
+        issue({
+          code: 'unknown_annotation_card',
+          workbook: verseList.workbookName,
+          sheet: verseList.sheetName,
+          field: 'cardNumber',
+          reason: `Annotations refer to card ${cardNumber}, which is not a Verse List Seq.`,
+        }),
+      );
+    }
+    for (const annotation of cardAnnotations) {
+      if (annotation.cardNumber !== cardNumber) {
+        errors.push(
+          issue({
+            code: 'mismatched_annotation_card',
+            workbook: verseList.workbookName,
+            sheet: verseList.sheetName,
+            row: annotation.sourceRow,
+            field: 'cardNumber',
+            reason: `Annotation card ${String(annotation.cardNumber)} does not match Verse List Seq ${cardNumber}.`,
+          }),
+        );
+      }
+    }
+  }
+  return errors;
+}
+
 function workbookForTarget(
   verseList: SponsorVerseList,
   target: SponsorMaterialSetTarget,
   sections: readonly SectionRow[],
   sectionIdByTitle: ReadonlyMap<string, string>,
   season: OfficialDraftPackageInput,
+  annotationsByCardNumber: ReadonlyMap<number, readonly AnnotationRow[]> | undefined,
 ): AuthoringWorkbookData {
   const cards: CardRow[] = verseList.rows.map((row) => {
     const sectionId = sectionIdByTitle.get(row.section);
@@ -140,7 +194,7 @@ function workbookForTarget(
     },
     sections: sections.map((section) => ({ ...section })),
     cards,
-    annotations: [],
+    annotations: cloneAnnotationsForTarget(verseList, annotationsByCardNumber),
     quizMetadata: [],
     crossReferences: [],
   };
@@ -152,13 +206,15 @@ export type SponsorVerseListMapResult =
 
 /**
  * Copies one verified verse list into one authoring workbook per MaterialSet target.
- * Senior's two targets each receive new Card and Section objects.
- * Card ids are left blank so convert derives c{cardNumber}. No annotations are created.
+ * Senior's two targets each receive new Card, Section, and Annotation objects.
+ * Card ids are left blank so convert derives c{cardNumber}.
+ * Omitted annotations stay empty. Provided annotations are cloned per target.
  */
 export function mapSponsorVerseListToWorkbooks(input: {
   verseList: SponsorVerseList;
   materialSets: readonly SponsorMaterialSetTarget[];
   season: OfficialDraftPackageInput;
+  annotationsByCardNumber?: ReadonlyMap<number, readonly AnnotationRow[]>;
 }): SponsorVerseListMapResult {
   const { verseList, season } = input;
   if (season.schemaVersion !== OFFICIAL_CONTENT_SCHEMA_VERSION) {
@@ -233,13 +289,25 @@ export function mapSponsorVerseListToWorkbooks(input: {
     return { ok: false, errors: targetErrors };
   }
 
+  const annotationErrors = annotationCardErrors(verseList, input.annotationsByCardNumber);
+  if (annotationErrors.length > 0) {
+    return { ok: false, errors: annotationErrors };
+  }
+
   const built = buildSections(verseList);
   if (built.errors.length > 0) {
     return { ok: false, errors: built.errors };
   }
 
   const workbooks = input.materialSets.map((target) =>
-    workbookForTarget(verseList, target, built.sections, built.sectionIdByTitle, season),
+    workbookForTarget(
+      verseList,
+      target,
+      built.sections,
+      built.sectionIdByTitle,
+      season,
+      input.annotationsByCardNumber,
+    ),
   );
   return { ok: true, workbooks };
 }

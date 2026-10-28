@@ -32,12 +32,12 @@ import {
 import { validateSourceWorkbook } from '../../scripts/content-pipeline/validateSource';
 
 /**
- * Provisional dates for pipeline tests only.
- * They are not sponsor-confirmed season dates and are not builder defaults.
+ * Caller-supplied 2027 study dates. The builder does not default these.
+ * igniteAvailabilityDate stays omitted until season configuration carries it.
  */
 const PROVISIONAL_TEST_SEASON_DATES = {
-  startDate: '2027-09-01',
-  endDate: '2028-06-30',
+  startDate: '2027-01-01',
+  endDate: '2027-08-31',
 } as const;
 
 const RULES_VERSION = '1.0 (2026-07-29)';
@@ -491,6 +491,8 @@ async function writeTinyWorkbook(
     Section: 'Only Section',
     Topic: 'Topic',
     Reference: 'Sample 1:1',
+    'Unique Beginning': 'Alpha',
+    'Unique Ending': 'line',
     'Verse Text': 'Alpha  line;',
   };
   if (battlefield !== null) {
@@ -502,6 +504,18 @@ async function writeTinyWorkbook(
       sheet.getRow(2).getCell(index + 1).value = value;
     }
   });
+  const frequency = workbook.addWorksheet('All Frequency Words');
+  ['Class', 'Word', 'Verses', 'Occurrences', 'Repeats In Verse', 'References'].forEach((header, index) => {
+    frequency.getRow(1).getCell(index + 1).value = header;
+  });
+  frequency.getRow(2).getCell(1).value = 1;
+  frequency.getRow(2).getCell(2).value = 'Alpha';
+  frequency.getRow(2).getCell(3).value = 1;
+  frequency.getRow(2).getCell(4).value = 1;
+  frequency.getRow(2).getCell(6).value = 'Sample 1:1';
+  const tier = workbook.addWorksheet('1x Words');
+  tier.getRow(1).getCell(1).value = 'Word';
+  tier.getRow(2).getCell(1).value = 'Alpha';
   await workbook.xlsx.writeFile(path.join(directory, fileName));
 }
 
@@ -553,8 +567,8 @@ describe('official sponsor draft builder', () => {
         startDate: PROVISIONAL_TEST_SEASON_DATES.startDate,
         endDate: PROVISIONAL_TEST_SEASON_DATES.endDate,
       });
-      expect(draft.pipeline.content?.season.startDate).not.toBe('2027-01-01');
       expect(draft.pipeline.content?.season.endDate).not.toBe('2027-12-31');
+      expect(draft.pipeline.content?.season).not.toHaveProperty('igniteAvailabilityDate');
       expect(draft.pipeline.content?.materialSets).toHaveLength(4);
       expect(canonicalize(draft.pipeline.content)).not.toContain(directory);
       const seniorLoad = draft.loads.find((load) => load.source.fileName === 'senior.xlsx');
@@ -567,6 +581,17 @@ describe('official sponsor draft builder', () => {
         (materialSet) => materialSet.materialSetId === 'experienced-2027',
       );
       expect(intermediate?.cards[0]).not.toBe(experienced?.cards[0]);
+      expect(intermediate?.cards[0]?.annotations).toEqual(experienced?.cards[0]?.annotations);
+      expect(intermediate?.cards[0]?.annotations).not.toBe(experienced?.cards[0]?.annotations);
+      expect(intermediate?.cards[0]?.annotations[0]).not.toBe(experienced?.cards[0]?.annotations[0]);
+      expect(intermediate?.cards[0]?.annotations.map((annotation) => annotation.type).sort()).toEqual([
+        'frequency',
+        'uniqueBeginning',
+        'uniqueEnding',
+      ]);
+      expect(
+        intermediate?.cards[0]?.annotations.find((annotation) => annotation.type === 'frequency')?.frequencyTier,
+      ).toBe(1);
       expect(intermediate?.cards[0]?.studyContext?.battlefield).toBe(9);
       expect(typeof intermediate?.cards[0]?.studyContext?.battlefield).toBe('number');
       const junior = draft.pipeline.content?.materialSets.find(
@@ -578,7 +603,7 @@ describe('official sponsor draft builder', () => {
       const shifted = await buildOfficialSponsorDraft({
         directory,
         profile,
-        seasonDates: { startDate: '2027-09-01', endDate: '2028-07-15' },
+        seasonDates: { startDate: '2027-01-01', endDate: '2027-09-15' },
       });
       expect(shifted.status).toBe('passed');
       expect(shifted.pipeline.content?.sourceVersion).toBe(draft.pipeline.content?.sourceVersion);
@@ -586,6 +611,25 @@ describe('official sponsor draft builder', () => {
         throw new Error('expected a package with shifted test dates');
       }
       expect(fingerprintContent(shifted.pipeline.content)).not.toBe(fingerprint);
+      expect(shifted.pipeline.content.season.startDate).toBe('2027-01-01');
+      expect(shifted.pipeline.content.season.endDate).toBe('2027-09-15');
+      expect(
+        shifted.pipeline.content.materialSets.map((materialSet) =>
+          materialSet.cards.map((card) => ({
+            reference: card.reference,
+            verseText: card.verseText,
+            annotations: card.annotations,
+          })),
+        ),
+      ).toEqual(
+        draft.pipeline.content?.materialSets.map((materialSet) =>
+          materialSet.cards.map((card) => ({
+            reference: card.reference,
+            verseText: card.verseText,
+            annotations: card.annotations,
+          })),
+        ),
+      );
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -651,35 +695,35 @@ describe('official sponsor draft builder', () => {
       },
       {
         label: 'missing start',
-        seasonDates: { endDate: '2028-06-30' },
+        seasonDates: { endDate: '2027-08-31' },
         code: 'missing_required_field',
         field: 'startDate',
         reason: 'startDate is required',
       },
       {
         label: 'missing end',
-        seasonDates: { startDate: '2027-09-01' },
+        seasonDates: { startDate: '2027-01-01' },
         code: 'missing_required_field',
         field: 'endDate',
         reason: 'endDate is required',
       },
       {
         label: 'invalid format',
-        seasonDates: { startDate: '09/01/2027', endDate: '2028-06-30' },
+        seasonDates: { startDate: '09/01/2027', endDate: '2027-08-31' },
         code: 'invalid_date',
         field: 'startDate',
         reason: 'must be an ISO calendar date',
       },
       {
         label: 'impossible calendar date',
-        seasonDates: { startDate: '2027-02-31', endDate: '2028-06-30' },
+        seasonDates: { startDate: '2027-02-31', endDate: '2027-08-31' },
         code: 'invalid_date',
         field: 'startDate',
         reason: 'not a real calendar date',
       },
       {
         label: 'end before start',
-        seasonDates: { startDate: '2028-06-30', endDate: '2027-09-01' },
+        seasonDates: { startDate: '2027-08-31', endDate: '2027-01-01' },
         code: 'invalid_date_range',
         field: 'endDate',
         reason: 'is before startDate',

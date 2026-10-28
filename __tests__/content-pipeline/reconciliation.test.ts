@@ -42,6 +42,28 @@ describe('source-to-package reconciliation', () => {
     expect(errors.some((item) => item.code === 'reconciliation_card_count')).toBe(true);
   });
 
+  it('fails when a generated annotation replaces a source annotation of the same count', () => {
+    const workbooks = buildAllSyntheticWorkbooks();
+    const converted = convertWorkbooksToPackage(workbooks);
+    if (!converted.content) {
+      throw new Error('expected content');
+    }
+    const card = converted.content.materialSets
+      .flatMap((materialSet) => materialSet.cards)
+      .find((item) => item.annotations.length > 0);
+    const annotation = card?.annotations[0];
+    if (!card || !annotation) {
+      throw new Error('expected an annotation');
+    }
+    annotation.sourceTarget = { ...annotation.sourceTarget, phrase: 'replaced phrase' };
+    const { errors } = reconcileSourceToPackage(workbooks, converted.content);
+    expect(errors.some((item) => item.code === 'reconciliation_annotation_count')).toBe(false);
+    expect(errors.some((item) => item.code === 'reconciliation_annotation_mismatch')).toBe(true);
+    expect(errors.find((item) => item.code === 'reconciliation_annotation_mismatch')?.reason).toContain(
+      card.cardId,
+    );
+  });
+
   it('includes reconciliation on a successful pipeline report', () => {
     const result = runPipelineFromWorkbooks(buildAllSyntheticWorkbooks());
     expect(result.status).toBe('passed');

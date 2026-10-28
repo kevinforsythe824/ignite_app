@@ -1,23 +1,53 @@
 /**
  * @jest-environment node
  */
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { buildOfficialSponsorDraft } from '../../scripts/content-pipeline/buildOfficialSponsorDraft';
 import { fingerprintContent } from '../../scripts/content-pipeline/fingerprint';
 import { deriveCurriculumSectionId } from '../../scripts/content-pipeline/mapSponsorVerseList';
 import { officialDraftSourceVersion } from '../../scripts/content-pipeline/officialDraftPackage';
+import {
+  findPhraseOccurrences,
+  resolveAnnotationTarget,
+} from '../../scripts/content-pipeline/resolveAnnotationTarget';
+import {
+  SPONSOR_FREQUENCY_MAX_TIER,
+  SPONSOR_FREQUENCY_MIN_TIER,
+  type SponsorFrequencyWords,
+} from '../../scripts/content-pipeline/sponsorFrequencyTypes';
 import { WPFBQ_2027_SPONSOR_PROFILE } from '../../scripts/content-pipeline/sponsorSourceProfile';
 import type { SponsorVerseListRow } from '../../scripts/content-pipeline/sponsorSourceTypes';
+import {
+  leadingPunctuationLength,
+  trailingPunctuationLength,
+} from '../../scripts/content-pipeline/sponsorWordMatch';
 import type { ContentCardRecord, ContentMaterialSetRecord } from '../../scripts/content-pipeline/types';
+import { validateContentPackage } from '../../scripts/content-pipeline/validatePackage';
 
 /**
- * Provisional dates for this local verification only.
- * They are not sponsor-confirmed season dates and are not builder defaults.
+ * Caller-supplied 2027 study dates for the local official draft.
+ * The builder does not default these, and it does not invent igniteAvailabilityDate.
  */
 const PROVISIONAL_LOCAL_TEST_SEASON_DATES = {
-  startDate: '2027-09-01',
-  endDate: '2028-06-30',
+  startDate: '2027-01-01',
+  endDate: '2027-08-31',
+} as const;
+
+const WORKBOOK_SHA256: Readonly<Record<string, string>> = {
+  'WPFBQ_2027_Beginner_Data_Workbook.xlsx':
+    '4515cf815ca3ba38fd2ce4ccec7064d7a3c42ff540d17b3a153e3178130ccee7',
+  'WPFBQ_2027_Junior_Data_Workbook.xlsx':
+    'cbf797e220e2a92f2904cd499365ef7d499057696b6dfeedf3c10fa1578e81ac',
+  'WPFBQ_2027_Senior_Data_Workbook.xlsx':
+    '856d02dfeb7c095e57cd79618875dd83a7a51aac06209097fce973786b05af27',
+};
+
+const EXPECTED_ANNOTATIONS = {
+  beginner: { annotations: 741, repeatedEndings: 9 },
+  junior: { annotations: 1643, repeatedEndings: 16 },
+  senior: { annotations: 2704, repeatedEndings: 20 },
 } as const;
 
 const LOCAL_DIR = path.join('content', 'authoring', 'local');
@@ -35,8 +65,19 @@ const SECTION_TITLES = [
   'Sword of the Spirit',
 ] as const;
 
+function expectWorkbookHashesUnchanged(): void {
+  for (const source of WPFBQ_2027_SPONSOR_PROFILE.sources) {
+    const hash = createHash('sha256').update(readFileSync(path.join(LOCAL_DIR, source.fileName))).digest('hex');
+    expect(hash).toBe(WORKBOOK_SHA256[source.fileName]);
+  }
+}
+
+function cardLabel(materialSetId: string, row: SponsorVerseListRow): string {
+  return `${materialSetId} seq ${row.seq} source row ${row.sourceRow}`;
+}
+
 function assertPreserved(card: ContentCardRecord, row: SponsorVerseListRow, materialSetId: string): void {
-  const label = `${materialSetId} seq ${row.seq} source row ${row.sourceRow}`;
+  const label = cardLabel(materialSetId, row);
   if (card.cardNumber !== row.seq || card.cardId !== `c${row.seq}`) {
     throw new Error(`${label} identity changed.`);
   }
@@ -49,9 +90,6 @@ function assertPreserved(card: ContentCardRecord, row: SponsorVerseListRow, mate
     throw new Error(
       `${label} verseText mismatch (lengths ${row.verseText.length} and ${card.verseText.length}).`,
     );
-  }
-  if (card.annotations.length !== 0) {
-    throw new Error(`${label} has annotations.`);
   }
   if (card.quizMetadata !== undefined) {
     throw new Error(`${label} has quiz metadata.`);
@@ -74,7 +112,93 @@ function assertPreserved(card: ContentCardRecord, row: SponsorVerseListRow, mate
   }
 }
 
-function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly SponsorVerseListRow[]): void {
+function assertOfficialAnnotations(
+  card: ContentCardRecord,
+  row: SponsorVerseListRow,
+  materialSetId: string,
+  referenced: ReadonlySet<string>,
+): boolean {
+  const label = cardLabel(materialSetId, row);
+  if (!row.uniqueBeginning || !row.uniqueEnding) {
+    throw new Error(`${label} is missing a unique beginning or unique ending.`);
+  }
+  const beginnings = card.annotations.filter((annotation) => annotation.type === 'uniqueBeginning');
+  const endings = card.annotations.filter((annotation) => annotation.type === 'uniqueEnding');
+  if (beginnings.length !== 1 || endings.length !== 1 || card.annotations.length < 2) {
+    throw new Error(
+      `${label} has ${beginnings.length} unique beginnings, ${endings.length} unique endings, and ${card.annotations.length} annotations.`,
+    );
+  }
+  const beginning = beginnings[0];
+  const ending = endings[0];
+  if (!beginning || !ending) {
+    throw new Error(`${label} is missing a boundary annotation.`);
+  }
+  if (beginning.sourceTarget.phrase !== row.uniqueBeginning || beginning.sourceTarget.occurrenceIndex !== 1) {
+    throw new Error(`${label} unique beginning was not targeted at occurrence 1.`);
+  }
+  if (ending.sourceTarget.phrase !== row.uniqueEnding) {
+    throw new Error(`${label} unique ending phrase does not match the Verse List.`);
+  }
+  if (beginning.frequencyTier !== undefined || ending.frequencyTier !== undefined) {
+    throw new Error(`${label} has a frequency tier on a boundary annotation.`);
+  }
+  const beginMatches = findPhraseOccurrences(card.verseText, beginning.sourceTarget.phrase);
+  if (beginMatches.length !== 1 || beginMatches[0]?.start !== leadingPunctuationLength(card.verseText)) {
+    throw new Error(`${label} unique beginning is not the single opening occurrence.`);
+  }
+  const endMatches = findPhraseOccurrences(card.verseText, ending.sourceTarget.phrase);
+  const expectedEnd = card.verseText.length - trailingPunctuationLength(card.verseText);
+  const selected = endMatches[ending.sourceTarget.occurrenceIndex - 1];
+  if (
+    !selected ||
+    selected.end !== expectedEnd ||
+    endMatches.filter((match) => match.end === expectedEnd).length !== 1
+  ) {
+    throw new Error(`${label} unique ending was not the occurrence at the verse suffix.`);
+  }
+  const frequency = card.annotations.filter((annotation) => annotation.type === 'frequency');
+  if (referenced.has(row.reference)) {
+    if (frequency.length === 0) {
+      throw new Error(`${label} is listed in All Frequency Words but has no frequency annotation.`);
+    }
+  } else if (frequency.length !== 0) {
+    throw new Error(`${label} has a frequency annotation but is not listed in All Frequency Words.`);
+  }
+  for (const annotation of card.annotations) {
+    const phrase = annotation.sourceTarget.phrase;
+    if (card.verseText.slice(annotation.resolvedTarget.start, annotation.resolvedTarget.end) !== phrase) {
+      throw new Error(`${label} ${annotation.type} slice does not equal its phrase.`);
+    }
+    const resolved = resolveAnnotationTarget({
+      verseText: card.verseText,
+      sourceTarget: annotation.sourceTarget,
+    });
+    if (
+      resolved.error ||
+      resolved.resolved?.start !== annotation.resolvedTarget.start ||
+      resolved.resolved?.end !== annotation.resolvedTarget.end
+    ) {
+      throw new Error(`${label} ${annotation.type} did not round-trip.`);
+    }
+    if (
+      annotation.type === 'frequency' &&
+      (annotation.frequencyTier === undefined ||
+        annotation.frequencyTier < SPONSOR_FREQUENCY_MIN_TIER ||
+        annotation.frequencyTier > SPONSOR_FREQUENCY_MAX_TIER)
+    ) {
+      throw new Error(`${label} frequency annotation is missing a tier.`);
+    }
+  }
+  return ending.sourceTarget.occurrenceIndex > 1;
+}
+
+function assertMaterialSet(
+  materialSet: ContentMaterialSetRecord,
+  rows: readonly SponsorVerseListRow[],
+  frequencyWords: SponsorFrequencyWords,
+  expected: { readonly annotations: number; readonly repeatedEndings: number },
+): void {
   expect(materialSet.sections).toHaveLength(7);
   expect(materialSet.sections.map((section) => section.title)).toEqual([...SECTION_TITLES]);
   expect(materialSet.sections.map((section) => section.displayOrder)).toEqual([1, 2, 3, 4, 5, 6, 7]);
@@ -82,17 +206,41 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
     SECTION_TITLES.map((title) => deriveCurriculumSectionId(title)),
   );
   expect(materialSet.cards).toHaveLength(rows.length);
+  const referenced = new Set(frequencyWords.entries.flatMap((entry) => [...entry.references]));
+  let repeatedEndings = 0;
   materialSet.cards.forEach((card, index) => {
     const row = rows[index];
     if (!row) {
       throw new Error(`${materialSet.materialSetId} is missing source row ${index + 1}.`);
     }
     assertPreserved(card, row, materialSet.materialSetId);
+    if (assertOfficialAnnotations(card, row, materialSet.materialSetId, referenced)) {
+      repeatedEndings += 1;
+    }
     expect(card.sectionId).toBe(deriveCurriculumSectionId(row.section));
   });
+  expect(repeatedEndings).toBe(expected.repeatedEndings);
+  const total = materialSet.cards.reduce((sum, card) => sum + card.annotations.length, 0);
+  const occurrenceTotal = frequencyWords.entries.reduce((sum, entry) => sum + entry.occurrences, 0);
+  expect(total).toBe(rows.length * 2 + occurrenceTotal);
+  expect(total).toBe(expected.annotations);
+  for (let tier = SPONSOR_FREQUENCY_MIN_TIER; tier <= SPONSOR_FREQUENCY_MAX_TIER; tier += 1) {
+    const fromSheet = frequencyWords.entries
+      .filter((entry) => entry.tier === tier)
+      .reduce((sum, entry) => sum + entry.occurrences, 0);
+    const fromCards = materialSet.cards.reduce(
+      (sum, card) =>
+        sum +
+        card.annotations.filter(
+          (annotation) => annotation.type === 'frequency' && annotation.frequencyTier === tier,
+        ).length,
+      0,
+    );
+    expect(fromCards).toBe(fromSheet);
+  }
   for (const section of materialSet.sections) {
-    const expected = rows.filter((row) => row.section === section.title).map((row) => `c${row.seq}`);
-    expect(section.cardIds).toEqual(expected);
+    const expectedCardIds = rows.filter((row) => row.section === section.title).map((row) => `c${row.seq}`);
+    expect(section.cardIds).toEqual(expectedCardIds);
   }
 }
 
@@ -100,6 +248,7 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
   jest.setTimeout(120000);
 
   it('maps 150/250/392/392 cards from one read of each workbook', async () => {
+    expectWorkbookHashesUnchanged();
     const draft = await buildOfficialSponsorDraft({
       directory: LOCAL_DIR,
       seasonDates: PROVISIONAL_LOCAL_TEST_SEASON_DATES,
@@ -122,7 +271,6 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
       startDate: PROVISIONAL_LOCAL_TEST_SEASON_DATES.startDate,
       endDate: PROVISIONAL_LOCAL_TEST_SEASON_DATES.endDate,
     });
-    expect(content.season.startDate).not.toBe('2027-01-01');
     expect(content.season.endDate).not.toBe('2027-12-31');
     expect(content.season).not.toHaveProperty('igniteAvailabilityDate');
     expect(content.season).not.toHaveProperty('sourceMaterialReleaseDate');
@@ -159,10 +307,11 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
       Array.from({ length: 250 }, (_, index) => index + 1),
     );
     expect(seniorLoad.verseList.rows).toHaveLength(392);
-    assertMaterialSet(beginner, beginnerLoad.verseList.rows);
-    assertMaterialSet(junior, juniorLoad.verseList.rows);
-    assertMaterialSet(intermediate, seniorLoad.verseList.rows);
-    assertMaterialSet(experienced, seniorLoad.verseList.rows);
+    assertMaterialSet(beginner, beginnerLoad.verseList.rows, beginnerLoad.frequencyWords, EXPECTED_ANNOTATIONS.beginner);
+    assertMaterialSet(junior, juniorLoad.verseList.rows, juniorLoad.frequencyWords, EXPECTED_ANNOTATIONS.junior);
+    assertMaterialSet(intermediate, seniorLoad.verseList.rows, seniorLoad.frequencyWords, EXPECTED_ANNOTATIONS.senior);
+    assertMaterialSet(experienced, seniorLoad.verseList.rows, seniorLoad.frequencyWords, EXPECTED_ANNOTATIONS.senior);
+    expect(validateContentPackage(content).some((item) => item.code === 'material_set_count')).toBe(true);
     expect(beginner.cards.length + junior.cards.length + intermediate.cards.length + experienced.cards.length).toBe(
       1184,
     );
@@ -195,6 +344,13 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
         throw new Error(`Senior card index ${index} is missing from one MaterialSet.`);
       }
       expect(left).not.toBe(right);
+      expect(left.annotations).toEqual(right.annotations);
+      expect(left.annotations).not.toBe(right.annotations);
+      left.annotations.forEach((annotation, annotationIndex) => {
+        expect(annotation).not.toBe(right.annotations[annotationIndex]);
+        expect(annotation.sourceTarget).not.toBe(right.annotations[annotationIndex]?.sourceTarget);
+        expect(annotation.resolvedTarget).not.toBe(right.annotations[annotationIndex]?.resolvedTarget);
+      });
       if (left.reference !== right.reference || left.verseText !== right.verseText) {
         throw new Error(
           `Senior card ${left.cardNumber} differs between intermediate and experienced (reference lengths ${left.reference.length}/${right.reference.length}, verse lengths ${left.verseText.length}/${right.verseText.length}).`,
@@ -208,6 +364,7 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
     }
     const fingerprint = fingerprintContent(content);
     const saved = experienced.cards[0]?.verseText;
+    const savedPhrase = experienced.cards[0]?.annotations[0]?.sourceTarget.phrase;
     const savedTopic = experienced.cards[0]?.studyContext?.topic;
     const savedMembership = [...(experienced.sections[0]?.cardIds ?? [])];
     if (intermediate.cards[0]) {
@@ -215,9 +372,13 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
       if (intermediate.cards[0].studyContext) {
         intermediate.cards[0].studyContext.topic = 'mutated topic';
       }
+      if (intermediate.cards[0].annotations[0]) {
+        intermediate.cards[0].annotations[0].sourceTarget.phrase = 'mutated phrase';
+      }
     }
     (intermediate.sections[0]?.cardIds as string[] | undefined)?.push('c999');
     expect(experienced.cards[0]?.verseText).toBe(saved);
+    expect(experienced.cards[0]?.annotations[0]?.sourceTarget.phrase).toBe(savedPhrase);
     expect(experienced.cards[0]?.studyContext?.topic).toBe(savedTopic);
     expect(experienced.sections[0]?.cardIds).toEqual(savedMembership);
     expect(experienced.sections[0]?.cardIds).not.toContain('c999');
@@ -231,5 +392,6 @@ function assertMaterialSet(materialSet: ContentMaterialSetRecord, rows: readonly
       throw new Error('expected a second package');
     }
     expect(fingerprintContent(second.pipeline.content)).toBe(fingerprint);
+    expectWorkbookHashesUnchanged();
   });
 });

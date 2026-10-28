@@ -2,11 +2,186 @@ import { deriveCardId } from './identifiers';
 import { isRejectedOccurrenceIndex } from './occurrenceIndex';
 import { issue } from './errors';
 import type {
+  AnnotationRow,
   AuthoringWorkbookData,
+  ContentAnnotationRecord,
+  ContentCardRecord,
   ContentPackage,
   ReconciliationReport,
   ValidationIssue,
 } from './types';
+
+/**
+ * Logical annotation identity. Notes and frequency tier are included so a
+ * same-count substitution cannot pass as the source annotation.
+ * A blank occurrence index is stored as 1 after a successful conversion.
+ */
+function annotationIdentityKey(input: {
+  type: string;
+  phrase: string;
+  occurrenceIndex: number;
+  frequencyTier?: number;
+  notes?: string;
+}): string {
+  return [
+    input.type,
+    input.phrase,
+    String(input.occurrenceIndex),
+    input.frequencyTier === undefined ? '' : String(input.frequencyTier),
+    input.notes ?? '',
+  ].join('\u001f');
+}
+
+function locateSourceCardId(
+  row: { cardId?: string; cardNumber?: number },
+  cardsByNumber: Map<number, string>,
+): string | undefined {
+  if (row.cardId) {
+    return row.cardId;
+  }
+  if (row.cardNumber !== undefined) {
+    return cardsByNumber.get(row.cardNumber);
+  }
+  return undefined;
+}
+
+function sourceAnnotationKey(annotation: AnnotationRow): string {
+  return annotationIdentityKey({
+    type: annotation.type,
+    phrase: annotation.phrase ?? '',
+    occurrenceIndex: annotation.occurrenceIndex ?? 1,
+    frequencyTier: annotation.frequencyTier,
+    notes: annotation.notes,
+  });
+}
+
+function generatedAnnotationKey(annotation: ContentAnnotationRecord): string {
+  return annotationIdentityKey({
+    type: annotation.type,
+    phrase: annotation.sourceTarget.phrase,
+    occurrenceIndex: annotation.sourceTarget.occurrenceIndex,
+    frequencyTier: annotation.frequencyTier,
+    notes: annotation.notes,
+  });
+}
+
+function annotationIdentityMismatches(
+  workbook: AuthoringWorkbookData,
+  generatedCards: readonly ContentCardRecord[],
+): ValidationIssue[] {
+  const cardsByNumber = new Map<number, string>();
+  for (const card of workbook.cards) {
+    cardsByNumber.set(card.cardNumber, deriveCardId(card.cardNumber, card.cardId));
+  }
+  const generatedById = new Map(generatedCards.map((card) => [card.cardId, card]));
+  const expectedByCard = new Map<string, Map<string, number>>();
+  const errors: ValidationIssue[] = [];
+
+  for (const annotation of workbook.annotations) {
+    if (isRejectedOccurrenceIndex(annotation)) {
+      continue;
+    }
+    const cardId = locateSourceCardId(annotation, cardsByNumber);
+    if (!cardId) {
+      errors.push(
+        issue({
+          code: 'reconciliation_annotation_mismatch',
+          workbook: workbook.workbookName,
+          sheet: 'Annotations',
+          row: annotation.sourceRow,
+          field: 'cardNumber',
+          reason: `Annotation on ${workbook.materialSet.materialSetId} has no Card.`,
+        }),
+      );
+      continue;
+    }
+    const counts = expectedByCard.get(cardId) ?? new Map<string, number>();
+    const key = sourceAnnotationKey(annotation);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    expectedByCard.set(cardId, counts);
+  }
+
+  const seenCards = new Set<string>();
+  for (const [cardId, expected] of expectedByCard) {
+    seenCards.add(cardId);
+    const card = generatedById.get(cardId);
+    if (!card) {
+      errors.push(
+        issue({
+          code: 'reconciliation_annotation_mismatch',
+          workbook: workbook.workbookName,
+          sheet: 'Annotations',
+          field: 'cardId',
+          reason: `Card "${cardId}" annotations were not found on MaterialSet "${workbook.materialSet.materialSetId}".`,
+        }),
+      );
+      continue;
+    }
+    const actual = new Map<string, number>();
+    for (const annotation of card.annotations) {
+      const slice = card.verseText.slice(annotation.resolvedTarget.start, annotation.resolvedTarget.end);
+      if (slice !== annotation.sourceTarget.phrase) {
+        errors.push(
+          issue({
+            code: 'reconciliation_annotation_mismatch',
+            workbook: workbook.workbookName,
+            sheet: 'Annotations',
+            field: 'phrase',
+            reason: `Card "${cardId}" annotation "${annotation.annotationId}" is not an exact verse slice.`,
+          }),
+        );
+      }
+      const key = generatedAnnotationKey(annotation);
+      actual.set(key, (actual.get(key) ?? 0) + 1);
+    }
+    for (const [key, count] of expected) {
+      const found = actual.get(key) ?? 0;
+      if (found !== count) {
+        const phrase = key.split('\u001f')[1] ?? '';
+        errors.push(
+          issue({
+            code: 'reconciliation_annotation_mismatch',
+            workbook: workbook.workbookName,
+            sheet: 'Annotations',
+            field: 'phrase',
+            reason: `Card "${cardId}" expected ${count} annotation(s) for "${phrase}" and found ${found}.`,
+          }),
+        );
+      }
+    }
+    for (const [key, count] of actual) {
+      if (!expected.has(key)) {
+        const phrase = key.split('\u001f')[1] ?? '';
+        errors.push(
+          issue({
+            code: 'reconciliation_annotation_mismatch',
+            workbook: workbook.workbookName,
+            sheet: 'Annotations',
+            field: 'phrase',
+            reason: `Card "${cardId}" has ${count} generated annotation(s) for "${phrase}" with no source row.`,
+          }),
+        );
+      }
+    }
+  }
+
+  for (const card of generatedCards) {
+    if (seenCards.has(card.cardId) || card.annotations.length === 0) {
+      continue;
+    }
+    errors.push(
+      issue({
+        code: 'reconciliation_annotation_mismatch',
+        workbook: workbook.workbookName,
+        sheet: 'Annotations',
+        field: 'cardId',
+        reason: `Card "${card.cardId}" has ${card.annotations.length} generated annotation(s) with no source rows.`,
+      }),
+    );
+  }
+
+  return errors;
+}
 
 export function reconcileSourceToPackage(
   workbooks: readonly AuthoringWorkbookData[],
@@ -118,6 +293,12 @@ export function reconcileSourceToPackage(
       const message = `MaterialSet "${workbook.materialSet.materialSetId}" source annotations ${sourceAnnotationCount} vs generated ${generatedAnnotationCount}.`;
       mismatches.push(message);
       errors.push(issue({ code: 'reconciliation_annotation_count', reason: message }));
+    }
+
+    const identityErrors = annotationIdentityMismatches(workbook, generated.cards);
+    for (const message of identityErrors) {
+      mismatches.push(message.reason);
+      errors.push(message);
     }
   }
 
