@@ -11,7 +11,7 @@ import useFlashcards from '../features/flashcards/hooks/useFlashcards';
 import { colors, spacing, typography } from '../shared/theme';
 
 /** Thin study screen: hooks + feature components only. */
-export const FlashcardStudyScreen: React.FC = () => {
+export const FlashcardStudyScreen: React.FC<{ onBackPress?: () => void }> = ({ onBackPress }) => {
   const {
     title,
     currentCard,
@@ -88,6 +88,7 @@ export const FlashcardStudyScreen: React.FC = () => {
         correctCount={correctCount}
         needsWorkCount={needsWorkCount}
         progress={progress}
+        onBackPress={onBackPress}
         onSettingsPress={openSettings}
       />
 
@@ -96,6 +97,7 @@ export const FlashcardStudyScreen: React.FC = () => {
       <SettingsBottomSheet visible={isSettingsOpen} onClose={closeSettings}>
         <FlashcardSettingsPanel
           settings={settings}
+          scripturePresentation={scripturePresentation}
           onToggleCategory={toggleCategoryFilter}
           onClearCategories={clearCategoryFilters}
           onShuffleChange={setShuffleCards}

@@ -4,10 +4,12 @@ export { FREQUENCY_SUPERSCRIPT_GLYPH, officialFrequencyTextColor } from './offic
 export {
   OFFICIAL_FREQUENCY_TIERS,
   OFFICIAL_SCRIPTURE_MARK_TYPES,
+  applicableOfficialMarks,
   isOfficialFrequencyTier,
   segmentOfficialAnnotations,
 } from './segmentOfficialAnnotations';
 export type {
+  ApplicableOfficialMarks,
   OfficialAnnotationDiagnostic,
   OfficialAnnotationDiagnosticCode,
   OfficialFrequencyIndicator,

@@ -7,11 +7,44 @@ import React from 'react';
 import { BottomTabNavigator } from '../../../src/app/navigation/BottomTabNavigator';
 import { StudyStackNavigator } from '../../../src/features/study/navigation/StudyStackNavigator';
 
+jest.mock('../../../src/features/study/state/StudyCurriculumGate', () => {
+  const ReactModule = require('react');
+  return {
+    StudyCurriculumGate: ({ children }: { children: React.ReactNode }) =>
+      ReactModule.createElement(ReactModule.Fragment, null, children),
+  };
+});
+
+jest.mock('../../../src/features/study/screens/StudyHubScreen', () => {
+  const ReactModule = require('react');
+  const { Pressable, Text } = require('react-native');
+  const { useNavigation } = require('@react-navigation/native');
+
+  function StudyHubStub() {
+    const navigation = useNavigation();
+    return ReactModule.createElement(
+      ReactModule.Fragment,
+      null,
+      ReactModule.createElement(Text, null, 'Study hub'),
+      ReactModule.createElement(
+        Pressable,
+        {
+          accessibilityLabel: 'Open flashcards',
+          onPress: () => navigation.navigate('FlashcardStudy'),
+        },
+        ReactModule.createElement(Text, null, 'Open flashcards'),
+      ),
+    );
+  }
+
+  return { StudyHubScreen: StudyHubStub };
+});
+
 jest.mock('../../../src/features/flashcards/screens/FlashcardStudyRoute', () => {
-  const React = require('react');
+  const ReactModule = require('react');
   const { Text } = require('react-native');
   function FlashcardStudyStub() {
-    return React.createElement(Text, null, 'FlashcardStudy engine');
+    return ReactModule.createElement(Text, null, 'FlashcardStudy engine');
   }
   return { __esModule: true, FlashcardStudyRoute: FlashcardStudyStub, default: FlashcardStudyStub };
 });
@@ -44,7 +77,7 @@ jest.mock('../../../src/screens/ProfileScreen', () => {
 });
 
 describe('StudyStackNavigator', () => {
-  it('opens FlashcardStudy as the initial destination with no StudyHome interstitial', async () => {
+  it('opens the Study hub before Flashcards', async () => {
     await render(
       <NavigationContainer>
         <StudyStackNavigator />
@@ -52,9 +85,9 @@ describe('StudyStackNavigator', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('FlashcardStudy engine')).toBeTruthy();
+      expect(screen.getByText('Study hub')).toBeTruthy();
     });
-    expect(screen.queryByText('Study Home')).toBeNull();
+    expect(screen.queryByText('FlashcardStudy engine')).toBeNull();
   });
 
   it('keeps the stack header hidden and does not remount the session on tab blur', () => {
@@ -67,11 +100,10 @@ describe('StudyStackNavigator', () => {
       'utf8',
     );
 
-    expect(stackSource).toContain('initialRouteName="FlashcardStudy"');
+    expect(stackSource).toContain('initialRouteName="StudyHub"');
     expect(stackSource).toContain('headerShown: false');
     expect(stackSource).toContain('FlashcardStudyRoute');
-    expect(stackSource).not.toContain('StudyHome');
-    // Comment may mention the forbidden option; assert it is not configured as code.
+    expect(stackSource).toContain('StudyHubScreen');
     expect(stackSource).not.toMatch(/unmountOnBlur\s*:/);
     expect(stackSource).not.toContain('detachInactiveScreens');
 
@@ -107,10 +139,15 @@ describe('Study tab session lifecycle contract', () => {
     );
 
     await waitFor(() => {
+      expect(screen.getByText('Study hub')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByLabelText('Open flashcards'));
+    await waitFor(() => {
       expect(screen.getByText('FlashcardStudy engine')).toBeTruthy();
     });
 
-    // Lazy tabs: leave Study then return — engine text must still be present (same tree).
+    // Lazy tabs: leave Study then return — the nested flashcard screen stays mounted.
     fireEvent.press(screen.getByLabelText(/^Home, tab/));
     await waitFor(() => {
       expect(screen.getByText('Home stub')).toBeTruthy();

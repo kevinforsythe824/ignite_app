@@ -350,8 +350,15 @@ describe('official scripture material-set isolation', () => {
       cardId: 'kept',
       reference: 'John 1:1',
       verseText: 'Kept words.',
-      tags: ['Unique Beg.'],
-      annotations: [],
+      annotations: [
+        officialAnnotation({
+          cardId: 'kept',
+          annotationId: 'kept-beg',
+          type: 'uniqueBeginning',
+          start: 0,
+          end: 4,
+        }),
+      ],
     });
     const hidden = officialStudyCard({
       cardId: 'hidden',

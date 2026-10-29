@@ -2,6 +2,7 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -13,7 +14,12 @@ import {
   DEFAULT_SCRIPTURE_PRESENTATION,
   type ScripturePresentationMode,
 } from '../scripturePresentation';
-import type { CardSide, CategoryFilterId, FlashcardSettings } from '../types/settings';
+import {
+  categoryFiltersForPresentation,
+  type CardSide,
+  type CategoryFilterId,
+  type FlashcardSettings,
+} from '../types/settings';
 import { buildStudyCards } from '../utils/buildStudyCards';
 import {
   flashcardSessionReducer,
@@ -105,6 +111,8 @@ export function FlashcardSessionProvider({
 
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
+  const presentationRef = useRef(scripturePresentation);
+  presentationRef.current = scripturePresentation;
 
   const resolveActiveCards = useCallback(() => {
     const ids = stateRef.current.activeCardIds;
@@ -134,7 +142,21 @@ export function FlashcardSessionProvider({
 
   const applyStudyOrder = useCallback(
     (nextSettings: FlashcardSettings, resetProgress: boolean) => {
-      const ordered = buildStudyCards(cardsRef.current, nextSettings);
+      const categoryFilters = categoryFiltersForPresentation(
+        nextSettings.categoryFilters,
+        presentationRef.current,
+      );
+      if (
+        categoryFilters.length !== nextSettings.categoryFilters.length ||
+        categoryFilters.some((filterId, index) => filterId !== nextSettings.categoryFilters[index])
+      ) {
+        dispatchSettings({ type: 'setCategoryFilters', filterIds: categoryFilters });
+      }
+      const ordered = buildStudyCards(
+        cardsRef.current,
+        { ...nextSettings, categoryFilters },
+        presentationRef.current,
+      );
       dispatch({
         type: 'setActiveOrder',
         cardIds: ordered.map((card) => card.cardId),
@@ -199,6 +221,27 @@ export function FlashcardSessionProvider({
   const restartFlashcards = useCallback(() => {
     applyStudyOrder(settingsRef.current, true);
   }, [applyStudyOrder]);
+
+  const appliedPresentationRef = useRef(scripturePresentation);
+  useEffect(() => {
+    if (appliedPresentationRef.current === scripturePresentation) {
+      return;
+    }
+    appliedPresentationRef.current = scripturePresentation;
+    const categoryFilters = categoryFiltersForPresentation(
+      settingsRef.current.categoryFilters,
+      scripturePresentation,
+    );
+    if (
+      categoryFilters.length !== settingsRef.current.categoryFilters.length ||
+      categoryFilters.some(
+        (filterId, index) => filterId !== settingsRef.current.categoryFilters[index],
+      )
+    ) {
+      dispatchSettings({ type: 'setCategoryFilters', filterIds: categoryFilters });
+    }
+    applyStudyOrder({ ...settingsRef.current, categoryFilters }, false);
+  }, [applyStudyOrder, scripturePresentation]);
 
   const actions = useMemo<FlashcardSessionActions>(
     () => ({

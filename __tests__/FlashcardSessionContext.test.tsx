@@ -8,6 +8,10 @@ import useFlashcards, {
   type UseFlashcardsResult,
 } from '../src/features/flashcards/hooks/useFlashcards';
 import { FlashcardSessionProvider } from '../src/features/flashcards/state/FlashcardSessionContext';
+import {
+  officialAnnotation,
+  officialStudyCard,
+} from '../test-utils/officialFlashcardFixtures';
 
 const testCards: Card[] = [
   {
@@ -526,5 +530,182 @@ describe('FlashcardSessionContext', () => {
         TestRenderer.create(<BrokenProbe />);
       });
     }).toThrow(/FlashcardSessionProvider/);
+  });
+
+  it('filters official frequency annotations without scoring the same card twice', () => {
+    const cards = [
+      officialStudyCard({
+        cardId: 'freq-a',
+        cardNumber: 1,
+        reference: 'John 11:35',
+        verseText: 'Alpha walks.',
+        annotations: [
+          officialAnnotation({
+            cardId: 'freq-a',
+            annotationId: 'tier-2',
+            type: 'frequency',
+            start: 6,
+            end: 11,
+            frequencyTier: 2,
+          }),
+        ],
+      }),
+      officialStudyCard({
+        cardId: 'plain',
+        cardNumber: 2,
+        reference: 'John 11:36',
+        verseText: 'Beta speaks.',
+      }),
+    ];
+    const { getSession } = createSessionController(cards, 'official');
+
+    act(() => {
+      getSession().markCorrect();
+    });
+    expect(getSession().correctCount).toBe(1);
+    expect(getSession().currentCard?.cardId).toBe('plain');
+
+    act(() => {
+      getSession().toggleCategoryFilter('frequency2x');
+    });
+
+    const filtered = getSession();
+    expect(filtered.settings.categoryFilters).toEqual(['frequency2x']);
+    expect(filtered.totalCards).toBe(1);
+    expect(filtered.currentCard?.cardId).toBe('freq-a');
+    expect(filtered.correctCount).toBe(1);
+    expect(filtered.statusById).toEqual({ 'freq-a': 'correct' });
+
+    act(() => {
+      getSession().clearCategoryFilters();
+    });
+    expect(getSession().totalCards).toBe(2);
+    expect(getSession().correctCount).toBe(1);
+    expect(getSession().cards.map((card) => card.cardId)).toEqual(['freq-a', 'plain']);
+  });
+
+  it('drops filters the new presentation does not offer instead of emptying the deck', () => {
+    const cards = [
+      officialStudyCard({
+        cardId: 'tagged',
+        cardNumber: 1,
+        reference: 'John 11:35',
+        verseText: 'Alpha walks.',
+        tags: ['1x Keyword'],
+      }),
+      officialStudyCard({
+        cardId: 'plain',
+        cardNumber: 2,
+        reference: 'John 11:36',
+        verseText: 'Beta speaks.',
+      }),
+    ];
+    const sessionRef: { current: UseFlashcardsResult | null } = { current: null };
+
+    function Probe(): null {
+      sessionRef.current = useFlashcards();
+      return null;
+    }
+
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <FlashcardSessionProvider
+          seasonId={TEST_SEASON_ID}
+          title="Test Deck"
+          cards={cards}
+          scripturePresentation="legacy"
+        >
+          <Probe />
+        </FlashcardSessionProvider>,
+      );
+    });
+
+    act(() => {
+      sessionRef.current?.toggleCategoryFilter('keyword1x');
+    });
+    expect(sessionRef.current?.totalCards).toBe(1);
+    expect(sessionRef.current?.currentCard?.cardId).toBe('tagged');
+
+    act(() => {
+      renderer.update(
+        <FlashcardSessionProvider
+          seasonId={TEST_SEASON_ID}
+          title="Test Deck"
+          cards={cards}
+          scripturePresentation="official"
+        >
+          <Probe />
+        </FlashcardSessionProvider>,
+      );
+    });
+
+    expect(sessionRef.current?.settings.categoryFilters).toEqual([]);
+    expect(sessionRef.current?.totalCards).toBe(2);
+    expect(sessionRef.current?.cards.map((card) => card.cardId)).toEqual(['tagged', 'plain']);
+  });
+
+  it('starts a new session when the study scope key changes', () => {
+    const first = [
+      officialStudyCard({
+        cardId: 'section-a',
+        cardNumber: 1,
+        reference: 'John 11:35',
+        verseText: 'Alpha walks.',
+      }),
+    ];
+    const second = [
+      officialStudyCard({
+        cardId: 'section-b',
+        cardNumber: 2,
+        reference: 'John 11:36',
+        verseText: 'Beta speaks.',
+      }),
+    ];
+    const sessionRef: { current: UseFlashcardsResult | null } = { current: null };
+
+    function Probe(): null {
+      sessionRef.current = useFlashcards();
+      return null;
+    }
+
+    let renderer!: ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <FlashcardSessionProvider
+          key="season:set:section-a"
+          seasonId={TEST_SEASON_ID}
+          title="Section A"
+          cards={first}
+          scripturePresentation="official"
+        >
+          <Probe />
+        </FlashcardSessionProvider>,
+      );
+    });
+
+    act(() => {
+      sessionRef.current?.markCorrect();
+    });
+    expect(sessionRef.current?.correctCount).toBe(1);
+
+    act(() => {
+      renderer.update(
+        <FlashcardSessionProvider
+          key="season:set:section-b"
+          seasonId={TEST_SEASON_ID}
+          title="Section B"
+          cards={second}
+          scripturePresentation="official"
+        >
+          <Probe />
+        </FlashcardSessionProvider>,
+      );
+    });
+
+    expect(sessionRef.current?.correctCount).toBe(0);
+    expect(sessionRef.current?.statusById).toEqual({});
+    expect(sessionRef.current?.currentCard?.cardId).toBe('section-b');
+    expect(sessionRef.current?.title).toBe('Section B');
   });
 });

@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '../../../shared/theme';
+import type { ScripturePresentationMode } from '../scripturePresentation';
+import OfficialIndexLegend from './OfficialIndexLegend';
 
 interface KeywordLegendItem {
   label: string;
@@ -87,7 +89,7 @@ const StructuralSampleCard: React.FC<StructuralLegendItem> = ({
 };
 
 /** Color key for competitive keyword tiers, category tags, and structural marks. */
-export const IndexLegend: React.FC = React.memo(() => (
+const LegacyIndexLegend: React.FC = React.memo(() => (
   <View style={styles.container} accessibilityRole="summary">
     <Text style={styles.title}>Index Legend</Text>
 
@@ -110,6 +112,16 @@ export const IndexLegend: React.FC = React.memo(() => (
     </View>
   </View>
 ));
+
+export interface IndexLegendProps {
+  /** Legacy keeps keyword colors and slash marks. Official describes the painted annotations. */
+  mode?: ScripturePresentationMode;
+}
+
+/** Color key for the scripture formatting of the active study session. */
+export const IndexLegend: React.FC<IndexLegendProps> = React.memo(({ mode = 'legacy' }) =>
+  mode === 'official' ? <OfficialIndexLegend /> : <LegacyIndexLegend />,
+);
 
 const styles = StyleSheet.create({
   container: {

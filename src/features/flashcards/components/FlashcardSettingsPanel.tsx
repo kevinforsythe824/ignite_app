@@ -2,7 +2,16 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing, typography } from '../../../shared/theme';
-import type { CardSide, CategoryFilterId, FlashcardSettings } from '../types/settings';
+import {
+  DEFAULT_SCRIPTURE_PRESENTATION,
+  type ScripturePresentationMode,
+} from '../scripturePresentation';
+import {
+  categoryFilterOptionsFor,
+  type CardSide,
+  type CategoryFilterId,
+  type FlashcardSettings,
+} from '../types/settings';
 import CategoryFilterTabs from './CategoryFilterTabs';
 import DefaultSideSwitch from './DefaultSideSwitch';
 import IndexLegend from './IndexLegend';
@@ -10,6 +19,7 @@ import SettingsToggle from './SettingsToggle';
 
 export interface FlashcardSettingsPanelProps {
   settings: FlashcardSettings;
+  scripturePresentation?: ScripturePresentationMode;
   onToggleCategory: (filterId: CategoryFilterId) => void;
   onClearCategories: () => void;
   onShuffleChange: (value: boolean) => void;
@@ -20,6 +30,7 @@ export interface FlashcardSettingsPanelProps {
 /** Settings content composed inside the animated bottom sheet. */
 export const FlashcardSettingsPanel: React.FC<FlashcardSettingsPanelProps> = React.memo(({
   settings,
+  scripturePresentation = DEFAULT_SCRIPTURE_PRESENTATION,
   onToggleCategory,
   onClearCategories,
   onShuffleChange,
@@ -33,11 +44,12 @@ export const FlashcardSettingsPanel: React.FC<FlashcardSettingsPanelProps> = Rea
   >
     <Text style={styles.heading}>Study Settings</Text>
 
-    <IndexLegend />
+    <IndexLegend mode={scripturePresentation} />
 
     <View style={styles.divider} />
 
     <CategoryFilterTabs
+      options={categoryFilterOptionsFor(scripturePresentation)}
       selected={settings.categoryFilters}
       onToggle={onToggleCategory}
       onClear={onClearCategories}

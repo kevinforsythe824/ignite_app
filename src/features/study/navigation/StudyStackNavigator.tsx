@@ -2,22 +2,34 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
 import { FlashcardStudyRoute } from '../../flashcards/screens/FlashcardStudyRoute';
+import { StudyHubScreen } from '../screens/StudyHubScreen';
+import { StudyCurriculumGate } from '../state/StudyCurriculumGate';
 import type { StudyStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<StudyStackParamList>();
 
+function StudyStack(): React.JSX.Element {
+  return (
+    <Stack.Navigator initialRouteName="StudyHub" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="StudyHub" component={StudyHubScreen} />
+      <Stack.Screen name="FlashcardStudy" component={FlashcardStudyRoute} />
+    </Stack.Navigator>
+  );
+}
+
 /**
- * Nested stack under the Study tab. Today the only screen is FlashcardStudy
- * (header hidden so StudyHeader remains the chrome). Future Study Home plugs
- * in here without retargeting BottomTabNavigator.
+ * Nested stack under the Study tab. The hub is the entry. Flashcards is pushed
+ * for Study All or one section.
  *
  * Do not add blur-unmount or detach options that remount FlashcardSessionProvider
- * when the Study tab blurs — session must preserve across tab switches.
+ * when the Study tab blurs — an in-progress session must survive tab switches.
+ * The curriculum gate stays mounted with this stack, so moving between the hub
+ * and Flashcards does not load the MaterialSet again.
  */
 export function StudyStackNavigator(): React.JSX.Element {
   return (
-    <Stack.Navigator initialRouteName="FlashcardStudy" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="FlashcardStudy" component={FlashcardStudyRoute} />
-    </Stack.Navigator>
+    <StudyCurriculumGate>
+      <StudyStack />
+    </StudyCurriculumGate>
   );
 }

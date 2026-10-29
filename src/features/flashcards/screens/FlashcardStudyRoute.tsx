@@ -1,136 +1,66 @@
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import FlashcardStudyScreen from '../../../screens/FlashcardStudyScreen';
-import { colors, spacing, typography } from '../../../shared/theme';
-import { useSeasonParticipation } from '../../season/state/SeasonParticipationProvider';
-import { useFlashcardCurriculum } from '../hooks/useFlashcardCurriculum';
-import { firestoreCurriculumRepository } from '../repositories';
+import { StudyMessage } from '../../study/components/StudyMessage';
+import type { StudyStackParamList } from '../../study/navigation/types';
+import { useStudyCurriculum } from '../../study/state/StudyCurriculumGate';
+import { resolveStudyScope, studySessionKey } from '../domain/resolveStudyScope';
 import { FlashcardSessionProvider } from '../state/FlashcardSessionContext';
 
-/** Live Study curriculum source — Firestore, not the JSON fixture. */
-export const studyCurriculumRepository = firestoreCurriculumRepository;
+export { studyCurriculumRepository } from '../../study/state/StudyCurriculumGate';
 
 /**
- * Study tab entry. Curriculum loads only for the participation-resolved Study target.
- * An unready Season session does not fall back to another MaterialSet.
+ * Flashcards for the Study curriculum already loaded by StudyCurriculumGate.
+ * Scope is the selected MaterialSet, then an optional section. Category
+ * filters and shuffle run inside the session on that scoped list.
+ * scripturePresentation is official because these cards use verse text and
+ * annotations. Fixture sessions omit that prop and stay on matchedRules.
  */
 export function FlashcardStudyRoute(): React.JSX.Element {
-  const { session } = useSeasonParticipation();
-  if (session.status !== 'ready') {
-    return <StudyTargetUnavailable />;
+  const navigation =
+    useNavigation<NativeStackNavigationProp<StudyStackParamList, 'FlashcardStudy'>>();
+  const route = useRoute<RouteProp<StudyStackParamList, 'FlashcardStudy'>>();
+  const curriculum = useStudyCurriculum();
+  const sectionId = route.params?.sectionId;
+  const scope = resolveStudyScope(curriculum, sectionId);
+  const goBack = () => navigation.goBack();
+
+  if (scope.status === 'unknown-section') {
+    return (
+      <StudyMessage
+        testID="study-unknown-section"
+        title="This section isn't available"
+        copy="Go back and choose a section from this material."
+        onBack={goBack}
+      />
+    );
   }
 
-  return (
-    <ReadyFlashcardStudy
-      materialSetId={session.studyTarget.materialSetId}
-      seasonId={session.studyTarget.seasonId}
-    />
-  );
-}
-
-function ReadyFlashcardStudy({
-  seasonId,
-  materialSetId,
-}: {
-  seasonId: string;
-  materialSetId: string;
-}): React.JSX.Element {
-  const { loadState, reload } = useFlashcardCurriculum(
-    seasonId,
-    materialSetId,
-    studyCurriculumRepository,
-  );
-
-  if (loadState.status === 'ready') {
-    // Firestore-mapped cards are the official scripture source (verse text
-    // and annotations). Fixture sessions omit this and stay on matchedRules.
-    // This does not select a season or material set.
+  if (scope.status === 'empty-section') {
     return (
-      <FlashcardSessionProvider
-        seasonId={loadState.curriculum.seasonId}
-        title={loadState.curriculum.title}
-        cards={loadState.curriculum.cards}
-        scripturePresentation="official"
-      >
-        <FlashcardStudyScreen />
-      </FlashcardSessionProvider>
+      <StudyMessage
+        testID="study-empty-section"
+        title={scope.section.title}
+        copy="This section has no cards."
+        onBack={goBack}
+      />
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.message}>
-        {loadState.status === 'loading' ? (
-          <Text style={styles.title}>Loading cards…</Text>
-        ) : null}
-        {loadState.status === 'empty' ? (
-          <>
-            <Text style={styles.title}>No cards available</Text>
-            <Text style={styles.copy}>There are no cards for this season.</Text>
-          </>
-        ) : null}
-        {loadState.status === 'error' ? (
-          <>
-            <Text style={styles.title}>Could not load cards</Text>
-            <Text style={styles.copy}>{loadState.message}</Text>
-            <Pressable
-              onPress={reload}
-              accessibilityRole="button"
-              accessibilityLabel="Try again"
-              style={({ pressed }) => [styles.retry, pressed && styles.retryPressed]}
-            >
-              <Text style={styles.retryLabel}>Try again</Text>
-            </Pressable>
-          </>
-        ) : null}
-      </View>
-    </SafeAreaView>
+    <FlashcardSessionProvider
+      key={studySessionKey(curriculum.seasonId, curriculum.materialSetId, sectionId)}
+      seasonId={curriculum.seasonId}
+      title={scope.title}
+      cards={scope.cards}
+      scripturePresentation="official"
+    >
+      <FlashcardStudyScreen onBackPress={goBack} />
+    </FlashcardSessionProvider>
   );
 }
-
-function StudyTargetUnavailable(): React.JSX.Element {
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.message} testID="study-target-unavailable">
-        <Text style={styles.title}>Study isn't available right now</Text>
-      </View>
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  message: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.screenPaddingH,
-    gap: spacing.sm,
-  },
-  title: {
-    ...typography.verseReference,
-    textAlign: 'center',
-  },
-  copy: {
-    ...typography.hint,
-    textAlign: 'center',
-  },
-  retry: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-  },
-  retryPressed: {
-    opacity: 0.7,
-  },
-  retryLabel: {
-    ...typography.title,
-  },
-});
 
 export default FlashcardStudyRoute;

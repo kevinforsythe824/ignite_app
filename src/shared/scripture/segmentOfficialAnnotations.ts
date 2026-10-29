@@ -399,3 +399,27 @@ export function segmentOfficialAnnotations(
     canonicalText: verseText,
   };
 }
+
+/**
+ * Marks the segmenter actually paints.
+ * Category filters use this so a card is not described as containing an
+ * annotation the renderer has dropped.
+ */
+export interface ApplicableOfficialMarks {
+  uniqueBeginning: boolean;
+  uniqueEnding: boolean;
+  /** Tiers that emit a frequency indicator. Invalid and conflicted tiers are absent. */
+  frequencyTiers: readonly OfficialFrequencyTier[];
+}
+
+export function applicableOfficialMarks(
+  input: SegmentOfficialAnnotationsInput,
+): ApplicableOfficialMarks {
+  const segmentation = segmentOfficialAnnotations(input);
+  const present = new Set(segmentation.indicators.map((indicator) => indicator.tier));
+  return {
+    uniqueBeginning: segmentation.runs.some((run) => run.bold),
+    uniqueEnding: segmentation.runs.some((run) => run.underline),
+    frequencyTiers: OFFICIAL_FREQUENCY_TIERS.filter((tier) => present.has(tier)),
+  };
+}

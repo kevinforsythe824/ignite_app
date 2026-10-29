@@ -27,7 +27,7 @@ const TAB_ICONS: Record<
 /** Clipboard geometry sits optically high vs Ionicons; nudge the glyph only. */
 const PRACTICE_ICON_TRANSLATE_Y = 2;
 
-/** MVP tab shell. Study (Flashcards) is the default entry tab. AI Coach is Post-MVP. */
+/** MVP tab shell. Study is the default entry tab. AI Coach is Post-MVP. */
 export function BottomTabNavigator(): React.JSX.Element {
   return (
     <Tab.Navigator

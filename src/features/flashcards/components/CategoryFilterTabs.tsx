@@ -5,12 +5,15 @@ import { colors, radius, spacing, typography } from '../../../shared/theme';
 import {
   CATEGORY_FILTER_OPTIONS,
   type CategoryFilterId,
+  type CategoryFilterOption,
 } from '../types/settings';
 
 export interface CategoryFilterTabsProps {
   selected: readonly CategoryFilterId[];
   onToggle: (filterId: CategoryFilterId) => void;
   onClear?: () => void;
+  /** Defaults to the legacy Index Legend collection. */
+  options?: readonly CategoryFilterOption[];
 }
 
 /** Multi-select Index Legend category chips for narrowing the active deck. */
@@ -18,6 +21,7 @@ export const CategoryFilterTabs: React.FC<CategoryFilterTabsProps> = React.memo(
   selected,
   onToggle,
   onClear,
+  options = CATEGORY_FILTER_OPTIONS,
 }) => {
   const hasSelection = selected.length > 0;
 
@@ -42,7 +46,7 @@ export const CategoryFilterTabs: React.FC<CategoryFilterTabsProps> = React.memo(
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabs}
       >
-        {CATEGORY_FILTER_OPTIONS.map((option) => {
+        {options.map((option) => {
           const isActive = selected.includes(option.id);
           return (
             <Pressable
@@ -50,7 +54,7 @@ export const CategoryFilterTabs: React.FC<CategoryFilterTabsProps> = React.memo(
               onPress={() => onToggle(option.id)}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`Filter ${option.label}`}
+              accessibilityLabel={`Filter ${option.accessibilityLabel ?? option.label}`}
               style={({ pressed }) => [
                 styles.tab,
                 isActive && styles.tabActive,
@@ -101,6 +105,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   tab: {
+    minHeight: spacing.minTouchTarget,
+    justifyContent: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,

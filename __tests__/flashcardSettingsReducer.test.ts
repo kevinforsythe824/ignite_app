@@ -84,4 +84,22 @@ describe('flashcardSettingsReducer', () => {
       INITIAL_SETTINGS_STATE,
     );
   });
+
+  it('replaces category filters without toggling when the presentation changes', () => {
+    const withLegacy = flashcardSettingsReducer(INITIAL_SETTINGS_STATE, {
+      type: 'toggleCategoryFilter',
+      filterId: 'keyword1x',
+    });
+    const replaced = flashcardSettingsReducer(withLegacy, {
+      type: 'setCategoryFilters',
+      filterIds: ['frequency2x'],
+    });
+    expect(replaced.categoryFilters).toEqual(['frequency2x']);
+    expect(
+      flashcardSettingsReducer(replaced, {
+        type: 'setCategoryFilters',
+        filterIds: ['frequency2x'],
+      }),
+    ).toBe(replaced);
+  });
 });

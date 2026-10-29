@@ -175,7 +175,7 @@ describe('RootNavigator auth session switch', () => {
     });
     const screen = await renderRoot(repository, profileRepository);
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(screen.queryByTestId('auth-welcome-create-account')).toBeNull();
   });
 
@@ -263,7 +263,7 @@ describe('RootNavigator auth session switch', () => {
 
     const screen = await renderRoot(repository, profileRepository);
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     const getProfileCallsBefore = (profileRepository.getProfile as jest.Mock).mock.calls.length;
 
     await user.press(screen.getByText('Profile'));
@@ -351,7 +351,7 @@ describe('RootNavigator auth session switch', () => {
 
     const screen = await renderRoot(repository, profileRepository, { secureStore });
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(screen.queryByTestId('consent-claim-pending-title')).toBeNull();
   });
 
@@ -451,7 +451,7 @@ describe('RootNavigator auth session switch', () => {
     await waitFor(() => {
       expect(consentRepository.claim).toHaveBeenCalled();
     });
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(screen.queryByTestId('consent-claim-pending-title')).toBeNull();
     expect(secureStore.peek()).toBeNull();
   });
@@ -821,7 +821,7 @@ describe('RootNavigator account lifecycle', () => {
 
     const screen = await renderRoot(repository, profileRepository);
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
 
     await act(async () => {
       repository.emit({
@@ -844,7 +844,7 @@ describe('RootNavigator account lifecycle', () => {
       });
     });
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(screen.queryByTestId('quizzer-profile-loading')).toBeNull();
   });
 
@@ -871,7 +871,7 @@ describe('RootNavigator account lifecycle', () => {
     await user.type(screen.getByTestId('auth-sign-in-password'), 'secret');
     await user.press(screen.getByTestId('auth-sign-in-submit'));
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
     expect(screen.queryByTestId('auth-welcome-create-account')).toBeNull();
   });
@@ -914,7 +914,7 @@ describe('RootNavigator account lifecycle', () => {
 
     const screen = await renderRoot(repository, profileRepository);
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(screen.queryByTestId('quizzer-name-title')).toBeNull();
   });
 
@@ -1044,7 +1044,7 @@ describe('RootNavigator account lifecycle', () => {
 
     const screen = await renderRoot(repository, profileRepository);
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(screen.queryByTestId('season-setup-age-input')).toBeNull();
     expect(screen.queryByTestId('no-current-season-title')).toBeNull();
   });
@@ -1149,7 +1149,7 @@ describe('RootNavigator account lifecycle', () => {
     await pressSetup(screen.getByTestId('season-setup-region-continue'));
     await pressSetup(await screen.findByTestId('season-setup-review-confirm'));
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
     expect(participationCreator.create).toHaveBeenCalledTimes(1);
     expect(season.participationRepository.getParticipation).toHaveBeenCalledWith(
       'user-1',
@@ -1199,7 +1199,7 @@ describe('RootNavigator account lifecycle', () => {
       seasonSetupCatalogRepository: setupCatalog(),
     });
 
-    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Study All Material')).toBeTruthy();
 
     await act(async () => {
       repository.emit({

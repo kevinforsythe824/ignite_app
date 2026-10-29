@@ -98,6 +98,17 @@ describe('legacy live Firestore seed retirement', () => {
     expect(source).not.toContain('beginner-2027');
     expect(source).not.toContain('TEST_SEASON_ID');
     expect(source).not.toContain('test-season');
-    expect(source).toContain('studyTarget');
+    expect(source).not.toContain("'2027'");
+
+    const gateSource = readFileSync(
+      join(repoRoot, 'src/features/study/state/StudyCurriculumGate.tsx'),
+      'utf8',
+    );
+    expect(gateSource).toContain('studyTarget');
+    expect(gateSource).not.toContain('TEMPORARY_STUDY_SEASON_ID');
+    expect(gateSource).not.toContain('TEMPORARY_STUDY_MATERIAL_SET_ID');
+    expect(gateSource).not.toContain('beginner-2027');
+    expect(gateSource).not.toContain('TEST_SEASON_ID');
+    expect(gateSource).not.toContain('test-season');
   });
 });

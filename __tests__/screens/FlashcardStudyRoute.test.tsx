@@ -1,8 +1,10 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
+import { Pressable } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
 
 import { AuthProvider } from '../../src/features/auth';
 import type { Card } from '../../src/features/flashcards/domain/card';
@@ -19,8 +21,9 @@ import {
 } from '../../src/features/flashcards/domain/testSeason';
 import { firestoreCurriculumRepository } from '../../src/features/flashcards/repositories';
 import { jsonCurriculumRepository } from '../../src/features/flashcards/repositories/jsonCurriculumRepository';
-import { FlashcardStudyRoute, studyCurriculumRepository } from '../../src/features/flashcards/screens/FlashcardStudyRoute';
-import { SeasonParticipationProvider } from '../../src/features/season/state/SeasonParticipationProvider';
+import { studyCurriculumRepository } from '../../src/features/flashcards/screens/FlashcardStudyRoute';
+import { SeasonParticipationProvider, useSeasonParticipation } from '../../src/features/season/state/SeasonParticipationProvider';
+import { StudyStackNavigator } from '../../src/features/study/navigation/StudyStackNavigator';
 import { createAuthRepositoryFake } from '../../test-utils/authRepositoryFake';
 import {
   createSeasonParticipationTestDoubles,
@@ -40,6 +43,18 @@ jest.mock('../../src/features/flashcards/repositories/firebaseCurriculumSource',
 
 const getCurriculum = firestoreCurriculumRepository.getCurriculum as jest.Mock;
 
+function SeasonRefreshButton(): React.JSX.Element {
+  const { refresh } = useSeasonParticipation();
+  return (
+    <Pressable
+      accessibilityLabel="Refresh season participation"
+      onPress={() => {
+        void refresh();
+      }}
+    />
+  );
+}
+
 async function renderStudy(doubles: SeasonParticipationTestDoubles) {
   const auth = createAuthRepositoryFake({
     initialIdentity: { uid: 'user-1', email: 'quizzer@example.com', emailVerified: false },
@@ -53,7 +68,10 @@ async function renderStudy(doubles: SeasonParticipationTestDoubles) {
         readEnvironment={doubles.readEnvironment}
         seasonCatalog={doubles.seasonCatalog}
       >
-        <FlashcardStudyRoute />
+        <NavigationContainer>
+          <SeasonRefreshButton />
+          <StudyStackNavigator />
+        </NavigationContainer>
       </SeasonParticipationProvider>
     </AuthProvider>,
   );
@@ -83,14 +101,20 @@ describe('FlashcardStudyRoute', () => {
       join(__dirname, '../../src/features/flashcards/screens/FlashcardStudyRoute.tsx'),
       'utf8',
     );
+    const gateSource = readFileSync(
+      join(__dirname, '../../src/features/study/state/StudyCurriculumGate.tsx'),
+      'utf8',
+    );
     expect(source).not.toContain('TEMPORARY_STUDY_SEASON_ID');
     expect(source).not.toContain('TEMPORARY_STUDY_MATERIAL_SET_ID');
     expect(source).not.toContain('beginner-2027');
     expect(source).not.toContain("'2027'");
     expect(source).not.toContain('TEST_SEASON_ID');
-    expect(source).toContain('studyTarget.seasonId');
-    expect(source).toContain('studyTarget.materialSetId');
+    expect(source).not.toContain('useFlashcardCurriculum');
     expect(source).toContain('scripturePresentation="official"');
+    expect(gateSource).toContain('studyTarget.seasonId');
+    expect(gateSource).toContain('studyTarget.materialSetId');
+    expect(gateSource).toContain('useFlashcardCurriculum');
   });
 
   it('loads curriculum with the ready competitive Study target', async () => {
@@ -147,13 +171,19 @@ describe('FlashcardStudyRoute', () => {
     getCurriculum.mockImplementation(async (seasonId: string, materialSetId: string) => ({
       seasonId,
       materialSetId,
-      title: 'Study',
+      title: 'Junior',
       cards: [card],
       sections: [],
     }));
 
     const doubles = createSeasonParticipationTestDoubles();
     const screen = await renderStudy(doubles);
+
+    expect(await screen.findByTestId('study-hub')).toBeTruthy();
+    expect(screen.getByTestId('study-material-title').props.children).toBe('Junior');
+    expect(screen.queryByText(verse)).toBeNull();
+
+    fireEvent.press(screen.getByTestId('study-all-material'));
 
     expect(await screen.findByTestId('official-scripture-text')).toBeTruthy();
     expect(screen.getByLabelText(verse).props.accessibilityLabel).toBe(verse);
@@ -183,5 +213,106 @@ describe('FlashcardStudyRoute', () => {
     const failedScreen = await renderStudy(failed);
     expect(await failedScreen.findByTestId('study-target-unavailable')).toBeTruthy();
     expect(getCurriculum).not.toHaveBeenCalled();
+  });
+
+  it('retries a failed curriculum load without leaving the Study gate', async () => {
+    getCurriculum.mockRejectedValueOnce(new Error('offline curriculum'));
+    const doubles = createSeasonParticipationTestDoubles();
+    const screen = await renderStudy(doubles);
+
+    expect(await screen.findByText('Could not load cards')).toBeTruthy();
+    expect(screen.getByText('offline curriculum')).toBeTruthy();
+
+    getCurriculum.mockImplementation(async (seasonId: string, materialSetId: string) => ({
+      seasonId,
+      materialSetId,
+      title: 'Junior',
+      cards: [
+        officialStudyCard({
+          cardId: 'retry-card',
+          seasonId,
+          materialSetId,
+          reference: 'John 11:35',
+          verseText: 'Recovered verse.',
+        }),
+      ],
+      sections: [],
+    }));
+
+    fireEvent.press(screen.getByLabelText('Try again'));
+    expect(await screen.findByTestId('study-hub')).toBeTruthy();
+    expect(screen.getByTestId('study-material-title').props.children).toBe('Junior');
+  });
+
+  it('loads the curriculum once while moving between the hub and flashcards', async () => {
+    const verse = 'Alpha walks.';
+    getCurriculum.mockImplementation(async (seasonId: string, materialSetId: string) => ({
+      seasonId,
+      materialSetId,
+      title: 'Junior',
+      cards: [
+        officialStudyCard({
+          cardId: 'once',
+          seasonId,
+          materialSetId,
+          reference: 'John 11:35',
+          verseText: verse,
+        }),
+      ],
+      sections: [],
+    }));
+    const doubles = createSeasonParticipationTestDoubles();
+    const screen = await renderStudy(doubles);
+
+    expect(await screen.findByTestId('study-hub')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('study-all-material'));
+    expect(await screen.findByLabelText(verse)).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Go back'));
+    expect(await screen.findByTestId('study-hub')).toBeTruthy();
+    expect(getCurriculum).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops the previous MaterialSet when the Study target changes', async () => {
+    const firstVerse = 'Alpha walks.';
+    const secondVerse = 'Beta speaks.';
+    getCurriculum.mockImplementation(async (seasonId: string, materialSetId: string) => ({
+      seasonId,
+      materialSetId,
+      title: materialSetId === 'material-adult' ? 'Experienced' : 'Junior',
+      cards: [
+        officialStudyCard({
+          cardId: 'target-card',
+          seasonId,
+          materialSetId,
+          reference: 'John 11:35',
+          verseText: materialSetId === 'material-adult' ? secondVerse : firstVerse,
+        }),
+      ],
+      sections: [],
+    }));
+    const doubles = createSeasonParticipationTestDoubles();
+    const screen = await renderStudy(doubles);
+
+    expect(await screen.findByTestId('study-material-title')).toBeTruthy();
+    expect(screen.getByTestId('study-material-title').props.children).toBe('Junior');
+    fireEvent.press(screen.getByTestId('study-all-material'));
+    expect(await screen.findByLabelText(firstVerse)).toBeTruthy();
+
+    doubles.participationRepository.getParticipation.mockImplementation(
+      async (userId: string, seasonId: string) =>
+        testStudyTrackParticipation(userId, seasonId, 'material-adult'),
+    );
+    doubles.materialSetCatalog.listMaterialSets.mockImplementation(async (seasonId: string) => [
+      testMaterialSet(seasonId, 'material-adult', 'experienced', 'Experienced'),
+    ]);
+
+    fireEvent.press(screen.getByLabelText('Refresh season participation'));
+
+    expect(await screen.findByText('Experienced')).toBeTruthy();
+    expect(screen.queryByLabelText(firstVerse)).toBeNull();
+    expect(screen.queryByText(firstVerse)).toBeNull();
+    fireEvent.press(screen.getByTestId('study-all-material'));
+    expect(await screen.findByLabelText(secondVerse)).toBeTruthy();
+    expect(getCurriculum).toHaveBeenCalledWith('2032', 'material-adult');
   });
 });

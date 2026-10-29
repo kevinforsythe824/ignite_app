@@ -9,6 +9,7 @@ export type FlashcardSettingsAction =
   | { type: 'setShuffleCards'; value: boolean }
   | { type: 'setDefaultSide'; value: CardSide }
   | { type: 'toggleCategoryFilter'; filterId: CategoryFilterId }
+  | { type: 'setCategoryFilters'; filterIds: readonly CategoryFilterId[] }
   | { type: 'clearCategoryFilters' }
   | { type: 'resetSettings' };
 
@@ -39,6 +40,14 @@ export function flashcardSettingsReducer(
         ...state,
         categoryFilters: toggleFilter(state.categoryFilters, action.filterId),
       };
+    case 'setCategoryFilters':
+      if (
+        state.categoryFilters.length === action.filterIds.length &&
+        state.categoryFilters.every((filterId, index) => filterId === action.filterIds[index])
+      ) {
+        return state;
+      }
+      return { ...state, categoryFilters: [...action.filterIds] };
     case 'clearCategoryFilters':
       if (state.categoryFilters.length === 0) {
         return state;

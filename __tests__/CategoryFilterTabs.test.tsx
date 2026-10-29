@@ -2,7 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
 import CategoryFilterTabs from '../src/features/flashcards/components/CategoryFilterTabs';
-import { CATEGORY_FILTER_OPTIONS } from '../src/features/flashcards/types/settings';
+import {
+  CATEGORY_FILTER_OPTIONS,
+  OFFICIAL_CATEGORY_FILTER_OPTIONS,
+} from '../src/features/flashcards/types/settings';
 
 describe('CategoryFilterTabs', () => {
   it('renders every Index Legend category in legend order', async () => {
@@ -60,5 +63,23 @@ describe('CategoryFilterTabs', () => {
 
     fireEvent.press(screen.getByLabelText('Clear category filters'));
     expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers official frequency tiers when those options are passed', async () => {
+    await render(
+      <CategoryFilterTabs
+        options={OFFICIAL_CATEGORY_FILTER_OPTIONS}
+        selected={['frequency4x']}
+        onToggle={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('Filter Unique Beginning')).toBeTruthy();
+    expect(screen.getByLabelText('Filter 4x Frequency').props.accessibilityState).toEqual({
+      selected: true,
+    });
+    expect(screen.getByText('5x Frequency')).toBeTruthy();
+    expect(screen.queryByText('Animals')).toBeNull();
+    expect(screen.queryByText('1x Keyword')).toBeNull();
   });
 });

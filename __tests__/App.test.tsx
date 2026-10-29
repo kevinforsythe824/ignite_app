@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
 
 import App from '../App';
@@ -108,10 +108,14 @@ jest.mock('../src/features/season/state/SeasonParticipationProvider', () => {
 });
 
 describe('App', () => {
-  it('renders the Luke 2 deck title and first verse reference when authenticated', async () => {
-    const { findByText } = await render(<App />);
+  it('opens the Study hub for the Luke 2 deck, then the first verse', async () => {
+    const screen = await render(<App />);
 
-    expect(await findByText('Luke 2:1-9')).toBeTruthy();
-    expect(await findByText('Luke 2:1')).toBeTruthy();
+    expect(await screen.findByText('Luke 2:1-9')).toBeTruthy();
+    expect(screen.getByText('Study All Material')).toBeTruthy();
+    expect(screen.queryByText('Luke 2:1')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('study-all-material'));
+    expect(await screen.findByText('Luke 2:1')).toBeTruthy();
   });
 });
