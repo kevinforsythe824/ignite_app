@@ -104,6 +104,8 @@ describe('StudyStackNavigator', () => {
     expect(stackSource).toContain('headerShown: false');
     expect(stackSource).toContain('FlashcardStudyRoute');
     expect(stackSource).toContain('StudyHubScreen');
+    expect(stackSource).toContain('AnnotatedScriptureListScreen');
+    expect(stackSource).toContain('AnnotatedScriptureList');
     expect(stackSource).not.toMatch(/unmountOnBlur\s*:/);
     expect(stackSource).not.toContain('detachInactiveScreens');
 

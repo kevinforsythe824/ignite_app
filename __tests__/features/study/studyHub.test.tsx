@@ -198,6 +198,7 @@ describe('StudyHubScreen', () => {
       'Study All Material, 2 cards',
       `${LONG_TITLE}, 0 cards`,
       'Helmet of Salvation, 2 cards',
+      'View All Material',
     ]);
   });
 
@@ -324,11 +325,82 @@ describe('StudyHubScreen', () => {
       expect(StyleSheet.flatten(card.props.style)?.borderColor).toBe(colors.accent);
     });
 
-    const sectionStyle = pressStyleFromInstance(screen.getByTestId('study-section-helmet'));
-    expect(typeof sectionStyle).toBe('function');
-    if (typeof sectionStyle === 'function') {
-      expect(flattenPressStyle(sectionStyle, true).opacity).toBe(0.85);
-      expect(flattenPressStyle(sectionStyle, false).opacity ?? 1).toBe(1);
+  });
+
+  it('keeps section title and count at 4.5:1 pressed and unpressed', async () => {
+    await renderHub();
+
+    const card = screen.getByTestId('study-section-helmet');
+    const styleProp = pressStyleFromInstance(card);
+    expect(typeof styleProp).toBe('function');
+
+    const backdrop = pageBackdrop(card);
+    const aboveCard = ancestorOpacity(card);
+    expect(backdrop).toBe(colors.background);
+
+    const assertOpaqueContrast = (cardStyle: ViewStyle) => {
+      expect(cardStyle.backgroundColor).toBe(colors.cardWhite);
+      expect(cardStyle.opacity ?? 1).toBe(1);
+
+      const titleStyle = StyleSheet.flatten(within(card).getByText('Helmet of Salvation').props.style);
+      const countStyle = StyleSheet.flatten(within(card).getByText('2 cards').props.style);
+      expect(titleStyle.color).toBe(colors.textPrimary);
+      expect(countStyle.color).toBe(colors.textSecondary);
+      expect(countStyle.fontSize).toBe(14);
+
+      const titleOpacity = styleOpacity(cardStyle) * styleOpacity(titleStyle) * aboveCard;
+      const countOpacity = styleOpacity(cardStyle) * styleOpacity(countStyle) * aboveCard;
+      expect(titleOpacity).toBe(1);
+      expect(countOpacity).toBe(1);
+
+      const titleForeground = compositeHex(String(titleStyle.color), backdrop, titleOpacity);
+      const countForeground = compositeHex(String(countStyle.color), backdrop, countOpacity);
+      const background = compositeHex(String(cardStyle.backgroundColor), backdrop, titleOpacity);
+      expect(contrastRatio(titleForeground, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(countForeground, background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(titleForeground, background)).toBeCloseTo(15.537529558868556, 8);
+      expect(contrastRatio(countForeground, background)).toBeCloseTo(4.834490081424352, 8);
+    };
+
+    if (typeof styleProp === 'function') {
+      assertOpaqueContrast(flattenPressStyle(styleProp, false));
+      assertOpaqueContrast(flattenPressStyle(styleProp, true));
+      expect(flattenPressStyle(styleProp, true).borderColor).toBe(colors.navy);
+      expect(flattenPressStyle(styleProp, true).opacity ?? 1).toBe(1);
+    }
+
+    const event = studyAllPressEvent();
+    await fireEvent(card, 'pressIn', event);
+    await fireEvent(card, 'responderGrant', event);
+    const pressedHost = StyleSheet.flatten(card.props.style) ?? {};
+    assertOpaqueContrast(pressedHost);
+    expect(pressedHost.borderColor).toBe(colors.navy);
+
+    await fireEvent(card, 'responderTerminate', event);
+    await waitFor(() => {
+      expect(StyleSheet.flatten(card.props.style)?.borderColor).toBe(colors.border);
+    });
+
+    const viewAll = screen.getByTestId('view-all-material');
+    expect(viewAll.props.accessibilityState?.disabled).not.toBe(true);
+    const viewAllStyle = pressStyleFromInstance(viewAll);
+    expect(typeof viewAllStyle).toBe('function');
+    if (typeof viewAllStyle === 'function') {
+      for (const pressed of [false, true]) {
+        const buttonStyle = flattenPressStyle(viewAllStyle, pressed);
+        expect(buttonStyle.backgroundColor).toBe(colors.cardWhite);
+        expect(buttonStyle.opacity ?? 1).toBe(1);
+        const titleStyle = StyleSheet.flatten(within(viewAll).getByText('View All Material').props.style);
+        const copyStyle = StyleSheet.flatten(
+          within(viewAll).getByText('Read every verse in this material').props.style,
+        );
+        expect(titleStyle.color).toBe(colors.textPrimary);
+        expect(copyStyle.color).toBe(colors.textSecondary);
+        const background = compositeHex(String(buttonStyle.backgroundColor), colors.background, 1);
+        expect(contrastRatio(String(titleStyle.color), background)).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(String(copyStyle.color), background)).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(flattenPressStyle(viewAllStyle, true).borderColor).toBe(colors.navy);
     }
   });
 });

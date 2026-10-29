@@ -10,6 +10,8 @@ export interface StudyMessageProps {
   copy?: string;
   onRetry?: () => void;
   onBack?: () => void;
+  /** Spoken name for the back control. Defaults to the existing Study label. */
+  backAccessibilityLabel?: string;
   testID?: string;
 }
 
@@ -19,6 +21,7 @@ export function StudyMessage({
   copy,
   onRetry,
   onBack,
+  backAccessibilityLabel = 'Go back',
   testID,
 }: StudyMessageProps): React.JSX.Element {
   return (
@@ -28,7 +31,7 @@ export function StudyMessage({
           <Pressable
             onPress={onBack}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={backAccessibilityLabel}
             hitSlop={spacing.sm}
             style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
           >

@@ -71,7 +71,10 @@ export function StudyHubScreen(): React.JSX.Element {
               onPress={() =>
                 navigation.navigate('FlashcardStudy', { sectionId: section.sectionId })
               }
-              style={({ pressed }) => [styles.sectionCard, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.sectionCard,
+                pressed ? styles.sectionCardPressed : null,
+              ]}
               testID={`study-section-${section.sectionId}`}
             >
               <View style={styles.sectionText}>
@@ -89,6 +92,17 @@ export function StudyHubScreen(): React.JSX.Element {
             </Pressable>
           ))
         )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View All Material"
+          onPress={() => navigation.navigate('AnnotatedScriptureList')}
+          style={({ pressed }) => [styles.viewAll, pressed ? styles.viewAllPressed : null]}
+          testID="view-all-material"
+        >
+          <Text style={styles.viewAllTitle}>View All Material</Text>
+          <Text style={styles.viewAllCopy}>Read every verse in this material</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -169,7 +183,36 @@ const styles = StyleSheet.create({
     opacity: 1,
     borderColor: colors.navy,
   },
-  pressed: {
-    opacity: 0.85,
+  /**
+   * Opaque press on the white section card. Fading the card toward the page
+   * background drops the secondary count below 4.5:1.
+   */
+  sectionCardPressed: {
+    opacity: 1,
+    backgroundColor: colors.cardWhite,
+    borderColor: colors.navy,
+  },
+  viewAll: {
+    marginTop: spacing.sm,
+    minHeight: spacing.minTouchTarget,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.cardWhite,
+    opacity: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+  },
+  viewAllPressed: {
+    opacity: 1,
+    backgroundColor: colors.cardWhite,
+    borderColor: colors.navy,
+  },
+  viewAllTitle: {
+    ...typography.cardTitle,
+  },
+  viewAllCopy: {
+    ...typography.bodySecondary,
   },
 });
