@@ -81,7 +81,7 @@ describe('official frequency tokens', () => {
     expect([...OFFICIAL_FREQUENCY_TIERS]).toEqual([...FREQUENCY_TIER_VALUES]);
     expect(colors.officialFrequency1).toBe('#1F4E9C');
     expect(colors.officialFrequency2).toBe('#1E7A32');
-    expect(colors.officialFrequency3).toBe('#C4600A');
+    expect(colors.officialFrequency3).toBe('#BE5A0A');
     expect(colors.officialFrequency4).toBe('#6B2FA0');
     expect(colors.officialFrequency5).toBe('#7A4A22');
     expect(colors.keyword1x).toBe('#3B82F6');

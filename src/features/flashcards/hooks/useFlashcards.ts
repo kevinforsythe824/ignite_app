@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import type { ScripturePresentationMode } from '../scripturePresentation';
 import {
   useFlashcardSessionActions,
   useFlashcardSessionState,
@@ -13,6 +14,7 @@ import { clearVerseSegmentCache, getVerseSegments } from '../utils/getVerseSegme
 
 export type UseFlashcardsResult = FlashcardSessionViewWithSegments &
   FlashcardSessionActions & {
+    scripturePresentation: ScripturePresentationMode;
     isSettingsOpen: boolean;
     openSettings: () => void;
     closeSettings: () => void;
@@ -21,10 +23,11 @@ export type UseFlashcardsResult = FlashcardSessionViewWithSegments &
 /**
  * Feature hook: derived session view + stable actions.
  * Legacy verse parsing is cached by season+materialSet+card and only
- * recomputed when the current card changes.
+ * recomputed when the current legacy card changes. Official cards skip it.
  */
 export function useFlashcards(): UseFlashcardsResult {
-  const { seasonId, title, cards, state, settings } = useFlashcardSessionState();
+  const { seasonId, title, cards, state, settings, scripturePresentation } =
+    useFlashcardSessionState();
   const actions = useFlashcardSessionActions();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const materialSetId = cards[0]?.materialSetId;
@@ -38,23 +41,31 @@ export function useFlashcards(): UseFlashcardsResult {
     [seasonId, title, cards, state, settings],
   );
 
-  // Slice F: choose official annotations (OfficialScriptureText) or legacy
-  // matchedRules (getVerseSegments → RichVerseText) here. Do not apply both.
-  const currentSegments = useMemo(
-    () => (view.currentCard === undefined ? [] : getVerseSegments(view.currentCard)),
-    [view.currentCard],
-  );
+  // Trusted session mode wins when a card has both matchedRules and annotations.
+  // Official: verseText + annotations → OfficialScriptureText, and this hook
+  // does not call getVerseSegments or fill the legacy segment cache.
+  // Legacy: matchedRules → getVerseSegments → RichVerseText.
+  // A future scripture list should render Card.reference, Card.verseText, and
+  // Card.annotations through OfficialScriptureText from the same Card. Do not
+  // route that list through this session hook.
+  const currentSegments = useMemo(() => {
+    if (scripturePresentation !== 'legacy' || view.currentCard === undefined) {
+      return [];
+    }
+    return getVerseSegments(view.currentCard);
+  }, [scripturePresentation, view.currentCard]);
 
   return useMemo(
     () => ({
       ...view,
       currentSegments,
+      scripturePresentation,
       ...actions,
       isSettingsOpen,
       openSettings: () => setIsSettingsOpen(true),
       closeSettings: () => setIsSettingsOpen(false),
     }),
-    [view, currentSegments, actions, isSettingsOpen],
+    [view, currentSegments, scripturePresentation, actions, isSettingsOpen],
   );
 }
 

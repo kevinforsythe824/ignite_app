@@ -23,11 +23,10 @@ export interface OfficialScriptureTextProps {
 }
 
 /**
- * Official scripture formatting for Card.annotations.
- * Flashcards still render legacy matchedRules through RichVerseText.
- * Slice F selects one source at the presentation boundary (flashcard back
- * and the annotated scripture list). This component does not read matchedRules
- * and must not be combined with RichVerseText for the same card.
+ * Official scripture formatting for Card.verseText and Card.annotations.
+ * The Flashcard Locate face uses this or RichVerseText, never both for one card.
+ * This component does not read matchedRules. A future scripture list should
+ * pass the same Card fields here without a flashcard session.
  */
 export const OfficialScriptureText = React.memo(function OfficialScriptureText({
   verseText,

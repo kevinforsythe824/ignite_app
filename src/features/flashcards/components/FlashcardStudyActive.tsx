@@ -4,6 +4,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, typography } from '../../../shared/theme';
 import type { Card } from '../domain/card';
+import {
+  DEFAULT_SCRIPTURE_PRESENTATION,
+  type ScripturePresentationMode,
+} from '../scripturePresentation';
 import type { CardSide } from '../types/settings';
 import type { VerseSegment } from '../types/verse';
 import Flashcard, { type FlashcardHandle } from './Flashcard';
@@ -29,6 +33,7 @@ const FLIP_HINT_ACCESSIBILITY_LABEL =
 export interface FlashcardStudyActiveProps {
   card: Card;
   segments: VerseSegment[];
+  scripturePresentation?: ScripturePresentationMode;
   defaultSide: CardSide;
   canGoPrevious: boolean;
   onPrevious: () => void;
@@ -40,6 +45,7 @@ export interface FlashcardStudyActiveProps {
 export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.memo(({
   card,
   segments,
+  scripturePresentation = DEFAULT_SCRIPTURE_PRESENTATION,
   defaultSide,
   canGoPrevious,
   onPrevious,
@@ -55,6 +61,7 @@ export const FlashcardStudyActive: React.FC<FlashcardStudyActiveProps> = React.m
           ref={flashcardRef}
           card={card}
           segments={segments}
+          scripturePresentation={scripturePresentation}
           defaultSide={defaultSide}
           onSwipeCorrect={onSwipeCorrect}
           onSwipeNeedsWork={onSwipeNeedsWork}

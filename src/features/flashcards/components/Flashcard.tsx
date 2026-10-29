@@ -17,6 +17,10 @@ import Animated, {
 import { colors, radius, shadows, spacing } from '../../../shared/theme';
 import type { Card } from '../domain/card';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import {
+  DEFAULT_SCRIPTURE_PRESENTATION,
+  type ScripturePresentationMode,
+} from '../scripturePresentation';
 import type { CardSide } from '../types/settings';
 import type { VerseSegment } from '../types/verse';
 import FlashcardBack from './FlashcardBack';
@@ -24,8 +28,13 @@ import FlashcardFront from './FlashcardFront';
 
 export interface FlashcardProps {
   card: Card;
-  /** Pre-parsed quote-side segments from the feature domain utils. */
+  /**
+   * Legacy Locate segments. Official presentation leaves this empty and
+   * renders card.verseText instead. Do not fill it from annotations.
+   */
   segments: VerseSegment[];
+  /** Trusted formatting source. Defaults to legacy. */
+  scripturePresentation?: ScripturePresentationMode;
   /** Which face is shown when a new card arrives. */
   defaultSide?: CardSide;
   /** Swipe right — card answered correctly. */
@@ -68,6 +77,7 @@ export const Flashcard = React.memo(
     {
       card,
       segments,
+      scripturePresentation = DEFAULT_SCRIPTURE_PRESENTATION,
       defaultSide = 'locate',
       onSwipeCorrect,
       onSwipeNeedsWork,
@@ -255,12 +265,25 @@ export const Flashcard = React.memo(
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.container, style, containerStyle]}>
-        <Animated.View style={[styles.face, IS_ANDROID ? styles.androidFaceShadow : null, locateFaceStyle]}>
+        <Animated.View
+          testID="flashcard-locate-face"
+          style={[styles.face, IS_ANDROID ? styles.androidFaceShadow : null, locateFaceStyle]}
+        >
           <CardChrome />
-          <FlashcardBack segments={segments} indexCode={card.indexCode} />
+          <FlashcardBack
+            scripturePresentation={scripturePresentation}
+            verseText={card.verseText}
+            annotations={card.annotations}
+            cardId={card.cardId}
+            segments={segments}
+            indexCode={card.indexCode}
+          />
         </Animated.View>
 
-        <Animated.View style={[styles.face, IS_ANDROID ? styles.androidFaceShadow : null, quoteFaceStyle]}>
+        <Animated.View
+          testID="flashcard-quote-face"
+          style={[styles.face, IS_ANDROID ? styles.androidFaceShadow : null, quoteFaceStyle]}
+        >
           <CardChrome />
           <FlashcardFront card={card} />
         </Animated.View>

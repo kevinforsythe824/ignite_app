@@ -41,9 +41,9 @@ export function isFrequencyTier(value: unknown): value is FrequencyTier {
 /**
  * Embedded card annotation.
  * Official presentation lives in `src/shared/scripture` (`OfficialScriptureText`).
- * Study still renders legacy matchedRules through RichVerseText and must not
- * translate these annotations into matchedRules. Slice F selects one source
- * at the presentation boundary.
+ * Legacy fixture cards still render matchedRules through RichVerseText.
+ * The flashcard session's scripturePresentation picks one source.
+ * Do not translate these annotations into matchedRules.
  */
 export interface CardAnnotation {
   annotationId: string;

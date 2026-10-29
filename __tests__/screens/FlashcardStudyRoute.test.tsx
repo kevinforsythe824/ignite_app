@@ -5,6 +5,12 @@ import { render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 import { AuthProvider } from '../../src/features/auth';
+import type { Card } from '../../src/features/flashcards/domain/card';
+import {
+  LEGACY_UNIQUE_BEGINNING,
+  officialAnnotation,
+  officialStudyCard,
+} from '../../test-utils/officialFlashcardFixtures';
 import {
   TEMPORARY_STUDY_MATERIAL_SET_ID,
   TEMPORARY_STUDY_SEASON_ID,
@@ -84,6 +90,7 @@ describe('FlashcardStudyRoute', () => {
     expect(source).not.toContain('TEST_SEASON_ID');
     expect(source).toContain('studyTarget.seasonId');
     expect(source).toContain('studyTarget.materialSetId');
+    expect(source).toContain('scripturePresentation="official"');
   });
 
   it('loads curriculum with the ready competitive Study target', async () => {
@@ -115,6 +122,44 @@ describe('FlashcardStudyRoute', () => {
     });
     expect(getCurriculum).toHaveBeenCalledWith('2032', 'material-adult');
     expect(getCurriculum).not.toHaveBeenCalledWith('2032', SEASON_PARTICIPATION_TEST_MATERIAL_SET_ID);
+  });
+
+  it('renders loaded Firestore cards through OfficialScriptureText', async () => {
+    const verse = 'Alpha walks.';
+    const card: Card = officialStudyCard({
+      cardId: 'route-card',
+      seasonId: SEASON_PARTICIPATION_TEST_SEASON_ID,
+      materialSetId: SEASON_PARTICIPATION_TEST_MATERIAL_SET_ID,
+      reference: 'John 11:35',
+      verseText: verse,
+      matchedRules: [LEGACY_UNIQUE_BEGINNING],
+      annotations: [
+        officialAnnotation({
+          cardId: 'route-card',
+          annotationId: 'freq',
+          type: 'frequency',
+          start: 6,
+          end: 11,
+          frequencyTier: 2,
+        }),
+      ],
+    });
+    getCurriculum.mockImplementation(async (seasonId: string, materialSetId: string) => ({
+      seasonId,
+      materialSetId,
+      title: 'Study',
+      cards: [card],
+      sections: [],
+    }));
+
+    const doubles = createSeasonParticipationTestDoubles();
+    const screen = await renderStudy(doubles);
+
+    expect(await screen.findByTestId('official-scripture-text')).toBeTruthy();
+    expect(screen.getByLabelText(verse).props.accessibilityLabel).toBe(verse);
+    expect(screen.queryByTestId('rich-verse-text')).toBeNull();
+    expect(screen.queryByText('/')).toBeNull();
+    expect(screen.getByText('John 11:35')).toBeTruthy();
   });
 
   it('does not load a fallback curriculum when the Season session is not ready', async () => {

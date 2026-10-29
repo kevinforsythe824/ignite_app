@@ -1,9 +1,9 @@
 /**
  * Official Card.annotations → styled runs.
  *
- * Shared by the future Flashcard quote side and the Annotated Scripture List.
- * No session state and no matchedRules. Slice F chooses this path or the legacy
- * parser at the presentation boundary; this function does not.
+ * Shared by the Flashcard Locate face and a future Annotated Scripture List.
+ * No session state and no matchedRules. The presentation boundary chooses this
+ * path or the legacy parser; this function does not.
  *
  * `verseText` is the displayed Scripture. Annotations only format existing
  * characters via half-open offsets (`verseText.slice(start, end)`). This module

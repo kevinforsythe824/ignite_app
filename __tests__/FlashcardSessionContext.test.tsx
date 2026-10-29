@@ -2,6 +2,7 @@ import React from 'react';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 
 import type { Card } from '../src/features/flashcards/domain/card';
+import type { ScripturePresentationMode } from '../src/features/flashcards/scripturePresentation';
 import { TEST_MATERIAL_SET_ID, TEST_SEASON_ID } from '../src/features/flashcards/domain/testSeason';
 import useFlashcards, {
   type UseFlashcardsResult,
@@ -49,7 +50,10 @@ interface SessionController {
   renderer: ReactTestRenderer;
 }
 
-function createSessionController(cards: readonly Card[] = testCards): SessionController {
+function createSessionController(
+  cards: readonly Card[] = testCards,
+  scripturePresentation?: ScripturePresentationMode,
+): SessionController {
   const sessionRef: { current: UseFlashcardsResult | null } = { current: null };
 
   function HookProbe(): null {
@@ -61,7 +65,12 @@ function createSessionController(cards: readonly Card[] = testCards): SessionCon
 
   act(() => {
     renderer = TestRenderer.create(
-      <FlashcardSessionProvider seasonId={TEST_SEASON_ID} title="Test Deck" cards={cards}>
+      <FlashcardSessionProvider
+        seasonId={TEST_SEASON_ID}
+        title="Test Deck"
+        cards={cards}
+        scripturePresentation={scripturePresentation}
+      >
         <HookProbe />
       </FlashcardSessionProvider>,
     );
@@ -268,9 +277,33 @@ describe('FlashcardSessionContext', () => {
     ]);
 
     const session = getSession();
+    expect(session.scripturePresentation).toBe('legacy');
     expect(session.currentSegments.length).toBeGreaterThan(0);
     expect(session.currentSegments.some((segment) => segment.content === 'grace')).toBe(true);
     expect(session.showCard).toBe(true);
+  });
+
+  it('skips legacy segments when the session opts into official presentation', () => {
+    const cardWithKeyword: Card = {
+      ...testCards[0],
+      cardId: 't-grace',
+      verseText: "Remember 'grace' today.",
+      matchedRules: [
+        {
+          ruleName: '1x Keyword',
+          ruleCategory: 'Index',
+          notes: "Words marked as 1x frequency (blue highlight): 'grace'",
+        },
+      ],
+      annotations: [],
+    };
+
+    const { getSession } = createSessionController([cardWithKeyword], 'official');
+    const session = getSession();
+
+    expect(session.scripturePresentation).toBe('official');
+    expect(session.currentSegments).toEqual([]);
+    expect(session.currentCard?.verseText).toBe("Remember 'grace' today.");
   });
 
   it('updates settings and rebuilds the study order for category filters', () => {

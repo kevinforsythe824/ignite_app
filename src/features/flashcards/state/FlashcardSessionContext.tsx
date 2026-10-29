@@ -9,6 +9,10 @@ import React, {
 import type { ReactNode } from 'react';
 
 import type { Card } from '../domain/card';
+import {
+  DEFAULT_SCRIPTURE_PRESENTATION,
+  type ScripturePresentationMode,
+} from '../scripturePresentation';
 import type { CardSide, CategoryFilterId, FlashcardSettings } from '../types/settings';
 import { buildStudyCards } from '../utils/buildStudyCards';
 import {
@@ -49,6 +53,7 @@ interface FlashcardSessionStateValue {
   cards: readonly Card[];
   state: FlashcardSessionState;
   settings: FlashcardSettings;
+  scripturePresentation: ScripturePresentationMode;
 }
 
 const FlashcardSessionStateContext = createContext<FlashcardSessionStateValue | undefined>(
@@ -65,6 +70,13 @@ export interface FlashcardSessionProviderProps {
   seasonId: string;
   title: string;
   cards: readonly Card[];
+  /**
+   * Trusted scripture formatting for this composed session.
+   * Defaults to legacy so fixture and direct test sessions keep RichVerseText.
+   * Live Study passes official because Firestore-mapped cards use verseText
+   * and annotations. Not a Card field and not a Firestore value.
+   */
+  scripturePresentation?: ScripturePresentationMode;
   children: ReactNode;
 }
 
@@ -77,6 +89,7 @@ export function FlashcardSessionProvider({
   seasonId,
   title,
   cards,
+  scripturePresentation = DEFAULT_SCRIPTURE_PRESENTATION,
   children,
 }: FlashcardSessionProviderProps): React.JSX.Element {
   const [state, dispatch] = useReducer(flashcardSessionReducer, INITIAL_SESSION_STATE);
@@ -217,8 +230,8 @@ export function FlashcardSessionProvider({
   );
 
   const stateValue = useMemo<FlashcardSessionStateValue>(
-    () => ({ seasonId, title, cards, state, settings }),
-    [seasonId, title, cards, state, settings],
+    () => ({ seasonId, title, cards, state, settings, scripturePresentation }),
+    [seasonId, title, cards, state, settings, scripturePresentation],
   );
 
   return (

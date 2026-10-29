@@ -16,6 +16,7 @@ export const FlashcardStudyScreen: React.FC = () => {
     title,
     currentCard,
     currentSegments,
+    scripturePresentation,
     currentCardNumber,
     totalCards,
     correctCount,
@@ -62,6 +63,7 @@ export const FlashcardStudyScreen: React.FC = () => {
     <FlashcardStudyActive
       card={currentCard}
       segments={currentSegments}
+      scripturePresentation={scripturePresentation}
       defaultSide={settings.defaultSide}
       canGoPrevious={canGoPrevious}
       onPrevious={goToPrevious}

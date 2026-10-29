@@ -25,7 +25,18 @@ export const colors = {
    */
   officialFrequency1: '#1F4E9C',
   officialFrequency2: '#1E7A32',
-  officialFrequency3: '#C4600A',
+  /**
+   * Official frequency tier 3 on scripture.
+   * Approved orange #C4600A is sRGB (196, 96, 10), relative luminance 0.2012,
+   * contrast 4.18:1 on the flashcard scripture surface `cardWhite` #FFFFFF
+   * (luminance 1). Normal text needs 4.5:1. #BE5A0A is sRGB (190, 90, 10),
+   * luminance 0.1828, contrast 4.51:1 on that same white — the nearest orange
+   * that clears the threshold. Legacy keyword3x is unchanged.
+   * WCAG 2: linearize srgb = channel/255, then srgb/12.92 or
+   * ((srgb+0.055)/1.055)^2.4; L = 0.2126R+0.7152G+0.0722B;
+   * ratio = (Llighter+0.05)/(Ldarker+0.05).
+   */
+  officialFrequency3: '#BE5A0A',
   officialFrequency4: '#6B2FA0',
   officialFrequency5: '#7A4A22',
   highlightYellow: '#FEF08A',

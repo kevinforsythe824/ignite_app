@@ -44,11 +44,15 @@ function ReadyFlashcardStudy({
   );
 
   if (loadState.status === 'ready') {
+    // Firestore-mapped cards are the official scripture source (verse text
+    // and annotations). Fixture sessions omit this and stay on matchedRules.
+    // This does not select a season or material set.
     return (
       <FlashcardSessionProvider
         seasonId={loadState.curriculum.seasonId}
         title={loadState.curriculum.title}
         cards={loadState.curriculum.cards}
+        scripturePresentation="official"
       >
         <FlashcardStudyScreen />
       </FlashcardSessionProvider>
