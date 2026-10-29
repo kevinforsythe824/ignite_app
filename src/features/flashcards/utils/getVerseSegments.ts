@@ -4,7 +4,13 @@ import { makeCardKey } from '../domain/card';
 import type { VerseSegment } from '../types/verse';
 import { parseVerseToSegments } from './parseVerseToSegments';
 
-/** Per-session cache so revisiting a card does not re-parse. */
+/**
+ * Legacy matchedRules cache, keyed only by season + material set + card.
+ * Official Card.annotations must not enter this cache. Slice F selects the
+ * presentation source outside this function: official annotations use
+ * OfficialScriptureText, and legacy fixture cards keep this parser plus
+ * RichVerseText. Do not apply both.
+ */
 const segmentCache = new Map<string, VerseSegment[]>();
 
 /** Parse once per season+materialSet+card; subsequent lookups reuse the cached segments. */

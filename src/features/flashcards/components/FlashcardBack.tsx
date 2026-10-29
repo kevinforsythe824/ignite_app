@@ -11,7 +11,11 @@ export interface FlashcardBackProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Locate side — rich verse body, with a competitive index code when the card has one. */
+/**
+ * Locate side — legacy matchedRules verse body, with a competitive index code
+ * when the card has one. Slice F renders OfficialScriptureText for official
+ * annotations or RichVerseText for fixture cards. Do not render both for one card.
+ */
 export const FlashcardBack: React.FC<FlashcardBackProps> = React.memo(({ segments, indexCode, style }) => {
   const visibleIndexCode = indexCode?.trim() ?? '';
   return (

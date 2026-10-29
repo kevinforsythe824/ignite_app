@@ -19,6 +19,15 @@ export const colors = {
   keyword1x: '#3B82F6',
   keyword2x: '#15803D',
   keyword3x: '#EA580C',
+  /**
+   * Official frequency-annotation tiers for Card.annotations.
+   * Legacy matchedRules keep keyword1x, keyword2x, and keyword3x.
+   */
+  officialFrequency1: '#1F4E9C',
+  officialFrequency2: '#1E7A32',
+  officialFrequency3: '#C4600A',
+  officialFrequency4: '#6B2FA0',
+  officialFrequency5: '#7A4A22',
   highlightYellow: '#FEF08A',
   markUnique: '#111827',
   markQuestion: '#C81E1E',

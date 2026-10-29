@@ -20,8 +20,8 @@ export type UseFlashcardsResult = FlashcardSessionViewWithSegments &
 
 /**
  * Feature hook: derived session view + stable actions.
- * Verse parsing is cached by season+materialSet+card and only recomputed
- * when the current card changes.
+ * Legacy verse parsing is cached by season+materialSet+card and only
+ * recomputed when the current card changes.
  */
 export function useFlashcards(): UseFlashcardsResult {
   const { seasonId, title, cards, state, settings } = useFlashcardSessionState();
@@ -38,6 +38,8 @@ export function useFlashcards(): UseFlashcardsResult {
     [seasonId, title, cards, state, settings],
   );
 
+  // Slice F: choose official annotations (OfficialScriptureText) or legacy
+  // matchedRules (getVerseSegments → RichVerseText) here. Do not apply both.
   const currentSegments = useMemo(
     () => (view.currentCard === undefined ? [] : getVerseSegments(view.currentCard)),
     [view.currentCard],

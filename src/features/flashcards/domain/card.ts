@@ -26,10 +26,6 @@ export interface CardAnnotationSourceTarget {
   occurrenceIndex?: number;
 }
 
-/**
- * Embedded card annotation. Presentation is later work — Study does not
- * render these or translate them into matchedRules.
- */
 /** Frequency class on a frequency annotation. Other annotation types do not carry a tier. */
 export const FREQUENCY_TIER_VALUES = [1, 2, 3, 4, 5] as const;
 
@@ -42,6 +38,13 @@ export function isFrequencyTier(value: unknown): value is FrequencyTier {
   );
 }
 
+/**
+ * Embedded card annotation.
+ * Official presentation lives in `src/shared/scripture` (`OfficialScriptureText`).
+ * Study still renders legacy matchedRules through RichVerseText and must not
+ * translate these annotations into matchedRules. Slice F selects one source
+ * at the presentation boundary.
+ */
 export interface CardAnnotation {
   annotationId: string;
   /** Required. Must equal the owning card's cardId. */
