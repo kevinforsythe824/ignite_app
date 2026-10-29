@@ -59,6 +59,7 @@
     "content:validate-source": "tsx scripts/content-pipeline/cli/validateSourceCli.ts",
     "content:generate-package": "tsx scripts/content-pipeline/cli/generatePackageCli.ts",
     "content:validate-package": "tsx scripts/content-pipeline/cli/validatePackageCli.ts",
+    "content:validate-official-draft": "tsx scripts/content-pipeline/cli/validateOfficialDraftCli.ts",
     "content:write-authoring-files": "tsx scripts/content-pipeline/cli/writeAuthoringFilesCli.ts",
     "content:import": "tsx scripts/content-import/cli/importCli.ts",
     "content:import:plan": "tsx scripts/content-import/cli/importCli.ts",

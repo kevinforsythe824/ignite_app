@@ -76,3 +76,9 @@ Slice B applies the schema split. Synthetic Ignite workbooks still convert at sc
 Optional `studyContext` stores battlefield, topic, and thematic question. A blank sponsor cell is omitted. Thematic questions are study metadata, not quiz hints. Battlefield keeps the sponsor cell's number or text. `frequencyTier` is required on `frequency` annotations in a `1.1.0` package and must be 1, 2, 3, 4, or 5. Schema `1.0.0` frequency annotations stay valid without a tier. Other annotation types do not receive a tier.
 
 This slice does not generate official annotations. Official cards carry an empty annotations array until annotation generation. A four-MaterialSet draft is not a complete season package. The importer still requires every official division, so that draft is not applied. Cadet remains absent until its workbook exists.
+
+## Amendment (2026-10-27) — Cadet is part of the official 2027 draft
+
+The 2026-10-24 sentence that Cadet remains absent is superseded. The received Cadet workbook is an entry in the official 2027 sponsor profile, ordered Cadet, Beginner, Junior, then Senior. Senior is still one workbook read and still produces the Intermediate and Experienced MaterialSets. The generated draft therefore contains five MaterialSets and stays `draft`.
+
+A package that passes structural validation, manifest checks, and fingerprint verification is still not authorization to import, activate, publish, or replace Firebase content. An intentionally incomplete package that omits an official division still fails the default validator. This amendment does not change package schema, annotation targeting, or the importer authorization gates.

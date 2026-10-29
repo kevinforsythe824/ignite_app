@@ -24,6 +24,7 @@ import {
   trailingPunctuationLength,
 } from '../../scripts/content-pipeline/sponsorWordMatch';
 import type { ContentCardRecord, ContentMaterialSetRecord } from '../../scripts/content-pipeline/types';
+import { validateOfficialSponsorDraftInMemory } from '../../scripts/content-pipeline/validateOfficialDraft';
 import { validateContentPackage } from '../../scripts/content-pipeline/validatePackage';
 
 /**
@@ -36,6 +37,8 @@ const PROVISIONAL_LOCAL_TEST_SEASON_DATES = {
 } as const;
 
 const WORKBOOK_SHA256: Readonly<Record<string, string>> = {
+  'WPFBQ_2027_Cadet_Data_Workbook.xlsx':
+    '4df71ca79b5bf4e659d73be648fe6e4e6d91a85317364968ddf7c6b3b36d13cd',
   'WPFBQ_2027_Beginner_Data_Workbook.xlsx':
     '4515cf815ca3ba38fd2ce4ccec7064d7a3c42ff540d17b3a153e3178130ccee7',
   'WPFBQ_2027_Junior_Data_Workbook.xlsx':
@@ -45,6 +48,7 @@ const WORKBOOK_SHA256: Readonly<Record<string, string>> = {
 };
 
 const EXPECTED_ANNOTATIONS = {
+  cadet: { annotations: 296, repeatedEndings: 3 },
   beginner: { annotations: 741, repeatedEndings: 9 },
   junior: { annotations: 1643, repeatedEndings: 16 },
   senior: { annotations: 2704, repeatedEndings: 20 },
@@ -245,9 +249,9 @@ function assertMaterialSet(
 }
 
 (WORKBOOKS_PRESENT ? describe : describe.skip)('local official sponsor workbooks', () => {
-  jest.setTimeout(120000);
+  jest.setTimeout(180000);
 
-  it('maps 150/250/392/392 cards from one read of each workbook', async () => {
+  it('maps 50/150/250/392/392 cards from one read of each workbook', async () => {
     expectWorkbookHashesUnchanged();
     const draft = await buildOfficialSponsorDraft({
       directory: LOCAL_DIR,
@@ -255,8 +259,14 @@ function assertMaterialSet(
     });
     expect(draft.status).toBe('passed');
     expect(draft.pipeline.report.errors).toEqual([]);
-    expect(draft.workbookReadCount).toBe(3);
-    expect(draft.loads).toHaveLength(3);
+    expect(draft.workbookReadCount).toBe(4);
+    expect(draft.loads).toHaveLength(4);
+    expect(draft.loads.map((load) => load.source.sourceId)).toEqual([
+      'cadet',
+      'beginner',
+      'junior',
+      'senior',
+    ]);
     expect(draft.rulesVersion).toBe('1.0 (2026-07-29)');
     const content = draft.pipeline.content;
     if (!content) {
@@ -278,47 +288,138 @@ function assertMaterialSet(
     expect(content.sourceVersion.includes('/')).toBe(false);
     expect(content.sourceVersion.includes('\\')).toBe(false);
     expect(content.materialSets.map((materialSet) => materialSet.divisionId)).toEqual([
+      'cadet',
       'beginner',
       'junior',
       'intermediate',
       'experienced',
     ]);
-    expect(content.materialSets.some((materialSet) => materialSet.divisionId === 'cadet')).toBe(false);
+    expect(content.materialSets.map((materialSet) => materialSet.materialSetId)).toEqual([
+      'cadet-2027',
+      'beginner-2027',
+      'junior-2027',
+      'intermediate-2027',
+      'experienced-2027',
+    ]);
 
     const byId = new Map(content.materialSets.map((materialSet) => [materialSet.materialSetId, materialSet]));
+    const cadetLoad = draft.loads.find((load) => load.source.sourceId === 'cadet');
     const beginnerLoad = draft.loads.find((load) => load.source.sourceId === 'beginner');
     const juniorLoad = draft.loads.find((load) => load.source.sourceId === 'junior');
     const seniorLoad = draft.loads.find((load) => load.source.sourceId === 'senior');
+    const cadet = byId.get('cadet-2027');
     const beginner = byId.get('beginner-2027');
     const junior = byId.get('junior-2027');
     const intermediate = byId.get('intermediate-2027');
     const experienced = byId.get('experienced-2027');
-    if (!beginnerLoad || !juniorLoad || !seniorLoad || !beginner || !junior || !intermediate || !experienced) {
-      throw new Error('expected three reads and four MaterialSets');
+    if (
+      !cadetLoad ||
+      !beginnerLoad ||
+      !juniorLoad ||
+      !seniorLoad ||
+      !cadet ||
+      !beginner ||
+      !junior ||
+      !intermediate ||
+      !experienced
+    ) {
+      throw new Error('expected four reads and five MaterialSets');
     }
 
     expect(seniorLoad.source.materialSets.map((target) => target.materialSetId)).toEqual([
       'intermediate-2027',
       'experienced-2027',
     ]);
+    expect(cadetLoad.verseList.rows).toHaveLength(50);
+    expect(cadetLoad.verseList.sections).toHaveLength(7);
     expect(beginnerLoad.verseList.rows).toHaveLength(150);
     expect(juniorLoad.verseList.rows).toHaveLength(250);
     expect(junior.cards.map((card) => card.cardNumber)).toEqual(
       Array.from({ length: 250 }, (_, index) => index + 1),
     );
     expect(seniorLoad.verseList.rows).toHaveLength(392);
+    assertMaterialSet(cadet, cadetLoad.verseList.rows, cadetLoad.frequencyWords, EXPECTED_ANNOTATIONS.cadet);
     assertMaterialSet(beginner, beginnerLoad.verseList.rows, beginnerLoad.frequencyWords, EXPECTED_ANNOTATIONS.beginner);
     assertMaterialSet(junior, juniorLoad.verseList.rows, juniorLoad.frequencyWords, EXPECTED_ANNOTATIONS.junior);
     assertMaterialSet(intermediate, seniorLoad.verseList.rows, seniorLoad.frequencyWords, EXPECTED_ANNOTATIONS.senior);
     assertMaterialSet(experienced, seniorLoad.verseList.rows, seniorLoad.frequencyWords, EXPECTED_ANNOTATIONS.senior);
-    expect(validateContentPackage(content).some((item) => item.code === 'material_set_count')).toBe(true);
-    expect(beginner.cards.length + junior.cards.length + intermediate.cards.length + experienced.cards.length).toBe(
-      1184,
+    expect(validateContentPackage(content)).toEqual([]);
+    expect(
+      cadet.cards.length +
+        beginner.cards.length +
+        junior.cards.length +
+        intermediate.cards.length +
+        experienced.cards.length,
+    ).toBe(1234);
+    const annotationTotal = content.materialSets.reduce(
+      (sum, materialSet) =>
+        sum + materialSet.cards.reduce((cardSum, card) => cardSum + card.annotations.length, 0),
+      0,
     );
+    expect(annotationTotal).toBe(8088);
+    expect(draft.pipeline.manifest?.cardCounts.total).toBe(1234);
+    expect(draft.pipeline.manifest?.schemaVersion).toBe('1.1.0');
+    expect(draft.pipeline.manifest?.seasonId).toBe('2027');
+    expect(draft.pipeline.manifest?.sourceVersion).toBe(content.sourceVersion);
+    expect(draft.pipeline.manifest?.validationStatus).toBe('passed');
+    expect(
+      draft.pipeline.manifest?.materialSets.map((materialSet) => [
+        materialSet.materialSetId,
+        materialSet.divisionId,
+        materialSet.cardCount,
+        materialSet.annotationCount,
+      ]),
+    ).toEqual([
+      ['cadet-2027', 'cadet', 50, 296],
+      ['beginner-2027', 'beginner', 150, 741],
+      ['junior-2027', 'junior', 250, 1643],
+      ['intermediate-2027', 'intermediate', 392, 2704],
+      ['experienced-2027', 'experienced', 392, 2704],
+    ]);
 
+    const cadetFrequencyTiers = new Set(
+      cadet.cards.flatMap((card) =>
+        card.annotations
+          .filter((annotation) => annotation.type === 'frequency')
+          .map((annotation) => annotation.frequencyTier),
+      ),
+    );
+    expect([...cadetFrequencyTiers]).toEqual([1]);
+    expect(
+      cadet.cards.reduce(
+        (sum, card) => sum + card.annotations.filter((annotation) => annotation.type === 'frequency').length,
+        0,
+      ),
+    ).toBe(196);
+    expect(
+      cadet.cards
+        .filter((card) =>
+          card.annotations.some(
+            (annotation) => annotation.type === 'uniqueEnding' && annotation.sourceTarget.occurrenceIndex > 1,
+          ),
+        )
+        .map((card) => card.reference)
+        .sort(),
+    ).toEqual(['2 Corinthians 10:3', 'Ephesians 6:13', 'Psalm 56:10']);
+    const leadingCadet = cadet.cards.filter((card) => leadingPunctuationLength(card.verseText) > 0);
+    expect(leadingCadet.map((card) => card.reference)).toEqual(['2 Corinthians 5:7']);
+    expect(
+      leadingCadet[0]?.annotations.find((annotation) => annotation.type === 'uniqueBeginning')?.sourceTarget.phrase.startsWith(
+        '(',
+      ),
+    ).toBe(false);
+
+    expect(cadet.cards.some((card) => typeof card.studyContext?.battlefield === 'number')).toBe(true);
+    expect(cadet.cards.some((card) => card.studyContext?.battlefield === undefined)).toBe(true);
     expect(beginner.cards.some((card) => typeof card.studyContext?.battlefield === 'number')).toBe(true);
     expect(beginner.cards.some((card) => card.studyContext?.battlefield === undefined)).toBe(true);
     expect(junior.cards.some((card) => typeof card.studyContext?.battlefield === 'string')).toBe(true);
+    expect(
+      cadet.cards.every(
+        (card) =>
+          card.studyContext?.battlefield === undefined || typeof card.studyContext.battlefield === 'number',
+      ),
+    ).toBe(true);
     expect(
       beginner.cards.every(
         (card) =>
@@ -363,6 +464,7 @@ function assertMaterialSet(
       }
     }
     const fingerprint = fingerprintContent(content);
+    expect(draft.pipeline.manifest?.fingerprint).toBe(fingerprint);
     const saved = experienced.cards[0]?.verseText;
     const savedPhrase = experienced.cards[0]?.annotations[0]?.sourceTarget.phrase;
     const savedTopic = experienced.cards[0]?.studyContext?.topic;
@@ -383,15 +485,26 @@ function assertMaterialSet(
     expect(experienced.sections[0]?.cardIds).toEqual(savedMembership);
     expect(experienced.sections[0]?.cardIds).not.toContain('c999');
 
-    const second = await buildOfficialSponsorDraft({
+    const summary = await validateOfficialSponsorDraftInMemory({
       directory: LOCAL_DIR,
       seasonDates: PROVISIONAL_LOCAL_TEST_SEASON_DATES,
     });
-    expect(second.workbookReadCount).toBe(3);
-    if (!second.pipeline.content) {
-      throw new Error('expected a second package');
-    }
-    expect(fingerprintContent(second.pipeline.content)).toBe(fingerprint);
+    expect(summary.status).toBe('passed');
+    expect(summary.workbookReadCount).toBe(4);
+    expect(summary.totalCards).toBe(1234);
+    expect(summary.totalAnnotations).toBe(8088);
+    expect(summary.serializationMatches).toBe(true);
+    expect(summary.strictPackageErrors).toEqual([]);
+    expect(summary.manifestErrors).toEqual([]);
+    expect(summary.fingerprint).toBe(fingerprint);
+    expect(summary.seasonStatus).toBe('draft');
+    expect(summary.materialSets.map((materialSet) => [materialSet.materialSetId, materialSet.cards, materialSet.annotations])).toEqual([
+      ['cadet-2027', 50, 296],
+      ['beginner-2027', 150, 741],
+      ['junior-2027', 250, 1643],
+      ['intermediate-2027', 392, 2704],
+      ['experienced-2027', 392, 2704],
+    ]);
     expectWorkbookHashesUnchanged();
   });
 });

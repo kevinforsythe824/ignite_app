@@ -4,6 +4,7 @@ import {
   CurriculumSectionInvariantError,
 } from '../../src/features/season/domain/curriculumSection';
 import { isDivisionId, OFFICIAL_DIVISION_IDS } from '../../src/features/season/domain/division';
+import { isIsoCalendarDate } from '../../src/features/season/domain/isoCalendarDate';
 import { SEASON_STATUSES } from '../../src/features/season/domain/season';
 import {
   SUPPORTED_CONTENT_SCHEMA_VERSIONS,
@@ -18,12 +19,16 @@ import { resolveAnnotationTarget } from './resolveAnnotationTarget';
 import { seasonIdSegmentIssue } from './seasonIdPath';
 import { studyContextIssues } from './studyContextValidation';
 import type { ContentPackage, ValidationIssue } from './types';
+import { annotationRecordIssue } from './validateManifest';
+
+const ISO_DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface ContentPackageValidationOptions {
   /**
    * Default true. A complete season package must include every official division.
-   * The importer uses that default, so a draft that is still missing Cadet cannot
-   * be loaded for apply. Local official-draft checks pass false.
+   * The importer uses that default, so a partial draft cannot be loaded for apply.
+   * Passing validation does not start an import. Local inspection of an
+   * intentionally incomplete profile passes false.
    */
   requireAllOfficialDivisions?: boolean;
 }
@@ -92,6 +97,8 @@ export function validateContentPackage(
       }),
     );
   }
+
+  errors.push(...packageSeasonDateIssues(season));
 
   if (requireAllOfficialDivisions && content.materialSets.length !== OFFICIAL_DIVISION_IDS.length) {
     errors.push(
@@ -237,14 +244,9 @@ export function validateContentPackage(
           }),
         );
       }
-      if (!card.verseText) {
-        errors.push(
-          issue({
-            code: 'missing_required_field',
-            field: 'verseText',
-            reason: `Card "${card.cardId}" is missing Scripture text.`,
-          }),
-        );
+      const verseTextIssue = cardVerseTextIssue(card.cardId, card.verseText);
+      if (verseTextIssue) {
+        errors.push(verseTextIssue);
       }
 
       errors.push(
@@ -280,6 +282,17 @@ export function validateContentPackage(
       const seenAnnotationIds = new Set<string>();
       const seenLogicalAnnotations = new Set<string>();
       for (const annotation of card.annotations) {
+        const shapeIssue = annotationRecordIssue({ cardId: card.cardId }, annotation);
+        if (shapeIssue) {
+          errors.push(shapeIssue);
+          continue;
+        }
+
+        const annotationId =
+          typeof annotation.annotationId === 'string' && annotation.annotationId.length > 0
+            ? annotation.annotationId
+            : 'unknown';
+
         if (seenAnnotationIds.has(annotation.annotationId)) {
           errors.push(
             issue({
@@ -292,24 +305,14 @@ export function validateContentPackage(
           seenAnnotationIds.add(annotation.annotationId);
         }
 
-        if (annotation.sourceTarget.strategy === PHRASE_OCCURRENCE_STRATEGY) {
-          const logicalKey = annotationLogicalKey({
-            type: annotation.type,
-            strategy: annotation.sourceTarget.strategy,
-            phrase: annotation.sourceTarget.phrase,
-            occurrenceIndex: annotation.sourceTarget.occurrenceIndex,
-          });
-          if (seenLogicalAnnotations.has(logicalKey)) {
-            errors.push(
-              issue({
-                code: 'duplicate_annotation',
-                field: 'phrase',
-                reason: `Card "${card.cardId}" has a duplicate ${annotation.type} annotation for phrase "${annotation.sourceTarget.phrase}" at occurrence ${annotation.sourceTarget.occurrenceIndex}.`,
-              }),
-            );
-          } else {
-            seenLogicalAnnotations.add(logicalKey);
-          }
+        if (annotation.cardId !== card.cardId) {
+          errors.push(
+            issue({
+              code: 'annotation_ownership_mismatch',
+              field: 'cardId',
+              reason: `Annotation "${annotationId}" cardId "${String(annotation.cardId)}" does not match containing Card "${card.cardId}".`,
+            }),
+          );
         }
 
         errors.push(
@@ -337,14 +340,46 @@ export function validateContentPackage(
           );
           continue;
         }
+
+        const occurrenceIndex = (annotation.sourceTarget as { occurrenceIndex?: unknown }).occurrenceIndex;
+        if (!isExplicitOccurrenceIndex(occurrenceIndex)) {
+          errors.push(occurrenceIndexPackageIssue(card.cardId, annotationId, occurrenceIndex));
+          continue;
+        }
+
+        const logicalKey = annotationLogicalKey({
+          type: annotation.type,
+          strategy: annotation.sourceTarget.strategy,
+          phrase: annotation.sourceTarget.phrase,
+          occurrenceIndex,
+        });
+        if (seenLogicalAnnotations.has(logicalKey)) {
+          errors.push(
+            issue({
+              code: 'duplicate_annotation',
+              field: 'phrase',
+              reason: `Card "${card.cardId}" has a duplicate ${annotation.type} annotation for phrase "${annotation.sourceTarget.phrase}" at occurrence ${occurrenceIndex}.`,
+            }),
+          );
+        } else {
+          seenLogicalAnnotations.add(logicalKey);
+        }
+
+        if (verseTextIssue) {
+          continue;
+        }
         const resolved = resolveAnnotationTarget({
           verseText: card.verseText,
-          sourceTarget: annotation.sourceTarget,
+          sourceTarget: {
+            strategy: PHRASE_OCCURRENCE_STRATEGY,
+            phrase: annotation.sourceTarget.phrase,
+            occurrenceIndex,
+          },
         });
         if (resolved.error) {
           errors.push({
             ...resolved.error,
-            reason: `Card "${card.cardId}" annotation "${annotation.annotationId}": ${resolved.error.reason}`,
+            reason: `Card "${card.cardId}" annotation "${annotationId}": ${resolved.error.reason}`,
           });
         } else if (
           !resolved.resolved ||
@@ -355,7 +390,7 @@ export function validateContentPackage(
             issue({
               code: 'invalid_annotation_target',
               field: 'resolvedTarget',
-              reason: `Card "${card.cardId}" annotation "${annotation.annotationId}" resolved span does not match the verse text.`,
+              reason: `Card "${card.cardId}" annotation "${annotationId}" resolved span does not match the verse text.`,
             }),
           );
         }
@@ -424,4 +459,108 @@ export function validateContentPackage(
   }
 
   return errors;
+}
+
+/**
+ * Required Scripture text on every Card, annotated or not.
+ * trim() decides whether a string is blank. It is not written back onto the Card.
+ * A failure is recorded before annotation spans are resolved.
+ */
+function cardVerseTextIssue(cardId: string, value: unknown): ValidationIssue | undefined {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return undefined;
+  }
+
+  const absent = value === undefined || value === null || value === '';
+  let detail: string;
+  if (value === undefined) {
+    detail = 'It is missing.';
+  } else if (value === '') {
+    detail = 'It is empty.';
+  } else {
+    detail = `Received ${JSON.stringify(value)}.`;
+  }
+
+  return issue({
+    code: absent ? 'missing_required_field' : 'invalid_verse_text',
+    field: 'verseText',
+    reason: `Card "${cardId}" verseText must be a non-empty string. ${detail}`,
+  });
+}
+
+function isExplicitOccurrenceIndex(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1;
+}
+
+function occurrenceIndexPackageIssue(
+  cardId: string,
+  annotationId: string,
+  value: unknown,
+): ValidationIssue {
+  const detail = value === undefined ? 'It is missing.' : `Received ${JSON.stringify(value)}.`;
+  return issue({
+    code: 'invalid_occurrence_index',
+    field: 'occurrenceIndex',
+    reason: `Card "${cardId}" annotation "${annotationId}" requires an explicit occurrenceIndex that is a whole number of 1 or greater. ${detail}`,
+  });
+}
+
+/**
+ * Required package startDate and endDate. Optional season metadata, including
+ * igniteAvailabilityDate, stays out of this check.
+ */
+function packageSeasonDateIssues(season: object): ValidationIssue[] {
+  const record = season as { startDate?: unknown; endDate?: unknown };
+  const errors: ValidationIssue[] = [];
+  const startDate = readRequiredSeasonDate('startDate', record.startDate, errors);
+  const endDate = readRequiredSeasonDate('endDate', record.endDate, errors);
+  if (startDate && endDate && startDate > endDate) {
+    errors.push(
+      issue({
+        code: 'invalid_date_range',
+        field: 'endDate',
+        reason: `Season endDate ${endDate} is before startDate ${startDate}. startDate must be on or before endDate.`,
+      }),
+    );
+  }
+  return errors;
+}
+
+function readRequiredSeasonDate(
+  field: 'startDate' | 'endDate',
+  value: unknown,
+  errors: ValidationIssue[],
+): string | undefined {
+  if (value === undefined || value === null || (typeof value === 'string' && value.trim().length === 0)) {
+    errors.push(
+      issue({
+        code: 'missing_required_field',
+        field,
+        reason: `Season ${field} is required.`,
+      }),
+    );
+    return undefined;
+  }
+  if (typeof value !== 'string' || !ISO_DATE_SHAPE.test(value)) {
+    const shown = typeof value === 'string' ? `"${value}"` : JSON.stringify(value);
+    errors.push(
+      issue({
+        code: 'invalid_date',
+        field,
+        reason: `Season ${field} ${shown} must be an ISO calendar date (YYYY-MM-DD).`,
+      }),
+    );
+    return undefined;
+  }
+  if (!isIsoCalendarDate(value)) {
+    errors.push(
+      issue({
+        code: 'invalid_date',
+        field,
+        reason: `Season ${field} "${value}" is not a real calendar date.`,
+      }),
+    );
+    return undefined;
+  }
+  return value;
 }

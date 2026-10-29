@@ -630,7 +630,7 @@ export async function readSponsorWorkbookBuffer(
 }
 
 /**
- * Reads each profile source once. Cadet is read only when the profile lists it.
+ * Reads each profile source once. The default 2027 profile includes Cadet.
  * Any workbook error fails the profile read and withholds every verse list.
  */
 export async function readSponsorProfileVerseLists(

@@ -17,7 +17,6 @@ import { interpretSponsorCell } from './sponsorCell';
 import { readSponsorFrequencyWords } from './readSponsorFrequencyWords';
 import { readSponsorVerseListWorkbook } from './readSponsorVerseList';
 import {
-  WPFBQ_2027_CADET_WORKBOOK_SOURCE,
   WPFBQ_2027_SPONSOR_PROFILE,
   type SponsorSourceProfile,
   type SponsorWorkbookSource,
@@ -141,7 +140,7 @@ function officialSponsorFileIssue(source: SponsorWorkbookSource): ValidationIssu
   if (!OFFICIAL_SPONSOR_FILE_NAME.test(baseName)) {
     return undefined;
   }
-  const approved = [...WPFBQ_2027_SPONSOR_PROFILE.sources, WPFBQ_2027_CADET_WORKBOOK_SOURCE].find(
+  const approved = WPFBQ_2027_SPONSOR_PROFILE.sources.find(
     (item) => path.basename(item.fileName).toLowerCase() === baseName.toLowerCase(),
   );
   if (!approved) {
@@ -236,9 +235,12 @@ function rulesVersionErrors(loads: readonly SponsorWorkbookLoad[]): ValidationIs
 /**
  * Reads each profile workbook once, generates official annotations, maps every
  * MaterialSet target, and runs validate → convert → package validation →
- * reconcile → fingerprint. Cadet is included only when the profile lists it.
- * The draft is not written and is not treated as a complete importable season
- * package. requireAllOfficialDivisions stays false only on this path.
+ * reconcile → fingerprint. The default profile lists Cadet, Beginner, Junior,
+ * and Senior. Senior is read once. This function does not write a package and
+ * does not import it. Package validation on this path allows a caller-supplied
+ * partial profile so an incomplete draft can be inspected. The default
+ * validator still rejects a package that is missing an official division.
+ * Passing validation does not authorize import, activation, or publication.
  */
 export async function buildOfficialSponsorDraft(input: {
   directory: string;

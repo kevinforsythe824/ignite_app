@@ -11,7 +11,7 @@ export interface SponsorMaterialSetTarget {
 
 /**
  * One official workbook in a sponsor profile.
- * Adding a workbook, including a future Cadet file, is another entry here.
+ * Adding a workbook is another entry here.
  * The Verse List reader does not branch on these file names.
  */
 export interface SponsorWorkbookSource {
@@ -28,13 +28,24 @@ export interface SponsorSourceProfile {
 }
 
 /**
- * Official 2027 workbooks that are present locally.
- * Senior is one source with two MaterialSet targets.
- * Cadet is intentionally absent until its workbook exists.
+ * Cadet workbook. The 2027 profile below references this object.
+ * Describing it does not read a file.
+ */
+export const WPFBQ_2027_CADET_WORKBOOK_SOURCE = {
+  sourceId: 'cadet',
+  fileName: 'WPFBQ_2027_Cadet_Data_Workbook.xlsx',
+  materialSets: [{ divisionId: 'cadet', materialSetId: 'cadet-2027' }],
+} as const satisfies SponsorWorkbookSource;
+
+/**
+ * Official 2027 workbooks.
+ * Order is Cadet, Beginner, Junior, then Senior.
+ * Senior is one source with two MaterialSet targets and is read once.
  */
 export const WPFBQ_2027_SPONSOR_PROFILE = {
   seasonId: '2027',
   sources: [
+    WPFBQ_2027_CADET_WORKBOOK_SOURCE,
     {
       sourceId: 'beginner',
       fileName: 'WPFBQ_2027_Beginner_Data_Workbook.xlsx',
@@ -55,13 +66,3 @@ export const WPFBQ_2027_SPONSOR_PROFILE = {
     },
   ],
 } as const satisfies SponsorSourceProfile;
-
-/**
- * Future Cadet source. Describing this object does not read a file and does not
- * invent Cadet cards. The three-workbook profile above does not include it.
- */
-export const WPFBQ_2027_CADET_WORKBOOK_SOURCE = {
-  sourceId: 'cadet',
-  fileName: 'WPFBQ_2027_Cadet_Data_Workbook.xlsx',
-  materialSets: [{ divisionId: 'cadet', materialSetId: 'cadet-2027' }],
-} as const satisfies SponsorWorkbookSource;

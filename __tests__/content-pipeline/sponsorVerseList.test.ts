@@ -637,13 +637,18 @@ describe('sponsor Verse List reader', () => {
 });
 
 describe('sponsor source profile', () => {
-  it('maps beginner, junior, and one senior workbook onto the 2027 material set ids', () => {
+  it('maps cadet, beginner, junior, and one senior workbook onto the 2027 material set ids', () => {
     expect(WPFBQ_2027_SPONSOR_PROFILE.seasonId).toBe('2027');
     expect(WPFBQ_2027_SPONSOR_PROFILE.sources.map((source) => ({
       sourceId: source.sourceId,
       fileName: source.fileName,
       materialSetIds: source.materialSets.map((target) => target.materialSetId),
     }))).toEqual([
+      {
+        sourceId: 'cadet',
+        fileName: 'WPFBQ_2027_Cadet_Data_Workbook.xlsx',
+        materialSetIds: ['cadet-2027'],
+      },
       {
         sourceId: 'beginner',
         fileName: 'WPFBQ_2027_Beginner_Data_Workbook.xlsx',
@@ -660,9 +665,7 @@ describe('sponsor source profile', () => {
         materialSetIds: ['intermediate-2027', 'experienced-2027'],
       },
     ]);
-    expect(WPFBQ_2027_SPONSOR_PROFILE.sources.map((source) => source.fileName)).not.toContain(
-      WPFBQ_2027_CADET_WORKBOOK_SOURCE.fileName,
-    );
+    expect(WPFBQ_2027_SPONSOR_PROFILE.sources[0]).toBe(WPFBQ_2027_CADET_WORKBOOK_SOURCE);
   });
 
   it('associates one senior workbook read with intermediate and experienced', async () => {
@@ -687,7 +690,7 @@ describe('sponsor source profile', () => {
     ]);
   });
 
-  it('describes a future Cadet source and reads it with the same Verse List parser', async () => {
+  it('describes the Cadet source and reads it with the same Verse List parser', async () => {
     const cadet: SponsorWorkbookSource = WPFBQ_2027_CADET_WORKBOOK_SOURCE;
     expect(cadet).toEqual({
       sourceId: 'cadet',
@@ -708,7 +711,7 @@ describe('sponsor source profile', () => {
     expect(result.source.materialSets).toEqual([{ divisionId: 'cadet', materialSetId: 'cadet-2027' }]);
   });
 
-  it('reads the three-workbook profile from temp files while the Cadet file is absent', async () => {
+  it('reads the four-workbook profile once per source', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'ignite-sponsor-profile-'));
     try {
       const buffer = await buildVerseListBuffer({
@@ -717,16 +720,20 @@ describe('sponsor source profile', () => {
       for (const source of WPFBQ_2027_SPONSOR_PROFILE.sources) {
         await writeFile(path.join(directory, source.fileName), buffer);
       }
-      expect(existsSync(path.join(directory, WPFBQ_2027_CADET_WORKBOOK_SOURCE.fileName))).toBe(false);
 
       const result = await readSponsorProfileVerseLists(directory, WPFBQ_2027_SPONSOR_PROFILE);
 
       if (!result.ok) {
         throw new Error(result.errors.map((item) => item.reason).join('\n'));
       }
-      expect(result.reads.map((item) => item.source.sourceId)).toEqual(['beginner', 'junior', 'senior']);
-      expect(result.reads).toHaveLength(3);
-      const senior = result.reads[2];
+      expect(result.reads.map((item) => item.source.sourceId)).toEqual([
+        'cadet',
+        'beginner',
+        'junior',
+        'senior',
+      ]);
+      expect(result.reads).toHaveLength(4);
+      const senior = result.reads.find((item) => item.source.sourceId === 'senior');
       expect(senior?.verseList.rows).toHaveLength(1);
       expect(senior?.source.materialSets.map((target) => target.materialSetId)).toEqual([
         'intermediate-2027',
@@ -737,21 +744,20 @@ describe('sponsor source profile', () => {
     }
   });
 
-  it('fails closed when a profile lists Cadet and that file is missing', async () => {
+  it('fails closed when the profile lists Cadet and that file is missing', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'ignite-sponsor-cadet-'));
     try {
       const buffer = await buildVerseListBuffer({
         rows: [card(1, { Battlefield: 1, Question: 'Prompt A', Section: 'Opening' })],
       });
       for (const source of WPFBQ_2027_SPONSOR_PROFILE.sources) {
+        if (source.sourceId === 'cadet') {
+          continue;
+        }
         await writeFile(path.join(directory, source.fileName), buffer);
       }
-      const profile = {
-        seasonId: WPFBQ_2027_SPONSOR_PROFILE.seasonId,
-        sources: [...WPFBQ_2027_SPONSOR_PROFILE.sources, WPFBQ_2027_CADET_WORKBOOK_SOURCE],
-      };
 
-      const result = await readSponsorProfileVerseLists(directory, profile);
+      const result = await readSponsorProfileVerseLists(directory, WPFBQ_2027_SPONSOR_PROFILE);
 
       if (result.ok) {
         throw new Error('Expected the missing Cadet workbook to fail the profile read.');
@@ -785,6 +791,7 @@ const OFFICIAL_SECTIONS = [
 ] as const;
 
 const OFFICIAL_EXPECTATIONS = [
+  { sourceId: 'cadet', cards: 50, prepareBlankRows: 9, battlefieldKind: 'number' },
   { sourceId: 'beginner', cards: 150, prepareBlankRows: 10, battlefieldKind: 'number' },
   { sourceId: 'junior', cards: 250, prepareBlankRows: 12, battlefieldKind: 'string' },
   { sourceId: 'senior', cards: 392, prepareBlankRows: 12, battlefieldKind: 'number' },
@@ -830,6 +837,8 @@ function expectPreserved(actual: unknown, raw: ExcelJS.CellValue, label: string)
 const officialDescribe = officialWorkbooksPresent() ? describe : describe.skip;
 
 officialDescribe('official local sponsor workbooks (skipped when the gitignored files are absent)', () => {
+  jest.setTimeout(120000);
+
   it('reads each Verse List once, preserves source cells, and keeps Prepare blanks blank', async () => {
     const directory = path.join(process.cwd(), 'content/authoring/local');
     const result = await readSponsorProfileVerseLists(directory, WPFBQ_2027_SPONSOR_PROFILE);
@@ -837,7 +846,12 @@ officialDescribe('official local sponsor workbooks (skipped when the gitignored 
       throw new Error(result.errors.map((item) => `${item.code}: ${item.reason}`).join('\n'));
     }
 
-    expect(result.reads.map((item) => item.source.sourceId)).toEqual(['beginner', 'junior', 'senior']);
+    expect(result.reads.map((item) => item.source.sourceId)).toEqual([
+      'cadet',
+      'beginner',
+      'junior',
+      'senior',
+    ]);
 
     for (const expected of OFFICIAL_EXPECTATIONS) {
       const read = result.reads.find((item) => item.source.sourceId === expected.sourceId);
@@ -874,7 +888,7 @@ officialDescribe('official local sponsor workbooks (skipped when the gitignored 
       'intermediate-2027',
       'experienced-2027',
     ]);
-    expect(result.reads).toHaveLength(3);
+    expect(result.reads).toHaveLength(4);
   });
 });
 

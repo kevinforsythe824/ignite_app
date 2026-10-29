@@ -22,6 +22,8 @@ const LOCAL_DIR = path.join(process.cwd(), 'content/authoring/local');
 const REFERENCE_SEPARATOR = ' \u00b7 ';
 const CONFIRMED_SEASON_DATES = { startDate: '2027-01-01', endDate: '2027-08-31' } as const;
 const WORKBOOK_SHA256: Readonly<Record<string, string>> = {
+  'WPFBQ_2027_Cadet_Data_Workbook.xlsx':
+    '4df71ca79b5bf4e659d73be648fe6e4e6d91a85317364968ddf7c6b3b36d13cd',
   'WPFBQ_2027_Beginner_Data_Workbook.xlsx':
     '4515cf815ca3ba38fd2ce4ccec7064d7a3c42ff540d17b3a153e3178130ccee7',
   'WPFBQ_2027_Junior_Data_Workbook.xlsx':

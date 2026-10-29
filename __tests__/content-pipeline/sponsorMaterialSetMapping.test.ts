@@ -396,12 +396,12 @@ describe('sponsor verse list mapping', () => {
     expect(strict.report.errors.some((item) => item.code === 'material_set_count')).toBe(true);
   });
 
-  it('does not invent Cadet from the 2027 profile and can map a future Cadet target', () => {
+  it('lists Cadet first in the 2027 profile and can map that target', () => {
     expect(
       WPFBQ_2027_SPONSOR_PROFILE.sources.flatMap((source) =>
         source.materialSets.map((target) => target.divisionId),
       ),
-    ).toEqual(['beginner', 'junior', 'intermediate', 'experienced']);
+    ).toEqual(['cadet', 'beginner', 'junior', 'intermediate', 'experienced']);
 
     const empty = mapSponsorVerseListToWorkbooks({
       verseList: verseList('empty.xlsx', [row(1, 'Only')]),

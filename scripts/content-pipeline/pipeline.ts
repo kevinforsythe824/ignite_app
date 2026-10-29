@@ -20,6 +20,7 @@ import type {
 } from './types';
 import { resolvePackageOutputDir } from './seasonIdPath';
 import { validateContentPackage } from './validatePackage';
+import { contentDocumentIssue, manifestConsistencyIssues, readManifestDocument } from './validateManifest';
 import { validateSourceCollection, validateSourceWorkbook } from './validateSource';
 import { parseWorkbookBuffer, parseWorkbookFile } from './workbookIo';
 
@@ -52,8 +53,9 @@ function reportedSchemaVersion(
 export interface PipelineRunOptions {
   generatedAt?: string;
   /**
-   * Default true. False is only for a local official draft that does not yet
-   * include every division. Import and package generation leave this unset.
+   * Default true. False is only for local inspection of a caller-supplied
+   * profile that does not yet include every division. Import and package
+   * generation leave this unset. A passing package is still not an import.
    */
   requireAllOfficialDivisions?: boolean;
 }
@@ -288,29 +290,71 @@ export async function generatePackageFromPath(
 }
 
 export async function validatePackageDirectory(packageDir: string): Promise<PipelineResult> {
-  const contentRaw = await readFile(path.join(packageDir, 'content.json'), 'utf8');
-  const content = JSON.parse(contentRaw) as ContentPackage;
+  const contentPath = path.join(packageDir, 'content.json');
+  let contentRaw: string;
+  try {
+    contentRaw = await readFile(contentPath, 'utf8');
+  } catch {
+    return unreadPackage([
+      {
+        severity: 'error',
+        code: 'missing_content',
+        field: 'content.json',
+        reason: 'content.json is missing or unreadable.',
+      },
+    ]);
+  }
+
+  let parsedContent: unknown;
+  try {
+    parsedContent = JSON.parse(contentRaw) as unknown;
+  } catch {
+    return unreadPackage([
+      {
+        severity: 'error',
+        code: 'malformed_content',
+        field: 'content.json',
+        reason: 'content.json is not valid JSON.',
+      },
+    ]);
+  }
+
+  // Nested annotation values are rejected here, before package rules or fingerprinting.
+  const shapeIssue = contentDocumentIssue(parsedContent);
+  if (shapeIssue) {
+    return unreadPackage([shapeIssue]);
+  }
+  const content = parsedContent as ContentPackage;
   const errors = validateContentPackage(content);
-  const status = errors.length === 0 ? 'passed' : 'failed';
 
   let manifest: PackageManifest | undefined;
   try {
-    manifest = JSON.parse(
-      await readFile(path.join(packageDir, 'manifest.json'), 'utf8'),
-    ) as PackageManifest;
-    const expected = fingerprintContent(content);
-    if (manifest.fingerprint !== expected) {
+    const manifestRaw = await readFile(path.join(packageDir, 'manifest.json'), 'utf8');
+    let parsedManifest: unknown;
+    try {
+      parsedManifest = JSON.parse(manifestRaw) as unknown;
+    } catch {
       errors.push({
         severity: 'error',
-        code: 'fingerprint_mismatch',
-        field: 'fingerprint',
-        reason: 'manifest.json fingerprint does not match content.json.',
+        code: 'malformed_manifest',
+        field: 'manifest.json',
+        reason: 'manifest.json is not valid JSON.',
       });
+      parsedManifest = undefined;
+    }
+    if (parsedManifest !== undefined) {
+      const read = readManifestDocument(parsedManifest);
+      errors.push(...read.errors);
+      if (read.manifest) {
+        manifest = read.manifest;
+        errors.push(...manifestConsistencyIssues(content, read.manifest));
+      }
     }
   } catch {
     errors.push({
       severity: 'error',
       code: 'missing_manifest',
+      field: 'manifest.json',
       reason: 'manifest.json is missing or unreadable.',
     });
   }
@@ -321,10 +365,23 @@ export async function validatePackageDirectory(packageDir: string): Promise<Pipe
     content,
     manifest,
     report: {
-      status: errors.length === 0 ? status : 'failed',
-      schemaVersion: CONTENT_SCHEMA_VERSION,
+      status: errors.length === 0 ? 'passed' : 'failed',
+      schemaVersion: content.schemaVersion || CONTENT_SCHEMA_VERSION,
       seasonId: content.season?.seasonId,
       errors,
+      warnings: [],
+    },
+  };
+}
+
+function unreadPackage(errors: readonly ValidationIssue[]): PipelineResult {
+  return {
+    status: 'failed',
+    workbooks: [],
+    report: {
+      status: 'failed',
+      schemaVersion: CONTENT_SCHEMA_VERSION,
+      errors: [...errors],
       warnings: [],
     },
   };

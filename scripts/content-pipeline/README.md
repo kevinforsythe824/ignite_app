@@ -22,11 +22,12 @@ Do not add ExcelJS to the mobile app runtime.
 npm run content:validate-source -- --input content/authoring/synthetic
 npm run content:generate-package -- --input content/authoring/synthetic --output content/packages
 npm run content:validate-package -- --package content/packages/dev-synthetic-s3
+npm run content:validate-official-draft -- --input content/authoring/local --start 2027-01-01 --end 2027-08-31
 npm run content:write-authoring-files
 npm run content:typecheck
 ```
 
-Defaults point at the synthetic DEV dataset. There is no admin UI and no STAGING/PROD write path.
+`content:validate-official-draft` reads the sponsor workbooks already present in the given directory, builds the five-MaterialSet draft in memory, and prints a summary. It does not write `content/packages`, and it does not import, activate, or publish. Season dates are required arguments. There is no admin UI and no STAGING/PROD write path.
 
 ## Flow
 

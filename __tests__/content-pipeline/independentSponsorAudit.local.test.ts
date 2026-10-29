@@ -14,6 +14,8 @@ import { auditOfficialSponsorAnnotations } from '../../test-utils/independentSpo
 const LOCAL_DIR = path.join('content', 'authoring', 'local');
 const SEASON_DATES = { startDate: '2027-01-01', endDate: '2027-08-31' } as const;
 const WORKBOOK_SHA256: Readonly<Record<string, string>> = {
+  'WPFBQ_2027_Cadet_Data_Workbook.xlsx':
+    '4df71ca79b5bf4e659d73be648fe6e4e6d91a85317364968ddf7c6b3b36d13cd',
   'WPFBQ_2027_Beginner_Data_Workbook.xlsx':
     '4515cf815ca3ba38fd2ce4ccec7064d7a3c42ff540d17b3a153e3178130ccee7',
   'WPFBQ_2027_Junior_Data_Workbook.xlsx':
@@ -126,31 +128,52 @@ describe('annotation serialization preserves source fields', () => {
     expect(report.discrepancyCount).toBe(0);
     expect(report.discrepancies).toEqual([]);
 
+    const cadet = report.stats.find((item) => item.workbook.includes('Cadet'));
     const beginner = report.stats.find((item) => item.workbook.includes('Beginner'));
     const junior = report.stats.find((item) => item.workbook.includes('Junior'));
     const senior = report.stats.find((item) => item.workbook.includes('Senior'));
-    if (!beginner || !junior || !senior) {
-      throw new Error('expected three workbook audits');
+    if (!cadet || !beginner || !junior || !senior) {
+      throw new Error('expected four workbook audits');
     }
+    expect(cadet.verseRows).toBe(50);
+    expect(cadet.uniqueBeginnings).toBe(50);
+    expect(cadet.uniqueEndings).toBe(50);
+    expect(cadet.blankBeginnings).toBe(0);
+    expect(cadet.blankEndings).toBe(0);
+    expect(cadet.frequencyEntries).toBe(189);
+    expect(cadet.frequencyOccurrences).toBe(196);
+    expect(cadet.frequencyByTier).toEqual({ 1: { entries: 189, occurrences: 196 } });
+    expect(cadet.leadingPunctuationVerses).toBe(1);
+    expect(cadet.beginningsThatIncludeLeadingPunctuation).toBe(0);
+    expect(cadet.repeatedEndings.map((ending) => ending.reference).sort()).toEqual([
+      '2 Corinthians 10:3',
+      'Ephesians 6:13',
+      'Psalm 56:10',
+    ]);
+    expect(cadet.repeatedEndings.every((ending) => ending.occurrenceIndex > 1)).toBe(true);
     expect(beginner.repeatedEndings).toHaveLength(9);
     expect(junior.repeatedEndings).toHaveLength(16);
     expect(senior.repeatedEndings).toHaveLength(20);
     expect(senior.beginningsThatIncludeLeadingPunctuation).toBe(0);
     expect(senior.leadingPunctuationVerses).toBeGreaterThan(0);
-    for (const item of [beginner, junior, senior]) {
+    for (const item of [cadet, beginner, junior, senior]) {
       expect(item.repeatedEndings.every((ending) => ending.occurrenceIndex > 1)).toBe(true);
       expect(item.blankBeginnings).toBe(0);
       expect(item.blankEndings).toBe(0);
     }
     const sourceAnnotations =
+      cadet.uniqueBeginnings +
+      cadet.uniqueEndings +
+      cadet.frequencyOccurrences +
       beginner.uniqueBeginnings +
       beginner.uniqueEndings +
       beginner.frequencyOccurrences +
       (junior.uniqueBeginnings + junior.uniqueEndings + junior.frequencyOccurrences) +
       (senior.uniqueBeginnings + senior.uniqueEndings + senior.frequencyOccurrences) * 2;
     expect(report.totalGenerated).toBe(sourceAnnotations);
-    expect(report.totalGenerated).toBe(7792);
+    expect(report.totalGenerated).toBe(8088);
     expect(report.materialSets.map((item) => [item.materialSetId, item.cards, item.total])).toEqual([
+      ['cadet-2027', 50, 296],
       ['beginner-2027', 150, 741],
       ['junior-2027', 250, 1643],
       ['intermediate-2027', 392, 2704],
